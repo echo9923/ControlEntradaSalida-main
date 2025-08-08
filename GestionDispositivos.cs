@@ -108,7 +108,18 @@ namespace ControlEntradaSalida
                             lvi.SubItems.Add(rdr["direccionip"].ToString());//设备ip
                             lvi.SubItems.Add(rdr["puerto"].ToString());//设备端口
                             lvi.SubItems.Add(rdr["usuario"].ToString());//设备用户
-                            if (Common.m_UserID >= 0)//连接状态
+                            // 检查当前设备是否是已连接的设备
+                            string currentIp = rdr["direccionip"].ToString();
+                            string currentPort = rdr["puerto"].ToString();
+                            bool isConnected = false;
+                            
+                            // 如果有设备连接，检查是否是当前设备
+                            if (Common.m_UserID >= 0 && !string.IsNullOrEmpty(Common.ip) && !string.IsNullOrEmpty(Common.puerto))
+                            {
+                                isConnected = (Common.ip == currentIp && Common.puerto == currentPort);
+                            }
+                            
+                            if (isConnected)
                             {
                                 lvi.SubItems.Add("Conectado");
                             } else
@@ -169,10 +180,7 @@ namespace ControlEntradaSalida
                     frmLoginDevice.predeterminado = predeterminado;
                     frmLoginDevice.ultimavez = ultimavez;
                     frmLoginDevice.ShowDialog();
-                    if (Common.m_UserID >= 0)
-                    {
-                        this.listView.Items[index].SubItems[6].Text = "Conectado";//更新设备状态为“连接”
-                    }
+                    // 设备连接状态已在 ConsultarDispositivos 中正确处理
                     ConsultarDispositivos();
 
                 }
@@ -185,12 +193,7 @@ namespace ControlEntradaSalida
             frmLoginDevice.nuevo = true;
             frmLoginDevice.ShowDialog();
             ConsultarDispositivos();
-            if (Common.m_UserID >= 0)
-            {
-                int elementos = this.listView.Items.Count;
-                this.listView.Items[elementos-1].SubItems[6].Text = "Conectado";//更新设备状态为“连接”
-
-            }
+            // 新设备连接状态已在 ConsultarDispositivos 中正确处理
         }
         //删除设备
         private void buttonEliminar_Click(object sender, EventArgs e)
