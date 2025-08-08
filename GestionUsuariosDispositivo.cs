@@ -1,0 +1,605 @@
+﻿using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Data;
+using System.Drawing;
+using System.Linq;
+using System.Runtime.InteropServices;
+using System.Text;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+using MySql.Data.MySqlClient;
+using Newtonsoft.Json;
+
+namespace ControlEntradaSalida
+{   /*通过 ISAPI 接口操作设备上的用户信息。
+     * 从设备中读取用户列表（员工）并显示；
+     * 查询单个用户详细信息；
+     * 添加用户卡片（虚拟发卡）
+     * 删除设备上的用户
+     * 备份用户信息到本地 MySQL 数据库
+     * 同步用户列表并进行增删查操作
+     */
+    public partial class GestionUsuariosDispositivo : Form
+    {
+        private uint iLastErr = 0;
+        private string strErr;
+        //初始化窗体
+        public GestionUsuariosDispositivo()
+        {
+            InitializeComponent();
+        }
+
+        //向设备发送 JSON 请求，并获取结果
+        private bool ISAPIQuery(string requestURL, string inputParam, out string outputResult, out string outputStatus)
+        {
+            bool retval = true;
+
+            HCNetSDK.NET_DVR_XML_CONFIG_INPUT pInputXml = new HCNetSDK.NET_DVR_XML_CONFIG_INPUT();
+            Int32 nInSize = Marshal.SizeOf(pInputXml);
+            pInputXml.dwSize = (uint)nInSize;
+
+            string strRequestUrl = requestURL;
+            uint dwRequestUrlLen = (uint)strRequestUrl.Length;
+            pInputXml.lpRequestUrl = Marshal.StringToHGlobalAnsi(strRequestUrl);
+            pInputXml.dwRequestUrlLen = dwRequestUrlLen;
+
+            string strInputParam = inputParam;
+
+            pInputXml.lpInBuffer = Marshal.StringToHGlobalAnsi(strInputParam);
+            pInputXml.dwInBufferSize = (uint)strInputParam.Length;
+
+            HCNetSDK.NET_DVR_XML_CONFIG_OUTPUT pOutputXml = new HCNetSDK.NET_DVR_XML_CONFIG_OUTPUT();
+            pOutputXml.dwSize = (uint)Marshal.SizeOf(pInputXml);
+            pOutputXml.lpOutBuffer = Marshal.AllocHGlobal(3 * 1024 * 1024);
+            pOutputXml.dwOutBufferSize = 3 * 1024 * 1024;
+            pOutputXml.lpStatusBuffer = Marshal.AllocHGlobal(4096 * 4);
+            pOutputXml.dwStatusSize = 4096 * 4;
+
+            if (!HCNetSDK.NET_DVR_STDXMLConfig(Common.m_UserID, ref pInputXml, ref pOutputXml))//发送 XML/JSON,返回是否成功，并输出 outputResult 和 outputStatus
+            {
+                iLastErr = HCNetSDK.NET_DVR_GetLastError();
+                outputResult = "NET_DVR_STDXMLConfig failed, error code= " + iLastErr;
+                // Failed to send XML data and output the error code
+                // MessageBox.Show(strErr);
+                retval = false;
+            }
+
+            string strOutputParam = Marshal.PtrToStringAnsi(pOutputXml.lpOutBuffer);
+            outputResult = Encoding.ASCII.GetString(Encoding.ASCII.GetBytes(strOutputParam));
+
+            outputStatus = Marshal.PtrToStringAnsi(pOutputXml.lpStatusBuffer);
+
+            Marshal.FreeHGlobal(pInputXml.lpRequestUrl);
+            Marshal.FreeHGlobal(pOutputXml.lpOutBuffer);
+            Marshal.FreeHGlobal(pOutputXml.lpStatusBuffer);
+            return retval;
+        }
+
+        //向设备添加用户卡片（卡号与员工编号相同）
+        private bool AgregarTarjetaUsuario(string id)
+        {
+            bool retval = false;            
+            string url = "POST /ISAPI/AccessControl/CardInfo/Record?format=json";
+            string CardInfo = "{{\"CardInfo\" : {{\"employeeNo\": \"{0}\",\"cardNo\": \"{0}\",\"cardType\": \"normalCard\",\"checkCardNo\": true }}}}";
+            string CardInfoValues = String.Format(CardInfo, id);
+
+            string outputString = null;
+            string outputStatus = null;
+            Common cmn = new Common();
+            string jsonresult = "";
+
+            bool result = cmn.ISAPIQuery(url, CardInfoValues, out outputString, out outputStatus);//向设备发送 JSON 请求，并获取结果
+            bool flag = true;
+            if (result)
+            {
+                jsonresult = outputString;
+                
+            }
+            else
+            {
+                jsonresult = outputStatus;
+                flag = false;
+
+            }
+
+            string statusCode = "";
+            string subStatusCode = "";
+            string statusString = "";
+            try
+            {
+                dynamic DynamicData = JsonConvert.DeserializeObject(jsonresult);
+                statusCode = DynamicData.statusCode;
+                subStatusCode = DynamicData.subStatusCode;
+                statusString = DynamicData.statusString;
+
+                if (statusCode == "1" && statusString == "OK" && subStatusCode == "ok")
+                {
+                    retval = true;
+                }
+            } catch
+            {
+                MessageBox.Show("处理在 AgregarTarjetaUsuario() 中查询 ISAPI 的 JSON 响应时发生错误", "JSON解析错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return false;
+            }
+
+            if (!flag)
+                MessageBox.Show("在添加用户卡时尝试 ISAPI 查询时发生错误。状态代码： " + statusCode + " 子状态代码: " + subStatusCode + " 状态字符串：" + statusString, "ISAPI查询错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
+
+            return retval;
+
+        }
+
+        //查询所有设备上注册的用户（分页批量）,每次最多返回 5000 个员工信息列表
+        private List<EmpleadoData> CargarInfoUsuariosDispositivo(out string responseStatusStrg, out int totalMatches, out int numOfMatches, int searchResultPosition)
+        {
+            bool flag = true;
+            
+            responseStatusStrg = null;
+            totalMatches = 0;
+            numOfMatches = 0;
+            
+
+            List<EmpleadoData> listauserdata = new List<EmpleadoData>();
+            string url = "POST /ISAPI/AccessControl/UserInfo/Search?format=json";//查询命令
+
+            string UserInfoSearchCond = "{ \"UserInfoSearchCond\": { \"searchID\": \"100\", \"searchResultPosition\": " + searchResultPosition.ToString() + ", \"maxResults\": 5000 } }";
+
+            string outputString = null;
+            string outputStatus = null;
+            
+            Common cmn = new Common();
+            string jsonresult = "";
+
+            bool result = cmn.ISAPIQuery(url, UserInfoSearchCond, out outputString, out outputStatus);
+            if (!result)
+            {
+                jsonresult = outputStatus;
+                try 
+                {
+                    dynamic DynamicData = JsonConvert.DeserializeObject(jsonresult);
+                    string statusCode = DynamicData.statusCode;
+                    string subStatusCode = DynamicData.subStatusCode;
+                    string statusString = DynamicData.statusString;
+                    MessageBox.Show("在CargarInfoUsuariosDispositivo()中尝试ISAPI查询时发生错误。状态代码： " + statusCode + "子状态代码: " + subStatusCode + " 状态字符串： " + statusString, "ISAPI查询错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                } catch
+                {
+                    MessageBox.Show("在CargarInfoUsuariosDispositivo()中处理ISAPI查询的JSON响应时发生错误，result = false", "JSON解析错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return null;
+                }
+                return null;                
+            }
+            else
+            {
+                          
+                jsonresult = outputString;
+                try
+                {
+                    dynamic DynamicData = JsonConvert.DeserializeObject(jsonresult);
+                    totalMatches = Convert.ToInt32(DynamicData.UserInfoSearch.totalMatches);
+                    numOfMatches = Convert.ToInt32(DynamicData.UserInfoSearch.numOfMatches);
+                    responseStatusStrg = DynamicData.UserInfoSearch.responseStatusStrg;
+
+
+                    if (totalMatches > 0 && numOfMatches > 0)
+                    {
+                        for (int i = 0; i < numOfMatches; i++)
+                        {
+                            try
+                            {
+                                EmpleadoData ed = new EmpleadoData();
+                                ed.employeeNum = DynamicData.UserInfoSearch.UserInfo[i].employeeNo;
+                                ed.name = DynamicData.UserInfoSearch.UserInfo[i].name;
+                                ed.userType = DynamicData.UserInfoSearch.UserInfo[i].userType;
+                                ed.validEnable = DynamicData.UserInfoSearch.UserInfo[i].Valid.enable;
+                                ed.beginTime = DynamicData.UserInfoSearch.UserInfo[i].Valid.beginTime;
+                                ed.endTime = DynamicData.UserInfoSearch.UserInfo[i].Valid.endTime;
+                                ed.numOfCard = DynamicData.UserInfoSearch.UserInfo[i].numOfCard;
+                                ed.numOfFace = DynamicData.UserInfoSearch.UserInfo[i].numOfFace;
+                                listauserdata.Add(ed);
+                              
+                                ed = null;
+                            }
+                            catch
+                            {
+                                MessageBox.Show("在CargarInfoUsuariosDispositivo()中处理ISAPI查询的JSON响应时发生错误，result = true。尝试解析UserInfoSearch.UserInfo[i]时出错", "JSON解析错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                                flag = false;
+                                break;
+                            }
+                        }
+
+
+                    }
+                } catch
+                {
+                    MessageBox.Show("ISAPI请求正确，但在CargarInfoUsuariosDispositivo()中解析ISAPI响应的JSON响应时发生错误，result = true", "JSON解析错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return null;
+                }
+                
+            }
+            if (flag)
+                return listauserdata;
+            else
+                return null;
+        }
+        //查询设备上所有卡片绑定的用户编号（employeeNo）,用于快速统计或验证卡片数据
+        private String[] ConsultarTarjetas()
+        {
+            String[] retval = null;
+            bool result = false;
+
+            string url = "POST /ISAPI/AccessControl/CardInfo/Search?format=json";
+
+            string CardInfoSearchCond = "{ \"CardInfoSearchCond\": { \"searchID\": \"100\", \"searchResultPosition\": 0, \"maxResults\": 600 } }";
+
+            string resultJSON = null;
+            string outputStatus = null;
+
+            result = ISAPIQuery(url, CardInfoSearchCond, out resultJSON, out outputStatus);
+            if (!result)
+            {
+                MessageBox.Show("ISAPI 查询错误：" + resultJSON, "JSON 查询错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return retval;
+            }
+
+            if (resultJSON != null && resultJSON.Length > 0)
+            {
+                int totalMatches = 0;
+                dynamic DynamicData = JsonConvert.DeserializeObject(resultJSON);
+                totalMatches = Convert.ToInt32(DynamicData.CardInfoSearch.totalMatches);
+                List<string> listanumtarjetas = new List<string>();
+                string employeeNum = null;
+                for (int i = 0; i < totalMatches; i++)
+                {
+                    employeeNum = DynamicData.CardInfoSearch.CardInfo[i].employeeNo;
+                    listanumtarjetas.Add(employeeNum);
+                }
+                retval = listanumtarjetas.ToArray();
+            }
+            return retval;
+        }
+
+
+        //查询单个用户信息,查询指定员工编号的详细信息；同时返回完整 JSON 原文（用于本地备份）
+        private EmpleadoData ConsultarDatosEmpleado(string id, out string jsondata)
+        {
+            EmpleadoData ed = null;
+            jsondata = "";
+            string url = "POST /ISAPI/AccessControl/UserInfo/Search?format=json";
+            string UserInfoSearchCond = "{ \"UserInfoSearchCond\": { \"searchID\": \"200\", \"searchResultPosition\": 0, \"maxResults\": 1, \"EmployeeNoList\" : [ { \"employeeNo\": \"" + id + "\" } ] } }";
+            string resultJSON = null;
+            string outputStatus = null;
+            bool result = false;
+            result = ISAPIQuery(url, UserInfoSearchCond, out resultJSON, out outputStatus);
+            if (!result)
+            {
+                MessageBox.Show("ISAPI 查询错误：" + resultJSON, "JSON 查询错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return ed;
+            }
+
+            if (resultJSON != null && resultJSON.Length > 0)
+            {
+                dynamic DynamicDataEmployee = JsonConvert.DeserializeObject(resultJSON);
+                ed = new EmpleadoData();
+                ed.employeeNum = id;
+                ed.name = DynamicDataEmployee.UserInfoSearch.UserInfo[0].name;
+                ed.userType = DynamicDataEmployee.UserInfoSearch.UserInfo[0].userType;
+                ed.validEnable = DynamicDataEmployee.UserInfoSearch.UserInfo[0].Valid.enable;
+                ed.beginTime = DynamicDataEmployee.UserInfoSearch.UserInfo[0].Valid.beginTime;
+                ed.endTime = DynamicDataEmployee.UserInfoSearch.UserInfo[0].Valid.endTime;
+                ed.numOfCard = DynamicDataEmployee.UserInfoSearch.UserInfo[0].numOfCard;
+                ed.numOfFace = DynamicDataEmployee.UserInfoSearch.UserInfo[0].numOfFace;
+                jsondata = resultJSON;
+            }
+            return ed;
+        }
+
+        //将设备用户数据显示到 ListView 控件中,显示字段包括工号、姓名、类型、有效期、卡、人脸等。
+        private void AgregarDatosListView(EmpleadoData ed)
+        {
+            ListViewItem lvi = new ListViewItem(ed.employeeNum);//工号
+            lvi.SubItems.Add(ed.name);//姓名
+            lvi.SubItems.Add(ed.userType);//类型
+            lvi.SubItems.Add(ed.validEnable);//有效期
+            lvi.SubItems.Add(ed.beginTime);
+            lvi.SubItems.Add(ed.endTime);
+            lvi.SubItems.Add(ed.numOfCard);//卡
+            lvi.SubItems.Add(ed.numOfFace);//人脸
+            lvi.SubItems.Add("");
+            listView.Items.Add(lvi);
+            lvi = null;
+        }
+        //删除指定员工编号设备用户
+        private bool EliminarEmpleadoDispositivo(string id)
+        {
+            bool retval = false;
+            string url = "PUT /ISAPI/AccessControl/UserInfo/Delete?format=json";
+            string UserInfoDelCond = "{ \"UserInfoDelCond\" : {  \"EmployeeNoList\" : [ {   \"employeeNo\": \""+id+"\" } ] } }";
+            string resultJSON = null;
+            string outputStatus = null;
+            bool result = false;
+            result = ISAPIQuery(url, UserInfoDelCond, out resultJSON, out outputStatus);
+            if (!result)
+            {
+                MessageBox.Show("ISAPI 查询错误：" + resultJSON, "JSON 查询错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return retval;
+            }
+            if (resultJSON != null && resultJSON.Length > 0)
+            {
+                dynamic DynamicData = JsonConvert.DeserializeObject(resultJSON);
+                string statusCode = DynamicData.statusCode;
+                if (statusCode == "1")
+                    retval = true;
+            }
+            return retval;
+
+        }
+        //查询按钮事件,点击“查询用户”时执行
+        private void buttonConsultar_Click(object sender, EventArgs e)
+        {
+            if (Common.m_UserID < 0)
+            {
+                MessageBox.Show("首先在设备上登录", "需要登录", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+
+            bool retval;
+            string msg;
+            Common cmn = new Common();
+            retval = cmn.Login(Common.ip, Common.puerto, Common.usuario, Common.contrasena, out msg);
+            if (retval)
+            {
+                if (this.listView.Items.Count > 0)
+                    this.listView.Items.Clear();
+
+                string responseStatusStrg = "MORE";
+                int totalMatches = 0;
+                int numOfMatches = 0;
+                int searchResultPosition = numOfMatches;
+
+             
+                while (responseStatusStrg == "MORE")
+                {
+ 
+                    List<EmpleadoData> listaed = CargarInfoUsuariosDispositivo(out responseStatusStrg, out totalMatches, out numOfMatches, searchResultPosition);
+                    searchResultPosition += numOfMatches;
+                    
+                    if (listaed != null)
+                    {
+                        foreach (EmpleadoData u in listaed)
+                        {
+                            AgregarDatosListView(u);
+                        }
+                    }
+                }
+
+                this.textBoxTotal.Text = this.listView.Items.Count.ToString();
+
+            }
+        }
+        //删除按钮事件
+        private void buttonEliminar_Click(object sender, EventArgs e)
+        {
+            if (this.listView.CheckedItems.Count == 0)
+            {
+                MessageBox.Show("您必须至少选择列表中的一个用户", "删除用户", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+
+            DialogResult dialogResult = MessageBox.Show("选定的用户将被删除，不可恢复。您是否要继续吗？", "确认删除操作", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+            if (dialogResult == DialogResult.Yes)
+            {
+                this.listView.BeginInvoke(new Action(() =>
+                {
+                    ListView.CheckedListViewItemCollection itemColl = this.listView.CheckedItems;
+                    foreach (ListViewItem item in itemColl)
+                     {
+                    
+                        string id = item.Text;
+                        bool result = false;
+                        result = EliminarEmpleadoDispositivo(id);
+                        if (result)
+                        {
+                            item.Remove();
+                        }
+                   
+
+                    }
+                }));
+            }
+        }
+
+        //清空本地 MySQL 表 usuarios_dispositivo
+        private bool EliminarUsuariosTablaUsuariosDispositivo()
+        {
+            bool retval = false;
+
+            Common cmn = new Common();
+            string connstr = cmn.obtenerCadenaConexion();
+            BaseDatosMySQL bd = new BaseDatosMySQL();
+            bd.conectarMySQL(connstr);
+            if (bd.conn != null)
+            {
+
+                try
+                {
+                    string sql = "DELETE FROM usuarios_dispositivo";
+                    MySqlCommand cmd = new MySqlCommand(sql, bd.conn);
+                    cmd.ExecuteNonQuery();
+                    bd.desconectarMySQL();
+
+                    retval = true;
+
+                }
+                catch (MySqlException ex)
+                {
+                    string errstr = ex.Number.ToString() + " " + ex.Message;
+                    MessageBox.Show(errstr, "在InsertarUsuarioTablaUsuariosDispositivo()中出错", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+
+            }
+            else
+            {
+                string errstr = bd.errornum + " " + bd.errormsg + "bd = null";
+                MessageBox.Show(errstr, "在InsertarUsuarioTablaUsuariosDispositivo()中出错", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+            return retval;
+        }
+        /*向 MySQL 中插入备份数据：
+        JSON 数据；
+        人脸图像数据（可选）；
+        表结构：(userdata, image)；
+        用于数据同步、备份恢复。
+         */
+        private bool InsertarUsuarioTablaUsuariosDispositivo(string jsondata, byte[] img = null)            
+        {
+            bool retval = false;
+
+            Common cmn = new Common();
+            string connstr = cmn.obtenerCadenaConexion();
+            BaseDatosMySQL bd = new BaseDatosMySQL();
+            bd.conectarMySQL(connstr);
+            if (bd.conn != null)
+            {
+                
+                try
+                {
+                    string sql = "INSERT INTO usuarios_dispositivo (userdata, image) " +
+                                 "VALUES (@userdata, @image)";
+                    MySqlCommand cmd = new MySqlCommand(sql, bd.conn);                    
+                    
+                    cmd.Parameters.AddWithValue("@userdata", jsondata);
+                    if (img != null)
+                        cmd.Parameters.Add("@image", MySqlDbType.Blob).Value = img;
+                    else
+                        cmd.Parameters.AddWithValue("@image", "");
+                    cmd.ExecuteNonQuery();
+                    bd.desconectarMySQL();
+
+                    retval = true;
+
+                }
+                catch (MySqlException ex)
+                {
+                    string errstr = ex.Number.ToString() + " " + ex.Message;
+                    MessageBox.Show(errstr, "在InsertarUsuarioTablaUsuariosDispositivo()中出错", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+
+            }
+            else
+            {
+                string errstr = bd.errornum + " " + bd.errormsg + "bd = null";
+                MessageBox.Show(errstr, "在InsertarUsuarioTablaUsuariosDispositivo()中出错", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+            return retval;
+        }
+
+        //备份功能目前被注释掉
+        /*获取所有设备用户；
+        调用 ConsultarDatosEmpleado() 获取数据；
+        获取用户人脸图片；
+        插入数据库；
+        显示状态 OK/失败
+         */
+        private void buttonBackup_Click(object sender, EventArgs e)
+        {
+            /*if (this.listView.Items.Count > 0)
+            {
+                EliminarUsuariosTablaUsuariosDispositivo();
+                ListView.ListViewItemCollection items = this.listView.Items;
+                string jsondata = null;
+                byte[] bytesimagen = null;
+                Common cmn = new Common();
+                string msg = null;
+                foreach(ListViewItem item in items)
+                {
+                    bytesimagen = cmn.ObtenerImagenUsuario(item.Text, out msg);      
+                    
+                    ConsultarDatosEmpleado(item.Text, out jsondata);
+                    if (InsertarUsuarioTablaUsuariosDispositivo(jsondata, bytesimagen))
+                    {
+                        item.SubItems[8].Text = "OK: Usuario respaldado";
+                        item.ForeColor = Color.Green;
+                    }
+                    else 
+                    {
+                        item.SubItems[8].Text = "FALLO: Ocurrieron errores al intentar respaldar este usuario";
+                        item.ForeColor = Color.Red;
+                    }
+                }
+            }*/
+        }
+        //给设备中没有卡片的用户自动添加卡
+        private void buttonAgregarTarjeta_Click(object sender, EventArgs e)
+        {
+            if (this.listView.Items.Count > 0)
+            {
+                ListView.ListViewItemCollection items = this.listView.Items;
+
+                foreach (ListViewItem item in items)
+                {
+                    if (item.SubItems[6].Text == "0")
+                    {
+                        AgregarTarjetaUsuario(item.Text);
+                    }
+                }
+            }
+        }
+        //UI 勾选框逻辑；全选或取消 ListView 项的 Checked 状态
+        private void checkBoxSeleccionarTodos_CheckedChanged(object sender, EventArgs e)
+        {
+            if (this.listView.Items.Count > 0)
+            {
+                ListView.ListViewItemCollection items = this.listView.Items;
+
+                foreach (ListViewItem item in items)
+                {
+                    if (this.checkBoxSeleccionarTodos.Checked == true)
+                        item.Checked = true;
+                    else
+                        item.Checked = false;
+                }
+            }
+           
+        }
+
+        private void listView_SelectedIndexChanged(object sender, EventArgs e)
+        {
+
+        }
+
+        private void textBoxTotal_TextChanged(object sender, EventArgs e)
+        {
+
+        }
+
+        private void GestionUsuariosDispositivo_Load(object sender, EventArgs e)
+        {
+
+        }
+    }
+    //结构体定义，封装从设备读取的用户信息:工号（employeeNum）、姓名、类型、是否启用、起止时间、卡数、人脸数等
+    class EmpleadoData
+    {
+        public string employeeNum { get; set; }
+        public string name { get; set; }
+        public string userType { get; set; }
+        public string validEnable { get; set; }
+        public string beginTime { get; set; }
+        public string endTime { get; set; }
+        public string numOfCard {get; set;}
+        public string numOfFace { get; set; }
+
+        public EmpleadoData()
+        {
+            this.employeeNum = null;
+            this.name = null;
+            this.userType = null;
+            this.validEnable = null;
+            this.beginTime = null;
+            this.endTime = null;
+            this.numOfCard = null;
+            this.numOfFace = null;
+        }
+    }
+}
