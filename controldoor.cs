@@ -32,11 +32,11 @@ namespace ControlEntradaSalida
         {
             if (HCNetSDK.NET_DVR_ControlGateway(Common.m_UserID, 1, 1))
             {
-                MessageBox.Show("NET_DVR_ControlGateway: open door succeed");
+                MessageBox.Show("远程开门成功");
             }
             else
             {
-                MessageBox.Show("NET_DVR_ControlGateway: open door failed error:" + HCNetSDK.NET_DVR_GetLastError());
+                MessageBox.Show("远程开门失败，错误代码:" + HCNetSDK.NET_DVR_GetLastError());
             }
         }
 
@@ -44,11 +44,11 @@ namespace ControlEntradaSalida
         {
             if (HCNetSDK.NET_DVR_ControlGateway(Common.m_UserID, 1, 0))
             {
-                MessageBox.Show("NET_DVR_ControlGateway: open door succeed");
+                MessageBox.Show("远程开门成功");
             }
             else
             {
-                MessageBox.Show("NET_DVR_ControlGateway: open door failed error:" + HCNetSDK.NET_DVR_GetLastError());
+                MessageBox.Show("远程开门失败，错误代码:" + HCNetSDK.NET_DVR_GetLastError());
             }
         }
 
@@ -56,11 +56,11 @@ namespace ControlEntradaSalida
         {
             if (HCNetSDK.NET_DVR_ControlGateway(Common.m_UserID, 1, 2))
             {
-                MessageBox.Show("NET_DVR_ControlGateway: open door succeed");
+                MessageBox.Show("远程开门成功");
             }
             else
             {
-                MessageBox.Show("NET_DVR_ControlGateway: open door failed error:" + HCNetSDK.NET_DVR_GetLastError());
+                MessageBox.Show("远程开门失败，错误代码:" + HCNetSDK.NET_DVR_GetLastError());
             }
         }
 
@@ -68,11 +68,11 @@ namespace ControlEntradaSalida
         {
             if (HCNetSDK.NET_DVR_ControlGateway(Common.m_UserID, 1, 3))
             {
-                MessageBox.Show("NET_DVR_ControlGateway: open door succeed");
+                MessageBox.Show("远程开门成功");
             }
             else
             {
-                MessageBox.Show("NET_DVR_ControlGateway: open door failed error:" + HCNetSDK.NET_DVR_GetLastError());
+                MessageBox.Show("远程开门失败，错误代码:" + HCNetSDK.NET_DVR_GetLastError());
             }
         }
     }

@@ -55,9 +55,9 @@ namespace ControlEntradaSalida
         private void MDIParent_Load(object sender, EventArgs e)
         {
             if (!Common.InicializarSDKHikVision())//SDK初始化
-                MessageBox.Show("HikVision SDK 初始化错误", "SDK初始化错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show("海康威视SDK初始化失败", "初始化错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
             if (!Common.CrearDirectorioData())
-                MessageBox.Show("创建数据目录时出错", "数据目录创建错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show("创建数据目录失败", "文件错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
         //窗体关闭前的清理工作
         private void MDIParent_FormClosing(object sender, FormClosingEventArgs e)

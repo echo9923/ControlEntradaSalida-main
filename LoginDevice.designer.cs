@@ -110,7 +110,7 @@ namespace ControlEntradaSalida
             this.checkBoxPredeterminado.Name = "checkBoxPredeterminado";
             this.checkBoxPredeterminado.Size = new System.Drawing.Size(108, 16);
             this.checkBoxPredeterminado.TabIndex = 16;
-            this.checkBoxPredeterminado.Text = "Predeterminado";
+            this.checkBoxPredeterminado.Text = "默认设备";
             this.checkBoxPredeterminado.UseVisualStyleBackColor = true;
             // 
             // checkBoxEstado
@@ -121,7 +121,7 @@ namespace ControlEntradaSalida
             this.checkBoxEstado.Name = "checkBoxEstado";
             this.checkBoxEstado.Size = new System.Drawing.Size(60, 16);
             this.checkBoxEstado.TabIndex = 15;
-            this.checkBoxEstado.Text = "Activo";
+            this.checkBoxEstado.Text = "启用状态";
             this.checkBoxEstado.UseVisualStyleBackColor = true;
             // 
             // textBoxID
@@ -140,7 +140,7 @@ namespace ControlEntradaSalida
             this.label7.Name = "label7";
             this.label7.Size = new System.Drawing.Size(17, 12);
             this.label7.TabIndex = 13;
-            this.label7.Text = "ID";
+            this.label7.Text = "编号";
             // 
             // textBoxNombre
             // 
@@ -167,7 +167,7 @@ namespace ControlEntradaSalida
             this.textBoxDescripcion.Name = "textBoxDescripcion";
             this.textBoxDescripcion.Size = new System.Drawing.Size(181, 21);
             this.textBoxDescripcion.TabIndex = 2;
-            this.textBoxDescripcion.Text = "DS-K1T331W";
+            this.textBoxDescripcion.Text = "门禁控制器";
             // 
             // label5
             // 
@@ -258,7 +258,7 @@ namespace ControlEntradaSalida
             this.txtUsuario.Name = "txtUsuario";
             this.txtUsuario.Size = new System.Drawing.Size(181, 21);
             this.txtUsuario.TabIndex = 5;
-            this.txtUsuario.Text = "admin";
+            this.txtUsuario.Text = "管理员";
             // 
             // label1
             // 

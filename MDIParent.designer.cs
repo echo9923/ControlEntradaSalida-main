@@ -57,7 +57,7 @@ namespace ControlEntradaSalida
             this.menuStrip1.Padding = new System.Windows.Forms.Padding(4, 2, 0, 2);
             this.menuStrip1.Size = new System.Drawing.Size(800, 25);
             this.menuStrip1.TabIndex = 1;
-            this.menuStrip1.Text = "menuStrip1";
+            this.menuStrip1.Text = "主菜单";
             this.menuStrip1.ItemClicked += new System.Windows.Forms.ToolStripItemClickedEventHandler(this.menuStrip1_ItemClicked);
             // 
             // generalToolStripMenuItem
@@ -74,7 +74,7 @@ namespace ControlEntradaSalida
             this.salirToolStripMenuItem});
             this.generalToolStripMenuItem.Name = "generalToolStripMenuItem";
             this.generalToolStripMenuItem.Size = new System.Drawing.Size(44, 21);
-            this.generalToolStripMenuItem.Text = "管理";
+            this.generalToolStripMenuItem.Text = "系统管理";
             // 
             // gestiónDeDispositivosToolStripMenuItem
             // 
@@ -101,7 +101,7 @@ namespace ControlEntradaSalida
             // 
             this.CapturarEntradaSalidaToolStripMenuItem.Name = "CapturarEntradaSalidaToolStripMenuItem";
             this.CapturarEntradaSalidaToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
-            this.CapturarEntradaSalidaToolStripMenuItem.Text = "进出事件";
+            this.CapturarEntradaSalidaToolStripMenuItem.Text = "实时监控";
             this.CapturarEntradaSalidaToolStripMenuItem.Click += new System.EventHandler(this.CapturarEntradaSalidaToolStripMenuItem_Click);
             // 
             // toolStripMenuItem2
@@ -113,7 +113,7 @@ namespace ControlEntradaSalida
             // 
             this.consultarDatosDispositivoToolStripMenuItem.Name = "consultarDatosDispositivoToolStripMenuItem";
             this.consultarDatosDispositivoToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
-            this.consultarDatosDispositivoToolStripMenuItem.Text = "设备用户权限管理";
+            this.consultarDatosDispositivoToolStripMenuItem.Text = "权限管理";
             this.consultarDatosDispositivoToolStripMenuItem.Click += new System.EventHandler(this.consultarDatosDispositivoToolStripMenuItem_Click);
             // 
             // toolStripMenuItem3
@@ -135,20 +135,20 @@ namespace ControlEntradaSalida
             this.eventosToolStripMenuItem});
             this.informesToolStripMenuItem.Name = "informesToolStripMenuItem";
             this.informesToolStripMenuItem.Size = new System.Drawing.Size(44, 21);
-            this.informesToolStripMenuItem.Text = "日志";
+            this.informesToolStripMenuItem.Text = "报表查询";
             // 
             // entradasYSalidasToolStripMenuItem
             // 
             this.entradasYSalidasToolStripMenuItem.Name = "entradasYSalidasToolStripMenuItem";
             this.entradasYSalidasToolStripMenuItem.Size = new System.Drawing.Size(124, 22);
-            this.entradasYSalidasToolStripMenuItem.Text = "进出事件";
+            this.entradasYSalidasToolStripMenuItem.Text = "进出记录报表";
             this.entradasYSalidasToolStripMenuItem.Click += new System.EventHandler(this.entradasYSalidasToolStripMenuItem_Click);
             // 
             // eventosToolStripMenuItem
             // 
             this.eventosToolStripMenuItem.Name = "eventosToolStripMenuItem";
             this.eventosToolStripMenuItem.Size = new System.Drawing.Size(124, 22);
-            this.eventosToolStripMenuItem.Text = "事件日志";
+            this.eventosToolStripMenuItem.Text = "事件日志报表";
             this.eventosToolStripMenuItem.Click += new System.EventHandler(this.eventosToolStripMenuItem_Click);
             // 
             // Plantemplate

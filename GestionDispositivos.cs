@@ -121,10 +121,10 @@ namespace ControlEntradaSalida
                             
                             if (isConnected)
                             {
-                                lvi.SubItems.Add("Conectado");
+                                lvi.SubItems.Add("已连接");
                             } else
                             {
-                                lvi.SubItems.Add("Desconectado");
+                                lvi.SubItems.Add("未连接");
                             }
                             lvi.SubItems.Add(rdr["estado"].ToString());//状态
                             lvi.SubItems.Add(rdr["predeterminado"].ToString());//默认状态
@@ -204,7 +204,7 @@ namespace ControlEntradaSalida
                 return;
             } else
             {
-                DialogResult res = MessageBox.Show("您确定要删除所选设备吗？", "确认", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+                DialogResult res = MessageBox.Show("您确定要删除所选设备吗？", "确认删除", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
                 if (res == DialogResult.Yes)
                 {
                     ListView.SelectedIndexCollection indexes = this.listView.SelectedIndices;

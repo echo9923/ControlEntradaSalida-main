@@ -59,7 +59,7 @@ namespace ControlEntradaSalida
             if (!HCNetSDK.NET_DVR_STDXMLConfig(Common.m_UserID, ref pInputXml, ref pOutputXml))//发送 XML/JSON,返回是否成功，并输出 outputResult 和 outputStatus
             {
                 iLastErr = HCNetSDK.NET_DVR_GetLastError();
-                outputResult = "NET_DVR_STDXMLConfig failed, error code= " + iLastErr;
+                outputResult = "NET_DVR_STDXMLConfig 失败，错误代码= " + iLastErr;
                 // Failed to send XML data and output the error code
                 // MessageBox.Show(strErr);
                 retval = false;
@@ -518,12 +518,12 @@ namespace ControlEntradaSalida
                     ConsultarDatosEmpleado(item.Text, out jsondata);
                     if (InsertarUsuarioTablaUsuariosDispositivo(jsondata, bytesimagen))
                     {
-                        item.SubItems[8].Text = "OK: Usuario respaldado";
+                        item.SubItems[8].Text = "成功: 用户已备份";
                         item.ForeColor = Color.Green;
                     }
                     else 
                     {
-                        item.SubItems[8].Text = "FALLO: Ocurrieron errores al intentar respaldar este usuario";
+                        item.SubItems[8].Text = "失败: 备份过程中发生错误";
                         item.ForeColor = Color.Red;
                     }
                 }

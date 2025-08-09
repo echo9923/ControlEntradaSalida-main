@@ -198,82 +198,82 @@ namespace ControlEntradaSalida
             if (struAcsAlarmInfo.struAcsEventInfo.byCardNo[0] != 0)
             {
                 this.cardnumber = System.Text.Encoding.UTF8.GetString(struAcsAlarmInfo.struAcsEventInfo.byCardNo).TrimEnd('\0');
-                szInfoBuf = szInfoBuf + "+Card Number:" + cardnumber;
+                szInfoBuf = szInfoBuf + "+卡号:" + cardnumber;
                 numerotarjeta = cardnumber;
                 
             }
-            String[] szCardType = { "normal card", "disabled card", "blocklist card", "night watch card", "stress card", "super card", "guest card" };
+            String[] szCardType = { "普通卡", "禁用卡", "黑名单卡", "夜班卡", "压力卡", "超级卡", "访客卡" };
             byte byCardType = struAcsAlarmInfo.struAcsEventInfo.byCardType;
 
             if (byCardType != 0 && byCardType <= szCardType.Length)
             {
-                szInfoBuf = szInfoBuf + "+Card Type:" + szCardType[byCardType - 1];
+                szInfoBuf = szInfoBuf + "+卡类型:" + szCardType[byCardType - 1];
             }
 
             if (struAcsAlarmInfo.struAcsEventInfo.dwCardReaderNo != 0)
             {
-                szInfoBuf = szInfoBuf + "+Card Reader Number:" + struAcsAlarmInfo.struAcsEventInfo.dwCardReaderNo;
+                szInfoBuf = szInfoBuf + "+读卡器编号:" + struAcsAlarmInfo.struAcsEventInfo.dwCardReaderNo;
             }
             if (struAcsAlarmInfo.struAcsEventInfo.dwDoorNo != 0)
             {
-                szInfoBuf = szInfoBuf + "+Door Number:" + struAcsAlarmInfo.struAcsEventInfo.dwDoorNo;
+                szInfoBuf = szInfoBuf + "+门号:" + struAcsAlarmInfo.struAcsEventInfo.dwDoorNo;
             }
             if (struAcsAlarmInfo.struAcsEventInfo.dwVerifyNo != 0)
             {
-                szInfoBuf = szInfoBuf + "+Multiple Card Authentication Serial Number:" + struAcsAlarmInfo.struAcsEventInfo.dwVerifyNo;
+                szInfoBuf = szInfoBuf + "+多卡认证序列号:" + struAcsAlarmInfo.struAcsEventInfo.dwVerifyNo;
             }
             if (struAcsAlarmInfo.struAcsEventInfo.dwAlarmInNo != 0)
             {
-                szInfoBuf = szInfoBuf + "+Alarm Input Number:" + struAcsAlarmInfo.struAcsEventInfo.dwAlarmInNo;
+                szInfoBuf = szInfoBuf + "+报警输入编号:" + struAcsAlarmInfo.struAcsEventInfo.dwAlarmInNo;
             }
             if (struAcsAlarmInfo.struAcsEventInfo.dwAlarmOutNo != 0)
             {
-                szInfoBuf = szInfoBuf + "+Alarm Output Number:" + struAcsAlarmInfo.struAcsEventInfo.dwAlarmOutNo;
+                szInfoBuf = szInfoBuf + "+报警输出编号:" + struAcsAlarmInfo.struAcsEventInfo.dwAlarmOutNo;
             }
             if (struAcsAlarmInfo.struAcsEventInfo.dwCaseSensorNo != 0)
             {
-                szInfoBuf = szInfoBuf + "+Event Trigger Number:" + struAcsAlarmInfo.struAcsEventInfo.dwCaseSensorNo;
+                szInfoBuf = szInfoBuf + "+事件触发编号:" + struAcsAlarmInfo.struAcsEventInfo.dwCaseSensorNo;
             }
             if (struAcsAlarmInfo.struAcsEventInfo.dwRs485No != 0)
             {
-                szInfoBuf = szInfoBuf + "+RS485 Channel Number:" + struAcsAlarmInfo.struAcsEventInfo.dwRs485No;
+                szInfoBuf = szInfoBuf + "+RS485通道编号:" + struAcsAlarmInfo.struAcsEventInfo.dwRs485No;
             }
             if (struAcsAlarmInfo.struAcsEventInfo.dwMultiCardGroupNo != 0)
             {
-                szInfoBuf = szInfoBuf + "+Multi Recombinant Authentication ID:" + struAcsAlarmInfo.struAcsEventInfo.dwMultiCardGroupNo;
+                szInfoBuf = szInfoBuf + "+多重组合认证ID:" + struAcsAlarmInfo.struAcsEventInfo.dwMultiCardGroupNo;
             }
             if (struAcsAlarmInfo.struAcsEventInfo.byCardReaderKind != 0)
             {
-                szInfoBuf = szInfoBuf + "+CardReaderKind:" + struAcsAlarmInfo.struAcsEventInfo.byCardReaderKind.ToString();
+                szInfoBuf = szInfoBuf + "+读卡器类型:" + struAcsAlarmInfo.struAcsEventInfo.byCardReaderKind.ToString();
             }
             if (struAcsAlarmInfo.struAcsEventInfo.wAccessChannel >= 0)
             {
-                szInfoBuf = szInfoBuf + "+wAccessChannel:" + struAcsAlarmInfo.struAcsEventInfo.wAccessChannel;
+                szInfoBuf = szInfoBuf + "+访问通道:" + struAcsAlarmInfo.struAcsEventInfo.wAccessChannel;
             }
             if (struAcsAlarmInfo.struAcsEventInfo.dwEmployeeNo != 0)
             {
                 //employeenum = struAcsAlarmInfo.struAcsEventInfo.dwEmployeeNo.ToString();
-                szInfoBuf = szInfoBuf + "+EmployeeNo:" + struAcsAlarmInfo.struAcsEventInfo.dwEmployeeNo;
+                szInfoBuf = szInfoBuf + "+员工编号:" + struAcsAlarmInfo.struAcsEventInfo.dwEmployeeNo;
             }
             if (struAcsAlarmInfo.struAcsEventInfo.byDeviceNo != 0)
             {
-                szInfoBuf = szInfoBuf + "+byDeviceNo:" + struAcsAlarmInfo.struAcsEventInfo.byDeviceNo.ToString();
+                szInfoBuf = szInfoBuf + "+设备编号:" + struAcsAlarmInfo.struAcsEventInfo.byDeviceNo.ToString();
             }
             if (struAcsAlarmInfo.struAcsEventInfo.wLocalControllerID >= 0)
             {
-                szInfoBuf = szInfoBuf + "+wLocalControllerID:" + struAcsAlarmInfo.struAcsEventInfo.wLocalControllerID;
+                szInfoBuf = szInfoBuf + "+本地控制器ID:" + struAcsAlarmInfo.struAcsEventInfo.wLocalControllerID;
             }
             if (struAcsAlarmInfo.struAcsEventInfo.byInternetAccess >= 0)
             {
-                szInfoBuf = szInfoBuf + "+byInternetAccess:" + struAcsAlarmInfo.struAcsEventInfo.byInternetAccess.ToString();
+                szInfoBuf = szInfoBuf + "+网络访问:" + struAcsAlarmInfo.struAcsEventInfo.byInternetAccess.ToString();
             }
             if (struAcsAlarmInfo.struAcsEventInfo.byType >= 0)
             {
-                szInfoBuf = szInfoBuf + "+byType:" + struAcsAlarmInfo.struAcsEventInfo.byType.ToString();
+                szInfoBuf = szInfoBuf + "+类型:" + struAcsAlarmInfo.struAcsEventInfo.byType.ToString();
             }
             if (struAcsAlarmInfo.struAcsEventInfo.bySwipeCardType != 0)
             {
-                szInfoBuf = szInfoBuf + "+bySwipeCardType:" + struAcsAlarmInfo.struAcsEventInfo.bySwipeCardType.ToString();
+                szInfoBuf = szInfoBuf + "+刷卡类型:" + struAcsAlarmInfo.struAcsEventInfo.bySwipeCardType.ToString();
             }
             //其它消息先不罗列了......
             /*

@@ -136,7 +136,7 @@ namespace ControlEntradaSalida
             this.label6.Name = "label6";
             this.label6.Size = new System.Drawing.Size(69, 15);
             this.label6.TabIndex = 28;
-            this.label6.Text = "No. 卡号";
+            this.label6.Text = "卡号";
             // 
             // textBoxTarjeta
             // 
@@ -151,14 +151,14 @@ namespace ControlEntradaSalida
             // 
             this.cmbEstado.FormattingEnabled = true;
             this.cmbEstado.Items.AddRange(new object[] {
-            "ACTIVO",
-            "INACTIVO"});
+            "启用",
+            "禁用"});
             this.cmbEstado.Location = new System.Drawing.Point(416, 38);
             this.cmbEstado.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
             this.cmbEstado.Name = "cmbEstado";
             this.cmbEstado.Size = new System.Drawing.Size(216, 23);
             this.cmbEstado.TabIndex = 2;
-            this.cmbEstado.Text = "ACTIVO";
+            this.cmbEstado.Text = "启用";
             this.cmbEstado.SelectedIndexChanged += new System.EventHandler(this.cmbEstado_SelectedIndexChanged);
             this.cmbEstado.Validating += new System.ComponentModel.CancelEventHandler(this.cmbEstado_Validating);
             // 
@@ -206,7 +206,7 @@ namespace ControlEntradaSalida
             // 
             // tarjeta
             // 
-            this.tarjeta.Text = "No. 卡号";
+            this.tarjeta.Text = "卡号";
             this.tarjeta.Width = 74;
             // 
             // nombres

@@ -52,7 +52,7 @@ namespace ControlEntradaSalida
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedDialog;
             this.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
             this.Name = "Informe";
-            this.Text = "Informe";
+            this.Text = "报表";
             this.WindowState = System.Windows.Forms.FormWindowState.Maximized;
             this.Load += new System.EventHandler(this.Informe_Load);
             this.ResumeLayout(false);

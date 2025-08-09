@@ -85,7 +85,7 @@ namespace ControlEntradaSalida
             // 
             // id
             // 
-            this.id.Text = "Id";
+            this.id.Text = "编号";
             this.id.Width = 36;
             // 
             // Nombre
@@ -100,7 +100,7 @@ namespace ControlEntradaSalida
             // 
             // direccionip
             // 
-            this.direccionip.Text = " IP地址";
+            this.direccionip.Text = "IP地址";
             this.direccionip.Width = 85;
             // 
             // puerto
@@ -120,15 +120,15 @@ namespace ControlEntradaSalida
             // 
             // activo
             // 
-            this.activo.Text = "Activo";
+            this.activo.Text = "启用状态";
             // 
             // predeterminado
             // 
-            this.predeterminado.Text = "Predeterminado";
+            this.predeterminado.Text = "默认设备";
             // 
             // ultimavez
             // 
-            this.ultimavez.Text = "Última vez";
+            this.ultimavez.Text = "最后连接时间";
             // 
             // buttonEliminar
             // 
@@ -139,7 +139,7 @@ namespace ControlEntradaSalida
             this.buttonEliminar.Name = "buttonEliminar";
             this.buttonEliminar.Size = new System.Drawing.Size(144, 26);
             this.buttonEliminar.TabIndex = 2;
-            this.buttonEliminar.Text = "删除";
+            this.buttonEliminar.Text = "删除设备";
             this.buttonEliminar.UseVisualStyleBackColor = true;
             this.buttonEliminar.Click += new System.EventHandler(this.buttonEliminar_Click);
             // 
@@ -152,7 +152,7 @@ namespace ControlEntradaSalida
             this.buttonNuevo.Name = "buttonNuevo";
             this.buttonNuevo.Size = new System.Drawing.Size(144, 26);
             this.buttonNuevo.TabIndex = 1;
-            this.buttonNuevo.Text = "添加";
+            this.buttonNuevo.Text = "新建设备";
             this.buttonNuevo.UseVisualStyleBackColor = true;
             this.buttonNuevo.Click += new System.EventHandler(this.buttonNuevo_Click);
             // 
