@@ -332,3 +332,12 @@ ASALocalRun/
 
 # Local History for Visual Studio
 .localhistory/
+
+# 忽略所有 Markdown 文件
+*.md
+
+# 忽略 CLAUDE CODE 相关文件
+.claude/
+
+# 但确保所有 DLL 文件都被包含
+!*.dll
