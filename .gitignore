@@ -18,12 +18,14 @@
 [Dd]ebugPublic/
 [Rr]elease/
 [Rr]eleases/
-x64/
-x86/
 bld/
 [Bb]in/*/[!H]*
 [Oo]bj/
 [Ll]og/
+
+# 但保留 SqlServerTypes 目录中的 x64 和 x86 文件
+!SqlServerTypes/x64/
+!SqlServerTypes/x86/
 
 # Visual Studio 2015/2017 cache/options directory
 .vs/
