@@ -165,6 +165,15 @@ namespace ControlEntradaSalida
         // 更新状态显示
         private void UpdateStatusDisplay(DeviceConnectionInfo device, PictureBox statusIcon, Label statusLabel)
         {
+            // 如果设备被禁用，显示为红色
+            if (!device.IsEnabled)
+            {
+                statusIcon.BackColor = Color.Red; // 禁用状态显示红色
+                statusLabel.Text = "已禁用";
+                statusLabel.ForeColor = Color.Red;
+                return;
+            }
+            
             // 根据设备状态设置图标颜色和标签文本
             switch (device.Status)
             {
@@ -249,12 +258,26 @@ namespace ControlEntradaSalida
         private void InitializeDeviceStatusDisplay()
         {
             var devices = DeviceConnectionManager.Instance.GetAllDevices();
+            
+            // 首先为所有设备创建卡片（不检查状态），避免UI阻塞
             foreach (var device in devices)
             {
                 CreateDeviceStatusCard(device);
-                // 初始检查设备状态
-                DeviceConnectionManager.Instance.CheckDeviceStatus(device);
             }
+            
+            // 然后异步检查所有设备状态
+            Task.Run(async () =>
+            {
+                // 并行检查所有设备状态，提高加载速度
+                var tasks = devices.Select(device => Task.Run(() =>
+                {
+                    // 为每个设备检查状态
+                    DeviceConnectionManager.Instance.CheckDeviceStatus(device);
+                })).ToArray();
+                
+                // 等待所有设备状态检查完成
+                await Task.WhenAll(tasks);
+            });
         }
         //窗体关闭前的清理工作
         private void MDIParent_FormClosing(object sender, FormClosingEventArgs e)

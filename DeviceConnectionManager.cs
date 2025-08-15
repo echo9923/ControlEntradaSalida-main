@@ -24,6 +24,7 @@ namespace ControlEntradaSalida
         public DateTime LastUsed { get; set; }
         public string StatusMessage { get; set; } = "";
         public DeviceStatus Status { get; set; } = DeviceStatus.Offline; // 添加设备状态属性
+        public bool IsEnabled { get; set; } = true; // 添加设备启用状态属性
     }
     
     // 设备状态枚举
@@ -94,7 +95,8 @@ namespace ControlEntradaSalida
             
             if (bd.conn != null)
             {
-                string sql = "SELECT id, nombre, direccionip, puerto, usuario, contrasena, lastimeused FROM dispositivos WHERE estado = 1";
+                // 修改SQL查询，加载所有设备并获取其启用状态
+                string sql = "SELECT id, nombre, direccionip, puerto, usuario, contrasena, estado, lastimeused FROM dispositivos";
                 try
                 {
                     MySqlCommand cmd = new MySqlCommand(sql, bd.conn);
@@ -110,6 +112,8 @@ namespace ControlEntradaSalida
                             Port = rdr["puerto"].ToString(),
                             Username = rdr["usuario"].ToString(),
                             Password = rdr["contrasena"].ToString(),
+                            // 设置设备启用状态（状态为1表示启用，其他值表示禁用）
+                            IsEnabled = Convert.ToInt32(rdr["estado"]) == 1,
                             LastUsed = rdr["lastimeused"] != DBNull.Value ? Convert.ToDateTime(rdr["lastimeused"]) : DateTime.MinValue
                         };
                         
@@ -359,10 +363,11 @@ namespace ControlEntradaSalida
         {
             await Task.Run(() =>
             {
-                foreach (var device in _devices)
+                // 使用并行处理提高检查速度
+                Parallel.ForEach(_devices, device =>
                 {
                     CheckDeviceStatus(device);
-                }
+                });
             });
         }
 
