@@ -113,10 +113,11 @@ namespace ControlEntradaSalida
                             string currentPort = rdr["puerto"].ToString();
                             bool isConnected = false;
                             
-                            // 如果有设备连接，检查是否是当前设备
-                            if (Common.m_UserID >= 0 && !string.IsNullOrEmpty(Common.ip) && !string.IsNullOrEmpty(Common.puerto))
+                            // 使用设备连接管理器检查设备连接状态
+                            var device = DeviceConnectionManager.Instance.GetDeviceByAddress(currentIp, currentPort);
+                            if (device != null)
                             {
-                                isConnected = (Common.ip == currentIp && Common.puerto == currentPort);
+                                isConnected = device.IsConnected;
                             }
                             
                             if (isConnected)

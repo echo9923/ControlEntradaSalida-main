@@ -215,6 +215,7 @@
     <Compile Include="GestionDispositivos.cs">
       <SubType>Form</SubType>
     </Compile>
+    <Compile Include="DeviceConnectionManager.cs" />
     <Compile Include="GestionDispositivos.designer.cs">
       <DependentUpon>GestionDispositivos.cs</DependentUpon>
     </Compile>

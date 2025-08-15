@@ -21,7 +21,10 @@ namespace ControlEntradaSalida
 
         private void Plantemplate_Load_1(object sender, EventArgs e)
         {
-            if (Common.m_UserID < 0)
+            // 获取当前连接的设备
+            var connectedDevices = DeviceConnectionManager.Instance.GetAllDevices()
+                .Where(d => d.IsConnected).ToList();
+            if (connectedDevices.Count == 0)
             {
                 MessageBox.Show("您必须在设备上登录", "登录错误", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 return;

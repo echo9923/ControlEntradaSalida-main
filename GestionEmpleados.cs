@@ -17,21 +17,32 @@ namespace ControlEntradaSalida
 {   //实现员工管理功能
     public partial class GestionEmpleados : Form
     {
-        private int m_lCapFaceCfgHandle = -1;//是否拍照状态
-        private int m_lSetFaceCfgHandle = -1;//是否创建人脸状态
-        public Int32 m_lSetCardCfgHandle = -1;//是否创建卡状态
-        public Int32 m_lDelCardCfgHandle = -1;//是否删除卡状态
-        public Int32 m_lGetCardCfgHandle = -1;//是否读取卡状态
+        private int m_lCapFaceCfgHandle = -1;
+        private int m_lGetCardCfgHandle = -1;
+        private int m_lSetCardCfgHandle = -1;
+        private int m_lGetFaceCfgHandle = -1;
+        private int m_lSetFaceCfgHandle = -1;
+        private int m_lDelCardCfgHandle = -1; // 添加删除卡片配置句柄
+        private string url_imagen = null;
+        private bool nuevo = true; // 是否为新增员工
 
-
-        private int m_lGetFaceCfgHandle = -1;//是否获取人脸状态
-
-        private string url_imagen;//图片路径
-        private bool nuevo = false;
-        //初始化窗体控件
+        //初始化窗体
         public GestionEmpleados()
         {
             InitializeComponent();
+        }
+        
+        // 获取当前连接设备的UserID
+        private int GetConnectedDeviceUserID()
+        {
+            var connectedDevices = DeviceConnectionManager.Instance.GetAllDevices()
+                .Where(d => d.IsConnected).ToList();
+            if (connectedDevices.Count > 0)
+            {
+                // 使用第一个连接的设备
+                return connectedDevices[0].UserID;
+            }
+            return -1;
         }
 
 
@@ -96,7 +107,7 @@ namespace ControlEntradaSalida
             int dwInBufferSize = struCond.dwSize;
             IntPtr ptrStruCond = Marshal.AllocHGlobal(dwInBufferSize);
             Marshal.StructureToPtr(struCond, ptrStruCond, false);
-            m_lCapFaceCfgHandle = HCNetSDK_Facial.NET_DVR_StartRemoteConfig(Common.m_UserID, HCNetSDK_Facial.NET_DVR_CAPTURE_FACE_INFO, ptrStruCond, dwInBufferSize, null, IntPtr.Zero);
+            m_lCapFaceCfgHandle = HCNetSDK_Facial.NET_DVR_StartRemoteConfig(GetConnectedDeviceUserID(), HCNetSDK_Facial.NET_DVR_CAPTURE_FACE_INFO, ptrStruCond, dwInBufferSize, null, IntPtr.Zero);
             if (-1 == m_lCapFaceCfgHandle)
             {
                 Marshal.FreeHGlobal(ptrStruCond);
@@ -157,7 +168,7 @@ namespace ControlEntradaSalida
             IntPtr ptrStruCond = Marshal.AllocHGlobal((int)struCond.dwSize);
             Marshal.StructureToPtr(struCond, ptrStruCond, false);
 
-            m_lSetCardCfgHandle = HCNetSDK_Tarjeta.NET_DVR_StartRemoteConfig(Common.m_UserID, HCNetSDK_Tarjeta.NET_DVR_SET_CARD, ptrStruCond, (int)struCond.dwSize, null, IntPtr.Zero);
+            m_lSetCardCfgHandle = HCNetSDK_Tarjeta.NET_DVR_StartRemoteConfig(GetConnectedDeviceUserID(), HCNetSDK_Tarjeta.NET_DVR_SET_CARD, ptrStruCond, (int)struCond.dwSize, null, IntPtr.Zero);
             if (m_lSetCardCfgHandle < 0)
             {
                 MessageBox.Show("NET_DVR_SET_CARD error:" + HCNetSDK_Tarjeta.NET_DVR_GetLastError());
@@ -295,7 +306,7 @@ namespace ControlEntradaSalida
             int dwInBufferSize = Convert.ToInt32(struCond.dwSize);
             IntPtr ptrstruCond = Marshal.AllocHGlobal(dwInBufferSize);
             Marshal.StructureToPtr(struCond, ptrstruCond, false);
-            m_lSetFaceCfgHandle = HCNetSDK_Facial.NET_DVR_StartRemoteConfig(Common.m_UserID, HCNetSDK_Facial.NET_DVR_SET_FACE, ptrstruCond, dwInBufferSize, null, IntPtr.Zero);
+            m_lSetFaceCfgHandle = HCNetSDK_Facial.NET_DVR_StartRemoteConfig(GetConnectedDeviceUserID(), HCNetSDK_Facial.NET_DVR_SET_FACE, ptrstruCond, dwInBufferSize, null, IntPtr.Zero);
             if (-1 == m_lSetFaceCfgHandle)
             {
                 Marshal.FreeHGlobal(ptrstruCond);
@@ -420,8 +431,8 @@ namespace ControlEntradaSalida
         private void buttonCapturarFoto_Click(object sender, EventArgs e)
         {
             
-            string msg;
-            bool retval;
+            string msg = null;
+            bool retval = false;
             Common cmn = new Common();
 
             /*如果之前进行了捕捉并想要丢弃，请删除磁盘上的图像 */
@@ -440,7 +451,20 @@ namespace ControlEntradaSalida
                 }
             }
 
-            retval = cmn.Login(Common.ip, Common.puerto, Common.usuario, Common.contrasena, out msg);
+            // 获取当前连接的设备信息
+            var connectedDevices = DeviceConnectionManager.Instance.GetAllDevices()
+                .Where(d => d.IsConnected).ToList();
+            if (connectedDevices.Count > 0)
+            {
+                // 使用第一个连接的设备
+                var device = connectedDevices[0];
+                retval = cmn.Login(device.IpAddress, device.Port, device.Username, device.Password, out int userID, out msg);
+            }
+            else
+            {
+                retval = false;
+                msg = "没有已连接的设备";
+            }
             if (retval)
             {
                 CapturarFoto();
@@ -485,7 +509,7 @@ namespace ControlEntradaSalida
             IntPtr ptrdwState = Marshal.AllocHGlobal((int)struStatus.dwSize);
             Marshal.StructureToPtr(struStatus, ptrdwState, false);
 
-            m_lGetCardCfgHandle = HCNetSDK_Tarjeta.NET_DVR_StartRemoteConfig(Common.m_UserID, HCNetSDK_Tarjeta.NET_DVR_DEL_CARD, ptrStruCond, (int)struCond.dwSize, null, this.Handle);
+            m_lGetCardCfgHandle = HCNetSDK_Tarjeta.NET_DVR_StartRemoteConfig(GetConnectedDeviceUserID(), HCNetSDK_Tarjeta.NET_DVR_DEL_CARD, ptrStruCond, (int)struCond.dwSize, null, this.Handle);
             if (m_lGetCardCfgHandle < 0)
             {
                 MessageBox.Show("NET_DVR_DEL_CARD error:" + HCNetSDK_Tarjeta.NET_DVR_GetLastError());
@@ -797,7 +821,7 @@ namespace ControlEntradaSalida
             string outputStatus = null;
             bool result = false;
             Common cmn = new Common();
-            result = cmn.ISAPIQuery(url, UserInfoValues, out outputString, out outputStatus);
+            result = cmn.ISAPIQuery(GetConnectedDeviceUserID(), url, UserInfoValues, out outputString, out outputStatus);
             string xmlresult = "";
             dynamic DynamicData;
             if (!result)
@@ -849,7 +873,20 @@ namespace ControlEntradaSalida
             string msg;
             bool retval;
             Common cmn = new Common();
-            retval = cmn.Login(Common.ip, Common.puerto, Common.usuario, Common.contrasena, out msg);
+            // 获取当前连接的设备信息
+            var connectedDevices = DeviceConnectionManager.Instance.GetAllDevices()
+                .Where(d => d.IsConnected).ToList();
+            if (connectedDevices.Count > 0)
+            {
+                // 使用第一个连接的设备
+                var device = connectedDevices[0];
+                retval = cmn.Login(device.IpAddress, device.Port, device.Username, device.Password, out int userID, out msg);
+            }
+            else
+            {
+                retval = false;
+                msg = "没有已连接的设备";
+            }
             if (retval)
             {
                 bool resultcrear = false;
@@ -903,7 +940,7 @@ namespace ControlEntradaSalida
         //窗体加载时触发,检查是否登录设备；
         private void GestionUsuarios_Load(object sender, EventArgs e)
         {
-            if (Common.m_UserID < 0)
+            if (GetConnectedDeviceUserID() < 0)
             {
                 MessageBox.Show("您必须在设备上登录", "登录错误", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 this.groupBox.Enabled = false;
@@ -969,7 +1006,20 @@ namespace ControlEntradaSalida
                 string msg;
                 bool retval;
                 Common cmn = new Common();
-                retval = cmn.Login(Common.ip, Common.puerto, Common.usuario, Common.contrasena, out msg);
+                // 获取当前连接的设备信息
+                var connectedDevices = DeviceConnectionManager.Instance.GetAllDevices()
+                    .Where(d => d.IsConnected).ToList();
+                if (connectedDevices.Count > 0)
+                {
+                    // 使用第一个连接的设备
+                    var device = connectedDevices[0];
+                    retval = cmn.Login(device.IpAddress, device.Port, device.Username, device.Password, out int userID, out msg);
+                }
+                else
+                {
+                    retval = false;
+                    msg = "没有已连接的设备";
+                }
                 if (retval)
                 {
                     ListView.CheckedListViewItemCollection itemColl = this.listView.CheckedItems;
@@ -1034,7 +1084,7 @@ namespace ControlEntradaSalida
             IntPtr ptrStruCond = Marshal.AllocHGlobal(dwSize);
             Marshal.StructureToPtr(struCond, ptrStruCond, false);
 
-            m_lGetFaceCfgHandle = HCNetSDK_Facial.NET_DVR_StartRemoteConfig(Common.m_UserID, HCNetSDK_Facial.NET_DVR_GET_FACE, ptrStruCond, dwSize, null, IntPtr.Zero);
+            m_lGetFaceCfgHandle = HCNetSDK_Facial.NET_DVR_StartRemoteConfig(GetConnectedDeviceUserID(), HCNetSDK_Facial.NET_DVR_GET_FACE, ptrStruCond, dwSize, null, IntPtr.Zero);
             if (m_lGetFaceCfgHandle == -1)
             {
                 Marshal.FreeHGlobal(ptrStruCond);

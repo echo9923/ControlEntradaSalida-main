@@ -58,15 +58,17 @@ namespace ControlEntradaSalida
                 MessageBox.Show("海康威视SDK初始化失败", "初始化错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
             if (!Common.CrearDirectorioData())
                 MessageBox.Show("创建数据目录失败", "文件错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                
+            // 初始化设备连接管理器
+            DeviceConnectionManager.Instance.LoadAllDevices();
         }
         //窗体关闭前的清理工作
         private void MDIParent_FormClosing(object sender, FormClosingEventArgs e)
         {
-            if (Common.m_UserID >= 0)
-            {
-                HCNetSDK.NET_DVR_Logout_V30(Common.m_UserID);
-                Common.m_UserID = -1;
-            }
+            // 断开所有设备连接
+            DeviceConnectionManager.Instance.DisconnectAllDevices();
+            DeviceConnectionManager.Instance.Dispose();
+            
             HCNetSDK.NET_DVR_Cleanup();
         }
         //设备用户信息窗口

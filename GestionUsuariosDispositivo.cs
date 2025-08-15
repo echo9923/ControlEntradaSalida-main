@@ -24,10 +24,24 @@ namespace ControlEntradaSalida
     {
         private uint iLastErr = 0;
         private string strErr;
+        
         //初始化窗体
         public GestionUsuariosDispositivo()
         {
             InitializeComponent();
+        }
+        
+        // 获取当前连接设备的UserID
+        private int GetConnectedDeviceUserID()
+        {
+            var connectedDevices = DeviceConnectionManager.Instance.GetAllDevices()
+                .Where(d => d.IsConnected).ToList();
+            if (connectedDevices.Count > 0)
+            {
+                // 使用第一个连接的设备
+                return connectedDevices[0].UserID;
+            }
+            return -1;
         }
 
         //向设备发送 JSON 请求，并获取结果
@@ -56,7 +70,7 @@ namespace ControlEntradaSalida
             pOutputXml.lpStatusBuffer = Marshal.AllocHGlobal(4096 * 4);
             pOutputXml.dwStatusSize = 4096 * 4;
 
-            if (!HCNetSDK.NET_DVR_STDXMLConfig(Common.m_UserID, ref pInputXml, ref pOutputXml))//发送 XML/JSON,返回是否成功，并输出 outputResult 和 outputStatus
+            if (!HCNetSDK.NET_DVR_STDXMLConfig(GetConnectedDeviceUserID(), ref pInputXml, ref pOutputXml))//发送 XML/JSON,返回是否成功，并输出 outputResult 和 outputStatus
             {
                 iLastErr = HCNetSDK.NET_DVR_GetLastError();
                 outputResult = "NET_DVR_STDXMLConfig 失败，错误代码= " + iLastErr;
@@ -89,7 +103,7 @@ namespace ControlEntradaSalida
             Common cmn = new Common();
             string jsonresult = "";
 
-            bool result = cmn.ISAPIQuery(url, CardInfoValues, out outputString, out outputStatus);//向设备发送 JSON 请求，并获取结果
+            bool result = cmn.ISAPIQuery(GetConnectedDeviceUserID(), url, CardInfoValues, out outputString, out outputStatus);//向设备发送 JSON 请求，并获取结果
             bool flag = true;
             if (result)
             {
@@ -151,7 +165,7 @@ namespace ControlEntradaSalida
             Common cmn = new Common();
             string jsonresult = "";
 
-            bool result = cmn.ISAPIQuery(url, UserInfoSearchCond, out outputString, out outputStatus);
+            bool result = cmn.ISAPIQuery(GetConnectedDeviceUserID(), url, UserInfoSearchCond, out outputString, out outputStatus);
             if (!result)
             {
                 jsonresult = outputStatus;
@@ -337,7 +351,7 @@ namespace ControlEntradaSalida
         //查询按钮事件,点击“查询用户”时执行
         private void buttonConsultar_Click(object sender, EventArgs e)
         {
-            if (Common.m_UserID < 0)
+            if (GetConnectedDeviceUserID() < 0)
             {
                 MessageBox.Show("首先在设备上登录", "需要登录", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 return;
@@ -346,7 +360,20 @@ namespace ControlEntradaSalida
             bool retval;
             string msg;
             Common cmn = new Common();
-            retval = cmn.Login(Common.ip, Common.puerto, Common.usuario, Common.contrasena, out msg);
+            // 获取当前连接的设备信息
+            var connectedDevices = DeviceConnectionManager.Instance.GetAllDevices()
+                .Where(d => d.IsConnected).ToList();
+            if (connectedDevices.Count > 0)
+            {
+                // 使用第一个连接的设备
+                var device = connectedDevices[0];
+                retval = cmn.Login(device.IpAddress, device.Port, device.Username, device.Password, out int userID, out msg);
+            }
+            else
+            {
+                retval = false;
+                msg = "没有已连接的设备";
+            }
             if (retval)
             {
                 if (this.listView.Items.Count > 0)

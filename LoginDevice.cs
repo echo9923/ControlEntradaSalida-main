@@ -211,28 +211,27 @@ namespace ControlEntradaSalida
             }
             return retval;
         }
-        //使用当前表单中填写的 IP、端口、用户名、密码连接设备,调用 Common.Login封装方法登录设备；成功后保存这些信息到 Common 类的静态字段
-        private bool login()
+        //使用当前表单中填写的 IP、端口、用户名、密码连接设备,调用 Common.Login封装方法登录设备
+        private bool login(out int userID)
         {
             bool retval = false;
+            userID = -1;
 
             Common cmn = new Common();
             string msg = null;
+            int lUserID = -1;
             bool ret = false;
             ret = cmn.Login(this.txtDireccionIP.Text,
                 this.txtPuerto.Text,
                 this.txtUsuario.Text,
-                this.txtContrasena.Text, out msg);
+                this.txtContrasena.Text, out lUserID, out msg);
             if (!ret)
             {
                 MessageBox.Show(msg,"登录错误", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
             else
             {
-                Common.ip = this.txtDireccionIP.Text;
-                Common.puerto = this.txtPuerto.Text;      
-                Common.usuario = this.txtUsuario.Text;
-                Common.contrasena = this.txtContrasena.Text;
+                userID = lUserID;
                 retval = true;                
             }
             return retval;
@@ -240,11 +239,17 @@ namespace ControlEntradaSalida
         //登录按钮点击事件,成功登录后调用 InsertarDispositivo() 添加
         private void buttonLogin_Click(object sender, EventArgs e)
         {
+            int userID = -1;
             if (nuevo)
             {
-                if (login())
+                if (login(out userID))
                 {
                     InsertarDispositivo();
+                    // 如果登录成功，断开连接（因为设备连接管理器会管理连接）
+                    if (userID >= 0)
+                    {
+                        HCNetSDK.NET_DVR_Logout_V30(userID);
+                    }
                 }
                 else 
                 {
@@ -260,8 +265,13 @@ namespace ControlEntradaSalida
             } 
             else
             {
-                login();
+                login(out userID);
                 ActualizarDispositivo(this.textBoxID.Text);
+                // 如果登录成功，断开连接（因为设备连接管理器会管理连接）
+                if (userID >= 0)
+                {
+                    HCNetSDK.NET_DVR_Logout_V30(userID);
+                }
             }
             this.Close();
         }

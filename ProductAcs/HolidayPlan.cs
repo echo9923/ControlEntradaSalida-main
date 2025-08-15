@@ -14,7 +14,7 @@ namespace ControlEntradaSalida
 {   //设备管理界面的功能
     public partial class HolidayPlan : Form
     {
-        public Int32 m_lUserID = Common.m_UserID;
+        public Int32 m_lUserID = -1;
         public Int32 m_iDeviceIndex = -1;
         public int m_iDeviceType = 0;
 
@@ -28,14 +28,14 @@ namespace ControlEntradaSalida
             InitializeComponent();
             m_struPlanCfgH.Init();
             m_struPlanCond.Init();
-            cbDeviceType.SelectedIndex = 0;
-            cbVerifyMode.SelectedIndex = 0;
-            cbDoorStateMode.SelectedIndex = 0;
-            cbVerifyMode.Hide();
-            label8.Hide();
-            cbDoorStateMode.Hide();
-            label9.Hide();
-            UpdateList();
+            
+            // 获取当前连接的设备
+            var connectedDevices = DeviceConnectionManager.Instance.GetAllDevices()
+                .Where(d => d.IsConnected).ToList();
+            if (connectedDevices.Count > 0)
+            {
+                m_lUserID = connectedDevices[0].UserID;
+            }
         }
 
         private void btnGet_Click(object sender, EventArgs e)

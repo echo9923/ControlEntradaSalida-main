@@ -12,30 +12,21 @@ namespace ControlEntradaSalida
 {
     class Common
     {   //设备相关参数
-        public static int m_UserID = -1;//id
-        public static string ip = null;//ip
-        public static string puerto = null;//端口
-        public static string usuario = null;//用户
-        public static string contrasena = null;//密码
         public static string datadir = null;//储存地址
 
         private uint iLastErr = 0;
 
-        //	使用海康威视 SDK 向设备发送 ISAPI（XML 配置）请求并接收结果
-        public bool ISAPIQuery(string requestURL, string inputParam, out string outputResult, out string outputStatus)
+        //使用海康威视 SDK 向设备发送 ISAPI（XML 配置）请求并接收结果
+        public bool ISAPIQuery(int userID, string requestURL, string inputParam, out string outputResult, out string outputStatus)
         {
             bool retval = true;
 
             outputResult = null;
             outputStatus = null;
-            string msg = null;
 
-            Common cmn = new Common();
-            //bool retlogin = cmn.Login(Common.ip, Common.puerto, Common.usuario, Common.contrasena, out msg);
-            bool retlogin = true;
-
-            if (!retlogin)
+            if (userID < 0)
             {
+                outputResult = "设备未连接";
                 retval = false;
             }
             else
@@ -61,7 +52,7 @@ namespace ControlEntradaSalida
                 pOutputXml.lpStatusBuffer = Marshal.AllocHGlobal(4096 * 4);
                 pOutputXml.dwStatusSize = 4096 * 4;
 
-                if (!HCNetSDK.NET_DVR_STDXMLConfig(Common.m_UserID, ref pInputXml, ref pOutputXml))
+                if (!HCNetSDK.NET_DVR_STDXMLConfig(userID, ref pInputXml, ref pOutputXml))
                 {
                     iLastErr = HCNetSDK.NET_DVR_GetLastError();
                     outputResult = "NET_DVR_STDXMLConfig failed, error code= " + iLastErr;
@@ -78,8 +69,6 @@ namespace ControlEntradaSalida
                 Marshal.FreeHGlobal(pOutputXml.lpOutBuffer);
                 Marshal.FreeHGlobal(pOutputXml.lpStatusBuffer);
             }
-
-
 
             return retval;
         }
@@ -127,9 +116,10 @@ namespace ControlEntradaSalida
 
         }
         //使用海康威视 SDK 登录设备（提供 IP、端口、用户名、密码）
-        public bool Login(string ip, string puerto, string usuario, string contrasena, out string msg)
+        public bool Login(string ip, string puerto, string usuario, string contrasena, out int userID, out string msg)
         {
             bool ret = false;
+            userID = -1;
             msg = null;
 
             HCNetSDK.NET_DVR_USER_LOGIN_INFO struLoginInfo = new HCNetSDK.NET_DVR_USER_LOGIN_INFO();
@@ -145,7 +135,7 @@ namespace ControlEntradaSalida
             lUserID = HCNetSDK.NET_DVR_Login_V40(ref struLoginInfo, ref struDeviceInfoV40);
             if (lUserID >= 0)
             {
-                Common.m_UserID = lUserID;
+                userID = lUserID;
                 ret = true;
             }
             else
