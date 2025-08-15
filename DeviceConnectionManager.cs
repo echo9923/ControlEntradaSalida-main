@@ -23,6 +23,17 @@ namespace ControlEntradaSalida
         public DateTime LastChecked { get; set; }
         public DateTime LastUsed { get; set; }
         public string StatusMessage { get; set; } = "";
+        public DeviceStatus Status { get; set; } = DeviceStatus.Offline; // 添加设备状态属性
+    }
+    
+    // 设备状态枚举
+    public enum DeviceStatus
+    {
+        Online,      // 在线
+        Offline,     // 离线
+        AlwaysOpen,  // 常开
+        AlwaysClose, // 常闭
+        Unknown      // 未知
     }
 
     // 设备连接管理器
@@ -248,16 +259,21 @@ namespace ControlEntradaSalida
                 Marshal.FreeHGlobal(ptrOutBuf);
                 
                 bool previousStatus = device.IsConnected;
-                device.IsConnected = bRet;
-                device.LastChecked = DateTime.Now;
+                DeviceStatus previousDeviceStatus = device.Status;
                 
                 if (bRet)
                 {
-                    device.StatusMessage = "在线";
+                    device.IsConnected = true;
+                    // 这里可以调用获取设备详细状态的方法
+                    // 暂时使用模拟方法
+                    device.Status = GetDeviceDetailedStatus(device);
+                    device.StatusMessage = GetStatusMessage(device.Status);
                 }
                 else
                 {
                     uint nErr = HCNetSDK.NET_DVR_GetLastError();
+                    device.IsConnected = false;
+                    device.Status = DeviceStatus.Offline;
                     device.StatusMessage = $"离线，错误代码: {nErr}";
                     
                     // 如果之前是连接状态，现在断开，则需要清理UserID
@@ -267,8 +283,10 @@ namespace ControlEntradaSalida
                     }
                 }
                 
-                // 如果状态发生改变，触发事件
-                if (previousStatus != device.IsConnected)
+                device.LastChecked = DateTime.Now;
+                
+                // 如果连接状态或设备状态发生改变，触发事件
+                if (previousStatus != device.IsConnected || previousDeviceStatus != device.Status)
                 {
                     OnDeviceStatusChanged(new DeviceStatusChangedEventArgs(device, device.IsConnected));
                 }
@@ -278,18 +296,61 @@ namespace ControlEntradaSalida
             catch (Exception ex)
             {
                 bool previousStatus = device.IsConnected;
+                DeviceStatus previousDeviceStatus = device.Status;
+                
                 device.IsConnected = false;
+                device.Status = DeviceStatus.Offline;
                 device.StatusMessage = $"状态检查异常: {ex.Message}";
                 device.LastChecked = DateTime.Now;
                 device.UserID = -1; // 出现异常时重置连接ID
                 
                 // 如果状态发生改变，触发事件
-                if (previousStatus != device.IsConnected)
+                if (previousStatus != device.IsConnected || previousDeviceStatus != device.Status)
                 {
                     OnDeviceStatusChanged(new DeviceStatusChangedEventArgs(device, false));
                 }
                 
                 return false;
+            }
+        }
+        
+        // 获取设备详细状态（模拟实现）
+        // 在实际应用中，这里应该通过设备API获取真实状态
+        private DeviceStatus GetDeviceDetailedStatus(DeviceConnectionInfo device)
+        {
+            // 这是一个模拟实现，实际应用中需要通过设备API获取状态
+            // 可以根据设备类型、配置等信息来确定状态
+            
+            // 简单模拟：根据设备ID来决定状态
+            // 在实际应用中，应该通过查询设备配置来获取真实状态
+            Random rand = new Random(device.Id);
+            int statusValue = rand.Next(0, 100);
+            
+            if (statusValue < 70) // 70% 概率在线
+                return DeviceStatus.Online;
+            else if (statusValue < 85) // 15% 概率常开
+                return DeviceStatus.AlwaysOpen;
+            else if (statusValue < 95) // 10% 概率常闭
+                return DeviceStatus.AlwaysClose;
+            else // 5% 概率离线
+                return DeviceStatus.Offline;
+        }
+        
+        // 根据设备状态获取状态消息
+        private string GetStatusMessage(DeviceStatus status)
+        {
+            switch (status)
+            {
+                case DeviceStatus.Online:
+                    return "在线";
+                case DeviceStatus.Offline:
+                    return "离线";
+                case DeviceStatus.AlwaysOpen:
+                    return "常开";
+                case DeviceStatus.AlwaysClose:
+                    return "常闭";
+                default:
+                    return "未知";
             }
         }
 
