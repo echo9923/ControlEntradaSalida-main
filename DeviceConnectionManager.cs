@@ -318,26 +318,64 @@ namespace ControlEntradaSalida
             }
         }
         
-        // 获取设备详细状态（模拟实现）
-        // 在实际应用中，这里应该通过设备API获取真实状态
+        // 获取设备详细状态（实际实现）
+        // 通过设备API获取真实状态
         private DeviceStatus GetDeviceDetailedStatus(DeviceConnectionInfo device)
         {
-            // 这是一个模拟实现，实际应用中需要通过设备API获取状态
-            // 可以根据设备类型、配置等信息来确定状态
-            
-            // 简单模拟：根据设备ID来决定状态
-            // 在实际应用中，应该通过查询设备配置来获取真实状态
-            Random rand = new Random(device.Id);
-            int statusValue = rand.Next(0, 100);
-            
-            if (statusValue < 70) // 70% 概率在线
-                return DeviceStatus.Online;
-            else if (statusValue < 85) // 15% 概率常开
-                return DeviceStatus.AlwaysOpen;
-            else if (statusValue < 95) // 10% 概率常闭
-                return DeviceStatus.AlwaysClose;
-            else // 5% 概率离线
+            try
+            {
+                // 使用NET_DVR_GetDVRConfig获取门禁设备工作状态
+                HCNetSDK.NET_DVR_ACS_WORK_STATUS_V50 statusInfo = new HCNetSDK.NET_DVR_ACS_WORK_STATUS_V50();
+                statusInfo.Init();
+                
+                uint dwReturned = 0;
+                uint dwCommand = (uint)HCNetSDK.NET_DVR_GET_ACS_WORK_STATUS_V50;
+                int nSize = Marshal.SizeOf(statusInfo);
+                IntPtr ptrStatusInfo = Marshal.AllocHGlobal(nSize);
+                Marshal.StructureToPtr(statusInfo, ptrStatusInfo, false);
+                
+                bool bRet = HCNetSDK.NET_DVR_GetDVRConfig(device.UserID, dwCommand, -1, ptrStatusInfo, (uint)nSize, ref dwReturned);
+                
+                if (bRet)
+                {
+                    // 成功获取状态信息
+                    statusInfo = (HCNetSDK.NET_DVR_ACS_WORK_STATUS_V50)Marshal.PtrToStructure(ptrStatusInfo, typeof(HCNetSDK.NET_DVR_ACS_WORK_STATUS_V50));
+                    
+                    // 根据门状态判断设备状态
+                    // 通常门状态：1-休眠状态, 2-常开状态, 3-常闭状态, 4-普通状态
+                    if (statusInfo.byDoorStatus != null && statusInfo.byDoorStatus.Length > 0)
+                    {
+                        byte doorStatus = statusInfo.byDoorStatus[0];
+                        switch (doorStatus)
+                        {
+                            case 2: // 常开状态
+                                return DeviceStatus.AlwaysOpen;
+                            case 3: // 常闭状态
+                                return DeviceStatus.AlwaysClose;
+                            case 1: // 休眠状态
+                            case 4: // 普通状态
+                            default:
+                                return DeviceStatus.Online;
+                        }
+                    }
+                    else
+                    {
+                        // 如果没有门状态信息，默认返回在线
+                        return DeviceStatus.Online;
+                    }
+                }
+                else
+                {
+                    // 获取状态失败，返回离线
+                    return DeviceStatus.Offline;
+                }
+            }
+            catch (Exception ex)
+            {
+                // 出现异常，返回离线
+                Console.WriteLine($"获取设备详细状态时出错: {ex.Message}");
                 return DeviceStatus.Offline;
+            }
         }
         
         // 根据设备状态获取状态消息
