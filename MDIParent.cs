@@ -58,8 +58,8 @@ namespace ControlEntradaSalida
             {
                 var cardPanel = kvp.Value;
 
-                // 移除悬停状态检查逻辑，避免与MouseEnter/MouseLeave事件冲突
-                // 让Windows Forms的原生鼠标事件处理机制来管理悬停状态
+                // 添加悬停状态一致性检查和纠正
+                ValidateAndCorrectHoverState(cardPanel);
 
                 // 查找状态图标
                 Panel statusIcon = null;
@@ -83,6 +83,42 @@ namespace ControlEntradaSalida
                     statusIcon.BackColor = Color.FromArgb(alpha, 40, 167, 69);
                     statusIcon.Invalidate();
                 }
+            }
+        }
+
+        // 验证和纠正悬停状态
+        private void ValidateAndCorrectHoverState(Panel cardPanel)
+        {
+            if (cardPanel == null || cardPanel.Tag == null) return;
+
+            try
+            {
+                var state = cardPanel.Tag as dynamic;
+                if (state != null)
+                {
+                    // 检查鼠标实际位置是否在卡片内
+                    var clientPoint = cardPanel.PointToClient(MousePosition);
+                    bool isMouseActuallyOver = cardPanel.ClientRectangle.Contains(clientPoint);
+                    
+                    // 如果状态与实际情况不符，进行纠正
+                    if (state.IsHovered != isMouseActuallyOver)
+                    {
+                        lock (state.SyncLock)
+                        {
+                            cardPanel.Tag = new { IsHovered = isMouseActuallyOver, SyncLock = state.SyncLock };
+                            cardPanel.Cursor = isMouseActuallyOver ? Cursors.Hand : Cursors.Default;
+                            cardPanel.Invalidate();
+                        }
+                    }
+                }
+            }
+            catch
+            {
+                // 如果状态对象格式不正确，重置为默认状态
+                var syncLock = new object();
+                cardPanel.Tag = new { IsHovered = false, SyncLock = syncLock };
+                cardPanel.Cursor = Cursors.Default;
+                cardPanel.Invalidate();
             }
         }
         // 初始化设备状态面板
@@ -142,11 +178,19 @@ namespace ControlEntradaSalida
             foreach (var kvp in deviceStatusCards)
             {
                 Panel cardPanel = kvp.Value;
-                if (cardPanel != null && cardPanel.Tag != null && (bool)cardPanel.Tag)
+                if (cardPanel != null && cardPanel.Tag != null)
                 {
-                    cardPanel.Tag = false;
-                    cardPanel.Cursor = Cursors.Default;
-                    cardPanel.Invalidate();
+                    var state = cardPanel.Tag as dynamic;
+                    if (state != null && state.IsHovered)
+                    {
+                        // 使用同步锁确保状态更新的原子性
+                        lock (state.SyncLock)
+                        {
+                            cardPanel.Tag = new { IsHovered = false, SyncLock = state.SyncLock };
+                            cardPanel.Cursor = Cursors.Default;
+                            cardPanel.Invalidate();
+                        }
+                    }
                 }
             }
         }
@@ -164,7 +208,17 @@ namespace ControlEntradaSalida
             cardPanel.Paint += (sender, e) =>
             {
                 Panel panel = sender as Panel;
-                bool isHovered = panel != null && panel.Tag != null && (bool)panel.Tag;
+                bool isHovered = false;
+                
+                // 检查新的状态管理对象
+                if (panel != null && panel.Tag != null)
+                {
+                    var state = panel.Tag as dynamic;
+                    if (state != null)
+                    {
+                        isHovered = state.IsHovered;
+                    }
+                }
 
                 // 根据悬停状态绘制不同的阴影效果
                 if (isHovered)
@@ -269,17 +323,26 @@ namespace ControlEntradaSalida
 
             // 添加鼠标悬停效果和点击效果
             // 使用Tag属性存储悬停状态，确保状态管理的可靠性
-            cardPanel.Tag = false; // 初始化悬停状态为false
+            // 添加状态同步锁，防止快速操作时的竞态条件
+            var syncLock = new object();
+            cardPanel.Tag = new { IsHovered = false, SyncLock = syncLock };
 
             cardPanel.MouseEnter += (sender, e) =>
             {
                 Panel panel = sender as Panel;
                 if (panel != null)
                 {
-                    // 设置悬停状态为true
-                    panel.Tag = true;
-                    panel.Cursor = Cursors.Hand;
-                    panel.Invalidate(); // 触发重绘以显示悬停效果
+                    lock (syncLock)
+                    {
+                        var state = panel.Tag as dynamic;
+                        if (state != null && !state.IsHovered)
+                        {
+                            // 更新悬停状态为true
+                            panel.Tag = new { IsHovered = true, SyncLock = syncLock };
+                            panel.Cursor = Cursors.Hand;
+                            panel.Invalidate(); // 触发重绘以显示悬停效果
+                        }
+                    }
                 }
             };
 
@@ -288,10 +351,17 @@ namespace ControlEntradaSalida
                 Panel panel = sender as Panel;
                 if (panel != null)
                 {
-                    // 清除悬停状态
-                    panel.Tag = false;
-                    panel.Cursor = Cursors.Default;
-                    panel.Invalidate(); // 触发重绘以恢复默认效果
+                    lock (syncLock)
+                    {
+                        var state = panel.Tag as dynamic;
+                        if (state != null && state.IsHovered)
+                        {
+                            // 清除悬停状态
+                            panel.Tag = new { IsHovered = false, SyncLock = syncLock };
+                            panel.Cursor = Cursors.Default;
+                            panel.Invalidate(); // 触发重绘以恢复默认效果
+                        }
+                    }
                 }
             };
 
