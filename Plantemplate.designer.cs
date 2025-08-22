@@ -1,4 +1,4 @@
-﻿
+
 namespace ControlEntradaSalida
 {
     partial class Plantemplate
@@ -99,7 +99,6 @@ namespace ControlEntradaSalida
 
         #endregion
 
-        private System.Windows.Forms.GroupBox groupBox;
         private System.Windows.Forms.ListView listView;
         private System.Windows.Forms.ColumnHeader id;
         private System.Windows.Forms.ColumnHeader Nombre;
