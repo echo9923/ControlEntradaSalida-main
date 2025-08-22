@@ -8,13 +8,44 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using System.Runtime.InteropServices;
 
 namespace ControlEntradaSalida
 {
+    // 双缓冲面板类，减少闪烁
+    public class BufferedPanel : Panel
+    {
+        public BufferedPanel()
+        {
+            this.DoubleBuffered = true;
+            this.SetStyle(
+                ControlStyles.AllPaintingInWmPaint |
+                ControlStyles.UserPaint |
+                ControlStyles.OptimizedDoubleBuffer,
+                true);
+            this.UpdateStyles();
+        }
+    }
+
+    // 双缓冲FlowLayoutPanel类，减少闪烁
+    public class BufferedFlowLayoutPanel : FlowLayoutPanel
+    {
+        public BufferedFlowLayoutPanel()
+        {
+            this.DoubleBuffered = true;
+            this.SetStyle(
+                ControlStyles.AllPaintingInWmPaint |
+                ControlStyles.UserPaint |
+                ControlStyles.OptimizedDoubleBuffer,
+                true);
+            this.UpdateStyles();
+        }
+    }
+
     public partial class MDIParent : Form
     {
         // 设备状态面板
-        private FlowLayoutPanel deviceStatusPanel;
+        private BufferedFlowLayoutPanel deviceStatusPanel;
         private Dictionary<int, Panel> deviceStatusCards;
         private Timer animationTimer;
         private Dictionary<int, DateTime> lastUpdateTimes;
@@ -37,7 +68,7 @@ namespace ControlEntradaSalida
         {
             lastUpdateTimes = new Dictionary<int, DateTime>();
             animationTimer = new Timer();
-            animationTimer.Interval = 100; // 100ms间隔
+            animationTimer.Interval = 150; // 增加间隔到150ms，减少重绘频率
             animationTimer.Tick += AnimationTimer_Tick;
             animationTimer.Start();
 
@@ -53,13 +84,22 @@ namespace ControlEntradaSalida
         // 动画定时器事件
         private void AnimationTimer_Tick(object sender, EventArgs e)
         {
+            DateTime now = DateTime.Now;
+            bool needsFullRefresh = false;
+
             // 为在线设备添加脉冲动画效果
             foreach (var kvp in deviceStatusCards)
             {
                 var cardPanel = kvp.Value;
 
-                // 添加悬停状态一致性检查和纠正
-                ValidateAndCorrectHoverState(cardPanel);
+                // 降低状态验证频率，减少不必要的重绘
+                if (now.Millisecond % 300 < 150) // 每300ms验证一次状态
+                {
+                    if (ValidateAndCorrectHoverState(cardPanel))
+                    {
+                        needsFullRefresh = true;
+                    }
+                }
 
                 // 查找状态图标
                 Panel statusIcon = null;
@@ -73,23 +113,34 @@ namespace ControlEntradaSalida
                 }
 
                 // 如果是在线状态的绿色图标，添加脉冲效果
-                if (statusIcon != null && statusIcon.BackColor == Color.FromArgb(40, 167, 69))
+                if (statusIcon != null && statusIcon.BackColor.R == 40 && statusIcon.BackColor.G == 167 && statusIcon.BackColor.B == 69)
                 {
-                    // 计算脉冲透明度
-                    double pulseValue = (Math.Sin(DateTime.Now.Millisecond * 0.01) + 1) * 0.3 + 0.4;
+                    // 计算脉冲透明度，使用更平滑的算法
+                    double pulseValue = (Math.Sin(now.Millisecond * 0.008) + 1) * 0.25 + 0.5;
                     int alpha = (int)(255 * pulseValue);
 
-                    // 更新图标颜色以产生脉冲效果
-                    statusIcon.BackColor = Color.FromArgb(alpha, 40, 167, 69);
-                    statusIcon.Invalidate();
+                    // 只在透明度变化较大时更新
+                    var currentAlpha = statusIcon.BackColor.A;
+                    if (Math.Abs(alpha - currentAlpha) > 5)
+                    {
+                        // 更新图标颜色以产生脉冲效果
+                        statusIcon.BackColor = Color.FromArgb(alpha, 40, 167, 69);
+                        statusIcon.Invalidate();
+                    }
                 }
+            }
+
+            // 只有在需要时才进行全量刷新
+            if (needsFullRefresh)
+            {
+                deviceStatusPanel.Invalidate(false);
             }
         }
 
         // 验证和纠正悬停状态
-        private void ValidateAndCorrectHoverState(Panel cardPanel)
+        private bool ValidateAndCorrectHoverState(Panel cardPanel)
         {
-            if (cardPanel == null || cardPanel.Tag == null) return;
+            if (cardPanel == null || cardPanel.Tag == null) return false;
 
             try
             {
@@ -108,6 +159,7 @@ namespace ControlEntradaSalida
                             cardPanel.Tag = new { IsHovered = isMouseActuallyOver, SyncLock = state.SyncLock };
                             cardPanel.Cursor = isMouseActuallyOver ? Cursors.Hand : Cursors.Default;
                             cardPanel.Invalidate();
+                            return true; // 返回true表示发生了状态变化
                         }
                     }
                 }
@@ -119,13 +171,15 @@ namespace ControlEntradaSalida
                 cardPanel.Tag = new { IsHovered = false, SyncLock = syncLock };
                 cardPanel.Cursor = Cursors.Default;
                 cardPanel.Invalidate();
+                return true; // 返回true表示发生了状态变化
             }
+            return false; // 返回false表示没有状态变化
         }
         // 初始化设备状态面板
         private void InitializeDeviceStatusPanel()
         {
             // 创建设备状态面板
-            deviceStatusPanel = new FlowLayoutPanel();
+            deviceStatusPanel = new BufferedFlowLayoutPanel();
             deviceStatusPanel.Dock = DockStyle.Top;
             deviceStatusPanel.Height = 140; // 增加高度以适应新的卡片设计
             deviceStatusPanel.BackColor = Color.FromArgb(248, 249, 250); // 现代化的浅灰背景
@@ -199,7 +253,7 @@ namespace ControlEntradaSalida
         private void CreateDeviceStatusCard(DeviceConnectionInfo device)
         {
             // 创建卡片面板
-            Panel cardPanel = new Panel();
+            Panel cardPanel = new BufferedPanel(); // 使用自定义的双缓冲面板
             cardPanel.Size = new Size(180, 110); // 增大卡片尺寸
             cardPanel.BackColor = Color.White;
             cardPanel.Margin = new Padding(8, 8, 8, 8);
@@ -280,7 +334,7 @@ namespace ControlEntradaSalida
             nameLabel.BackColor = Color.Transparent;
 
             // 创建状态图标（使用圆形设计）
-            Panel statusIcon = new Panel();
+            Panel statusIcon = new BufferedPanel();
             statusIcon.Size = new Size(16, 16);
             statusIcon.Location = new Point(15, 45);
             statusIcon.Paint += (sender, e) =>
