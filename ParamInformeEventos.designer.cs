@@ -414,6 +414,28 @@ namespace ControlEntradaSalida
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
             this.Text = "事件日志";
             this.Load += new System.EventHandler(this.ParamInformeConsumos_Load);
+            this.labelDispositivo = new System.Windows.Forms.Label();
+            this.cmbDispositivos = new System.Windows.Forms.ComboBox();
+            this.groupBox1.Controls.Add(this.labelDispositivo);
+            this.groupBox1.Controls.Add(this.cmbDispositivos);
+            // 
+            // labelDispositivo
+            // 
+            this.labelDispositivo.AutoSize = true;
+            this.labelDispositivo.Location = new System.Drawing.Point(8, 244);
+            this.labelDispositivo.Name = "labelDispositivo";
+            this.labelDispositivo.Size = new System.Drawing.Size(68, 15);
+            this.labelDispositivo.TabIndex = 17;
+            this.labelDispositivo.Text = "设备:";
+            // 
+            // cmbDispositivos
+            // 
+            this.cmbDispositivos.FormattingEnabled = true;
+            this.cmbDispositivos.Location = new System.Drawing.Point(103, 241);
+            this.cmbDispositivos.Name = "cmbDispositivos";
+            this.cmbDispositivos.Size = new System.Drawing.Size(284, 23);
+            this.cmbDispositivos.TabIndex = 18;
+
             this.groupBox1.ResumeLayout(false);
             this.groupBox5.ResumeLayout(false);
             this.groupBox5.PerformLayout();
@@ -461,5 +483,7 @@ namespace ControlEntradaSalida
         private System.Windows.Forms.ColumnHeader hora;
         private System.Windows.Forms.TextBox textBoxApellidosEmpleado;
         private System.Windows.Forms.Label label7;
+        private System.Windows.Forms.Label labelDispositivo;
+        private System.Windows.Forms.ComboBox cmbDispositivos;
     }
 }

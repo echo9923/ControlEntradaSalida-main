@@ -15,6 +15,7 @@ namespace ControlEntradaSalida
         public string documento { get; set; }
         public string nombres { get; set; }
         public string apellidos { get; set; }
+        public string dispositivo { get; set; }
         public InformeEventos()
         { }
         
