@@ -1,4 +1,4 @@
-﻿using MySql.Data.MySqlClient;
+using MySql.Data.MySqlClient;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -56,11 +56,17 @@ namespace ControlEntradaSalida
         {
             
             string retval = null;
-            retval = "SELECT temp_informe_es.id, temp_informe_es.documento, nombres, empleados.apellidos, temp_informe_es.fecha, temp_informe_es.hora_a, temp_informe_es.hora_b FROM empleados, temp_informe_es WHERE empleados.documento = temp_informe_es.documento ";
+            retval = "SELECT temp_informe_es.id, temp_informe_es.documento, nombres, empleados.apellidos, temp_informe_es.fecha, temp_informe_es.hora_a, temp_informe_es.hora_b, dispositivos.nombre as dispositivo FROM empleados, temp_informe_es LEFT JOIN dispositivos ON temp_informe_es.dispositivo_id = dispositivos.id WHERE empleados.documento = temp_informe_es.documento ";
 
             if (this.radioButtonTodosEmpleados.Checked == false)
             {
                 retval += String.Format("AND temp_informe_es.documento = '{0}' ", this.textBoxDocumentoEmpleado.Text);
+            }
+
+            ComboboxItem selectedDispositivo = (ComboboxItem)this.cmbDispositivos.SelectedItem;
+            if (selectedDispositivo != null && Convert.ToInt32(selectedDispositivo.Value) != 0)
+            {
+                retval += String.Format("AND temp_informe_es.dispositivo_id = {0} ", selectedDispositivo.Value);
             }
             
             if (this.radioButtonTodasFechas.Checked == false)
@@ -151,6 +157,7 @@ namespace ControlEntradaSalida
                             ies.fecha = strfecha;
                             ies.horaa = strhoraa;
                             ies.horab = strhorab;
+                            ies.dispositivo = rdr["dispositivo"].ToString();
                             listaes.Add(ies);
                             ies = null;
 
@@ -161,6 +168,7 @@ namespace ControlEntradaSalida
                             lvi.SubItems.Add(strfecha);
                             lvi.SubItems.Add(strhoraa);
                             lvi.SubItems.Add(strhorab);
+                            lvi.SubItems.Add(rdr["dispositivo"].ToString());
                             listView.Items.Add(lvi);
                             lvi = null;
                         }
@@ -220,9 +228,52 @@ namespace ControlEntradaSalida
         private void ParamInformeConsumos_Load(object sender, EventArgs e)
         {
             this.radioButtonTodosEmpleados.Checked = true;//默认勾选“所有员工”
-
+            CargarDispositivos();
 
         }
+
+        private void CargarDispositivos()
+        {
+            this.cmbDispositivos.Items.Clear();
+
+            ComboboxItem itemTodos = new ComboboxItem();
+            itemTodos.Text = "全部";
+            itemTodos.Value = 0;
+            this.cmbDispositivos.Items.Add(itemTodos);
+
+            Common cmn = new Common();
+            string connstr = cmn.obtenerCadenaConexion();
+            BaseDatosMySQL bd = new BaseDatosMySQL();
+            bd.conectarMySQL(connstr);
+
+            if (bd.conn != null)
+            {
+                string sql = "SELECT id, nombre FROM dispositivos ORDER BY nombre";
+                try
+                {
+                    MySqlCommand cmd = new MySqlCommand(sql, bd.conn);
+                    MySqlDataReader rdr = cmd.ExecuteReader();
+                    while (rdr.Read())
+                    {
+                        ComboboxItem item = new ComboboxItem();
+                        item.Text = rdr["nombre"].ToString();
+                        item.Value = Convert.ToInt32(rdr["id"]);
+                        this.cmbDispositivos.Items.Add(item);
+                    }
+                    rdr.Close();
+                    this.cmbDispositivos.SelectedIndex = 0;
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(ex.Message);
+                }
+                finally
+                {
+                    bd.desconectarMySQL();
+                }
+            }
+        }
+
         //启用时间选择器（起始与结束时间）
         private void radioButtonRangoHoras_CheckedChanged(object sender, EventArgs e)
         {
@@ -252,6 +303,22 @@ namespace ControlEntradaSalida
         private void groupBox3_Enter(object sender, EventArgs e)
         {
 
+        }
+
+        private void labelDispositivo_Click(object sender, EventArgs e)
+        {
+
+        }
+    }
+
+    public class ComboboxItem
+    {
+        public string Text { get; set; }
+        public object Value { get; set; }
+
+        public override string ToString()
+        {
+            return Text;
         }
     }
 }

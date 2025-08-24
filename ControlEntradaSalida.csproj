@@ -237,7 +237,7 @@
       <DependentUpon>LoginDevice.cs</DependentUpon>
     </Compile>
     <Compile Include="MDIParent.cs">
-      <SubType>Form</SubType>
+      <SubType>Component</SubType>
     </Compile>
     <Compile Include="MDIParent.designer.cs">
       <DependentUpon>MDIParent.cs</DependentUpon>

@@ -54,6 +54,8 @@ namespace ControlEntradaSalida
             this.textBoxDocumentoEmpleado = new System.Windows.Forms.TextBox();
             this.radioButtonTodosEmpleados = new System.Windows.Forms.RadioButton();
             this.buttonVerInforme = new System.Windows.Forms.Button();
+            this.labelDispositivo = new System.Windows.Forms.Label();
+            this.cmbDispositivos = new System.Windows.Forms.ComboBox();
             this.listView = new System.Windows.Forms.ListView();
             this.num = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.documento = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
@@ -76,6 +78,8 @@ namespace ControlEntradaSalida
             this.groupBox1.Controls.Add(this.groupBox3);
             this.groupBox1.Controls.Add(this.groupBox2);
             this.groupBox1.Controls.Add(this.buttonVerInforme);
+            this.groupBox1.Controls.Add(this.labelDispositivo);
+            this.groupBox1.Controls.Add(this.cmbDispositivos);
             this.groupBox1.Location = new System.Drawing.Point(16, 14);
             this.groupBox1.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
             this.groupBox1.Name = "groupBox1";
@@ -356,6 +360,24 @@ namespace ControlEntradaSalida
             this.buttonVerInforme.UseVisualStyleBackColor = true;
             this.buttonVerInforme.Click += new System.EventHandler(this.buttonVerInforme_Click);
             // 
+            // labelDispositivo
+            // 
+            this.labelDispositivo.AutoSize = true;
+            this.labelDispositivo.Location = new System.Drawing.Point(36, 244);
+            this.labelDispositivo.Name = "labelDispositivo";
+            this.labelDispositivo.Size = new System.Drawing.Size(45, 15);
+            this.labelDispositivo.TabIndex = 17;
+            this.labelDispositivo.Text = "设备:";
+            this.labelDispositivo.Click += new System.EventHandler(this.labelDispositivo_Click);
+            // 
+            // cmbDispositivos
+            // 
+            this.cmbDispositivos.FormattingEnabled = true;
+            this.cmbDispositivos.Location = new System.Drawing.Point(111, 241);
+            this.cmbDispositivos.Name = "cmbDispositivos";
+            this.cmbDispositivos.Size = new System.Drawing.Size(265, 23);
+            this.cmbDispositivos.TabIndex = 18;
+            // 
             // listView
             // 
             this.listView.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
@@ -422,6 +444,7 @@ namespace ControlEntradaSalida
             this.Text = "进出日志";
             this.Load += new System.EventHandler(this.ParamInformeConsumos_Load);
             this.groupBox1.ResumeLayout(false);
+            this.groupBox1.PerformLayout();
             this.groupBox5.ResumeLayout(false);
             this.groupBox5.PerformLayout();
             this.groupBox4.ResumeLayout(false);
@@ -469,5 +492,7 @@ namespace ControlEntradaSalida
         private System.Windows.Forms.TextBox textBoxApellidosEmpleado;
         private System.Windows.Forms.Label label7;
         private System.Windows.Forms.ColumnHeader horab;
+        private System.Windows.Forms.Label labelDispositivo;
+        private System.Windows.Forms.ComboBox cmbDispositivos;
     }
 }

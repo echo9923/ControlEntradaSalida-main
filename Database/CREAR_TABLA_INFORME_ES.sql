@@ -15,10 +15,11 @@ BEGIN
     DECLARE varfecha DATE;
     DECLARE varfecha_anterior DATE;
     DECLARE varhora TIME;
+    DECLARE vardispositivo_id INT;
     DECLARE varfinal INTEGER DEFAULT 0;
     DECLARE updated BOOLEAN;
     DECLARE lastid INTEGER;
-    DECLARE mydata CURSOR FOR SELECT fecha, hora, documento FROM entradas_salidas ORDER BY documento, fecha, hora ASC;
+    DECLARE mydata CURSOR FOR SELECT fecha, hora, documento, dispositivo_id FROM entradas_salidas ORDER BY documento, fecha, hora ASC;
     DECLARE CONTINUE HANDLER FOR NOT FOUND SET varfinal = 1;
 
     -- 删除临时表（如果存在）
@@ -28,7 +29,8 @@ BEGIN
                                      fecha DATE NOT NULL,
                                      hora_a TIME,
                                      hora_b TIME,
-                                     documento VARCHAR(255) NOT NULL
+                                     documento VARCHAR(255) NOT NULL,
+                                     dispositivo_id INT
     );
 
     OPEN mydata;
@@ -37,17 +39,17 @@ BEGIN
     SET updated = 0;
     START TRANSACTION;
     iterar:LOOP
-        FETCH mydata INTO varfecha, varhora, vardocumento;
+        FETCH mydata INTO varfecha, varhora, vardocumento, vardispositivo_id;
         IF varfinal = 1 THEN
             LEAVE iterar;
         END IF;
 
         IF varfecha_anterior != varfecha THEN
-            INSERT INTO temp_informe_es (fecha, hora_a, documento) VALUES (varfecha, varhora, vardocumento);
+            INSERT INTO temp_informe_es (fecha, hora_a, documento, dispositivo_id) VALUES (varfecha, varhora, vardocumento, vardispositivo_id);
             SET updated = 0;
         ELSE
             IF vardocumento_anterior = vardocumento AND updated = 1 THEN
-                INSERT INTO temp_informe_es (fecha, hora_a, documento) VALUES (varfecha, varhora, vardocumento);
+                INSERT INTO temp_informe_es (fecha, hora_a, documento, dispositivo_id) VALUES (varfecha, varhora, vardocumento, vardispositivo_id);
                 SET updated = 0;
             ELSE
                 UPDATE temp_informe_es SET hora_b = varhora WHERE documento = vardocumento AND fecha = varfecha AND id = lastid;
@@ -65,6 +67,3 @@ END //
 
 -- 恢复默认分隔符
 DELIMITER ;
-
--- 调用存储过程
-CALL CREAR_TABLA_INFORME_ES();

@@ -15,7 +15,8 @@ namespace ControlEntradaSalida
         public string apellidos { get; set; }
         public string fecha { get; set; }
         public string horaa { get; set; }
-        public string horab { get; set; }               
+        public string horab { get; set; }
+        public string dispositivo { get; set; }               
         public InformeEntradaSalida()
         { }
     }

@@ -74,13 +74,18 @@ CREATE TABLE IF NOT EXISTS `control_entrada_salida`.`entradas_salidas` (
   `fecha` DATE NOT NULL,
   `hora` TIME NOT NULL,
   `documento` VARCHAR(30) NOT NULL,
+  `dispositivo_id` INT NOT NULL,
   `evento` VARCHAR(255) NOT NULL,
   `created` DATETIME NULL DEFAULT NULL,
-  PRIMARY KEY (`num`, `fecha`, `hora`),
+  PRIMARY KEY (`num`, `fecha`, `hora`, `dispositivo_id`),
   INDEX `entradas_salidas_dcumento_fk` (`documento` ASC) VISIBLE,
+  INDEX `entradas_salidas_dispositivo_id_fk` (`dispositivo_id` ASC) VISIBLE,
   CONSTRAINT `entradas_salidas_dcumento_fk`
     FOREIGN KEY (`documento`)
-    REFERENCES `control_entrada_salida`.`empleados` (`documento`))
+    REFERENCES `control_entrada_salida`.`empleados` (`documento`),
+  CONSTRAINT `entradas_salidas_dispositivo_id_fk`
+    FOREIGN KEY (`dispositivo_id`)
+    REFERENCES `control_entrada_salida`.`dispositivos` (`id`))
 ENGINE = InnoDB
 DEFAULT CHARACTER SET = utf8;
 

@@ -34,7 +34,7 @@ namespace ControlEntradaSalida
         }
 
         //插入一条出入事件到数据库 entradas_salidas 表,参数：事件编号、日期、时间、人员编号（卡号）、事件类型
-        private bool InsertarEntradaSalida(string num, string fecha, string hora, string documento, string evento)
+                private bool InsertarEntradaSalida(string num, string fecha, string hora, string documento, string evento, int dispositivo_id)
         {
             bool retval = false;
             Common cmn = new Common();
@@ -44,8 +44,8 @@ namespace ControlEntradaSalida
             if (bd.conn != null)
             {
                 string sql = "INSERT INTO entradas_salidas " +
-                    "(num, fecha, hora, documento, evento, created) " +
-                    "VALUES (@num, @fecha, @hora, @documento, @evento, @created)";
+                    "(num, fecha, hora, documento, dispositivo_id, evento, created) " +
+                    "VALUES (@num, @fecha, @hora, @documento, @dispositivo_id, @evento, @created)";
                 try
                 {
 
@@ -54,6 +54,7 @@ namespace ControlEntradaSalida
                     cmd.Parameters.AddWithValue("@fecha", fecha);//日期
                     cmd.Parameters.AddWithValue("@hora", hora);//时间
                     cmd.Parameters.AddWithValue("@documento", documento);//人员编号（卡号）
+                    cmd.Parameters.AddWithValue("@dispositivo_id", dispositivo_id);
                     cmd.Parameters.AddWithValue("@evento", evento);//事件类型                
                     cmd.Parameters.AddWithValue("@created", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));//时间
                     cmd.ExecuteNonQuery();
@@ -151,7 +152,7 @@ namespace ControlEntradaSalida
             在界面 listViewEventos 显示；
             插入数据库记录
          */
-        private void ProcessCommAlarmACS(ref HCNetSDK.NET_DVR_ALARMER pAlarmer, IntPtr pAlarmInfo, uint dwBufLen, IntPtr pUser)
+                private void ProcessCommAlarmACS(ref HCNetSDK.NET_DVR_ALARMER pAlarmer, IntPtr pAlarmInfo, uint dwBufLen, IntPtr pUser)
         {
             HCNetSDK.NET_DVR_ACS_ALARM_INFO struAcsAlarmInfo = new HCNetSDK.NET_DVR_ACS_ALARM_INFO();
             struAcsAlarmInfo = (HCNetSDK.NET_DVR_ACS_ALARM_INFO)Marshal.PtrToStructure(pAlarmInfo, typeof(HCNetSDK.NET_DVR_ACS_ALARM_INFO));// 将 SDK 返回的 NET_DVR_ACS_ALARM_INFO 转为结构体
@@ -300,6 +301,8 @@ namespace ControlEntradaSalida
             }*/
 
             //如果事件是 MINOR_FACE_VERIFY_PASS（人脸验证通过）：
+            // 在lambda表达式外部获取pAlarmer的值，避免在lambda中使用ref参数
+            int userId = pAlarmer.lUserID;
             this.listViewEventos.BeginInvoke(new Action(() =>
             {
                 if (tipoevento == "MINOR_FACE_VERIFY_PASS")
@@ -319,7 +322,11 @@ namespace ControlEntradaSalida
                     Item.SubItems.Add(nombreempleado);
                     this.listViewEventos.Items.Add(Item);
 
-                    InsertarEntradaSalida(m_lLogNum.ToString(), fecha, hora, numerotarjeta, tipoevento);
+                    var device = DeviceConnectionManager.Instance.GetAllDevices().FirstOrDefault(d => d.UserID == userId);
+                    if (device != null)
+                    {
+                        InsertarEntradaSalida(m_lLogNum.ToString(), fecha, hora, numerotarjeta, tipoevento, device.Id);
+                    }
                 }
                 
             })); 
