@@ -50,9 +50,7 @@ namespace ControlEntradaSalida
             this.buttonEliminar = new System.Windows.Forms.Button();
             this.buttonAgregar = new System.Windows.Forms.Button();
             this.buttonCapturarFoto = new System.Windows.Forms.Button();
-            this.textBoxApellidos = new System.Windows.Forms.TextBox();
-            this.label3 = new System.Windows.Forms.Label();
-            this.textBoxNombres = new System.Windows.Forms.TextBox();
+            this.textBoxNombreCompleto = new System.Windows.Forms.TextBox();
             this.label2 = new System.Windows.Forms.Label();
             this.label1 = new System.Windows.Forms.Label();
             this.textBoxDocumento = new System.Windows.Forms.TextBox();
@@ -77,9 +75,7 @@ namespace ControlEntradaSalida
             this.groupBox.Controls.Add(this.buttonEliminar);
             this.groupBox.Controls.Add(this.buttonAgregar);
             this.groupBox.Controls.Add(this.buttonCapturarFoto);
-            this.groupBox.Controls.Add(this.textBoxApellidos);
-            this.groupBox.Controls.Add(this.label3);
-            this.groupBox.Controls.Add(this.textBoxNombres);
+            this.groupBox.Controls.Add(this.textBoxNombreCompleto);
             this.groupBox.Controls.Add(this.label2);
             this.groupBox.Controls.Add(this.label1);
             this.groupBox.Controls.Add(this.textBoxDocumento);
@@ -103,6 +99,7 @@ namespace ControlEntradaSalida
             // 
             // cmbCategoria
             // 
+            this.cmbCategoria.Enabled = true;
             this.cmbCategoria.FormattingEnabled = true;
             this.cmbCategoria.Items.AddRange(new object[] {
             "normal",
@@ -117,6 +114,7 @@ namespace ControlEntradaSalida
             // 
             // buttonFiltrar
             // 
+            this.buttonFiltrar.Enabled = true;
             this.buttonFiltrar.Image = global::ControlEntradaSalida.Properties.Resources.Filter_16x;
             this.buttonFiltrar.ImageAlign = System.Drawing.ContentAlignment.MiddleLeft;
             this.buttonFiltrar.Location = new System.Drawing.Point(711, 204);
@@ -134,7 +132,7 @@ namespace ControlEntradaSalida
             this.label6.Location = new System.Drawing.Point(707, 18);
             this.label6.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.label6.Name = "label6";
-            this.label6.Size = new System.Drawing.Size(69, 15);
+            this.label6.Size = new System.Drawing.Size(37, 15);
             this.label6.TabIndex = 28;
             this.label6.Text = "卡号";
             // 
@@ -149,6 +147,7 @@ namespace ControlEntradaSalida
             // 
             // cmbEstado
             // 
+            this.cmbEstado.Enabled = true;
             this.cmbEstado.FormattingEnabled = true;
             this.cmbEstado.Items.AddRange(new object[] {
             "启用",
@@ -197,7 +196,7 @@ namespace ControlEntradaSalida
             // 
             // documento
             // 
-            this.documento.Text = "文档";
+            this.documento.Text = "员工编号";
             this.documento.Width = 74;
             // 
             // estado
@@ -211,13 +210,13 @@ namespace ControlEntradaSalida
             // 
             // nombres
             // 
-            this.nombres.Text = "名字";
-            this.nombres.Width = 91;
+            this.nombres.Text = "姓名";
+            this.nombres.Width = 185;
             // 
             // apellidos
             // 
-            this.apellidos.Text = "姓氏";
-            this.apellidos.Width = 94;
+            this.apellidos.Text = "";
+            this.apellidos.Width = 0;
             // 
             // foto
             // 
@@ -231,6 +230,7 @@ namespace ControlEntradaSalida
             // 
             // buttonNuevo
             // 
+            this.buttonNuevo.Enabled = true;
             this.buttonNuevo.Image = global::ControlEntradaSalida.Properties.Resources.NewItem_16x;
             this.buttonNuevo.ImageAlign = System.Drawing.ContentAlignment.MiddleLeft;
             this.buttonNuevo.Location = new System.Drawing.Point(235, 204);
@@ -244,6 +244,7 @@ namespace ControlEntradaSalida
             // 
             // buttonEliminar
             // 
+            this.buttonEliminar.Enabled = true;
             this.buttonEliminar.Image = global::ControlEntradaSalida.Properties.Resources.DeleteAllRows_16x;
             this.buttonEliminar.ImageAlign = System.Drawing.ContentAlignment.MiddleLeft;
             this.buttonEliminar.Location = new System.Drawing.Point(552, 204);
@@ -257,6 +258,7 @@ namespace ControlEntradaSalida
             // 
             // buttonAgregar
             // 
+            this.buttonAgregar.Enabled = true;
             this.buttonAgregar.Image = global::ControlEntradaSalida.Properties.Resources.Save_grey_16x;
             this.buttonAgregar.ImageAlign = System.Drawing.ContentAlignment.MiddleLeft;
             this.buttonAgregar.Location = new System.Drawing.Point(393, 204);
@@ -270,6 +272,7 @@ namespace ControlEntradaSalida
             // 
             // buttonCapturarFoto
             // 
+            this.buttonCapturarFoto.Enabled = true;
             this.buttonCapturarFoto.Image = global::ControlEntradaSalida.Properties.Resources.CaptureFrame_16x;
             this.buttonCapturarFoto.ImageAlign = System.Drawing.ContentAlignment.MiddleLeft;
             this.buttonCapturarFoto.Location = new System.Drawing.Point(8, 204);
@@ -281,35 +284,16 @@ namespace ControlEntradaSalida
             this.buttonCapturarFoto.UseVisualStyleBackColor = true;
             this.buttonCapturarFoto.Click += new System.EventHandler(this.buttonCapturarFoto_Click);
             // 
-            // textBoxApellidos
+            // textBoxNombreCompleto
             // 
-            this.textBoxApellidos.CharacterCasing = System.Windows.Forms.CharacterCasing.Upper;
-            this.textBoxApellidos.Location = new System.Drawing.Point(167, 163);
-            this.textBoxApellidos.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
-            this.textBoxApellidos.Name = "textBoxApellidos";
-            this.textBoxApellidos.Size = new System.Drawing.Size(377, 25);
-            this.textBoxApellidos.TabIndex = 5;
-            this.textBoxApellidos.Validating += new System.ComponentModel.CancelEventHandler(this.textBoxApellidos_Validating);
-            // 
-            // label3
-            // 
-            this.label3.AutoSize = true;
-            this.label3.Location = new System.Drawing.Point(167, 144);
-            this.label3.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
-            this.label3.Name = "label3";
-            this.label3.Size = new System.Drawing.Size(45, 15);
-            this.label3.TabIndex = 5;
-            this.label3.Text = "姓氏*";
-            // 
-            // textBoxNombres
-            // 
-            this.textBoxNombres.CharacterCasing = System.Windows.Forms.CharacterCasing.Upper;
-            this.textBoxNombres.Location = new System.Drawing.Point(167, 99);
-            this.textBoxNombres.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
-            this.textBoxNombres.Name = "textBoxNombres";
-            this.textBoxNombres.Size = new System.Drawing.Size(377, 25);
-            this.textBoxNombres.TabIndex = 4;
-            this.textBoxNombres.Validating += new System.ComponentModel.CancelEventHandler(this.textBoxNombres_Validating);
+            this.textBoxNombreCompleto.CharacterCasing = System.Windows.Forms.CharacterCasing.Upper;
+            this.textBoxNombreCompleto.Enabled = true;
+            this.textBoxNombreCompleto.Location = new System.Drawing.Point(167, 99);
+            this.textBoxNombreCompleto.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
+            this.textBoxNombreCompleto.Name = "textBoxNombreCompleto";
+            this.textBoxNombreCompleto.Size = new System.Drawing.Size(377, 25);
+            this.textBoxNombreCompleto.TabIndex = 4;
+            this.textBoxNombreCompleto.Validating += new System.ComponentModel.CancelEventHandler(this.textBoxNombreCompleto_Validating);
             // 
             // label2
             // 
@@ -319,7 +303,7 @@ namespace ControlEntradaSalida
             this.label2.Name = "label2";
             this.label2.Size = new System.Drawing.Size(45, 15);
             this.label2.TabIndex = 3;
-            this.label2.Text = "名字*";
+            this.label2.Text = "姓名*";
             // 
             // label1
             // 
@@ -327,13 +311,14 @@ namespace ControlEntradaSalida
             this.label1.Location = new System.Drawing.Point(163, 22);
             this.label1.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.label1.Name = "label1";
-            this.label1.Size = new System.Drawing.Size(45, 15);
+            this.label1.Size = new System.Drawing.Size(60, 15);
             this.label1.TabIndex = 2;
-            this.label1.Text = "文档*";
+            this.label1.Text = "员工编号*";
             // 
             // textBoxDocumento
             // 
             this.textBoxDocumento.CharacterCasing = System.Windows.Forms.CharacterCasing.Upper;
+            this.textBoxDocumento.Enabled = true;
             this.textBoxDocumento.Location = new System.Drawing.Point(167, 40);
             this.textBoxDocumento.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
             this.textBoxDocumento.Name = "textBoxDocumento";
@@ -368,7 +353,6 @@ namespace ControlEntradaSalida
             this.MinimizeBox = false;
             this.Name = "GestionEmpleados";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
-            this.Text = "员工管理";
             this.Load += new System.EventHandler(this.GestionUsuarios_Load);
             this.groupBox.ResumeLayout(false);
             this.groupBox.PerformLayout();
@@ -394,9 +378,7 @@ namespace ControlEntradaSalida
         private System.Windows.Forms.Button buttonEliminar;
         private System.Windows.Forms.Button buttonAgregar;
         private System.Windows.Forms.Button buttonCapturarFoto;
-        private System.Windows.Forms.TextBox textBoxApellidos;
-        private System.Windows.Forms.Label label3;
-        private System.Windows.Forms.TextBox textBoxNombres;
+        private System.Windows.Forms.TextBox textBoxNombreCompleto;
         private System.Windows.Forms.ColumnHeader foto;
         private System.Windows.Forms.Label label10;
         private System.Windows.Forms.ColumnHeader estado;

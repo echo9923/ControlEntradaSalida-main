@@ -604,15 +604,15 @@ namespace ControlEntradaSalida
             //int lastid = 0;
             //lastid = ConsultarUltimoID();
 
-            string nombrecompleto = this.textBoxNombres.Text + " " + this.textBoxApellidos.Text;
+            string nombrecompleto = this.textBoxNombreCompleto.Text;
             if (nombrecompleto.Length > 30)
                 nombrecompleto = nombrecompleto.Substring(0, 29);
 
             ListViewItem lvi = new ListViewItem(this.textBoxDocumento.Text);
             lvi.SubItems.Add(this.cmbEstado.Text);
             lvi.SubItems.Add(this.textBoxDocumento.Text);           
-            lvi.SubItems.Add(this.textBoxNombres.Text);
-            lvi.SubItems.Add(this.textBoxApellidos.Text);            
+            lvi.SubItems.Add(nombrecompleto); // 显示完整姓名
+            lvi.SubItems.Add(""); // 姓氏字段留空
             lvi.SubItems.Add(this.url_imagen);
             lvi.SubItems.Add(this.cmbCategoria.Text);
             listView.Items.Add(lvi);
@@ -643,11 +643,13 @@ namespace ControlEntradaSalida
                     {
                         while (rdr.Read())
                         {
-                            ListViewItem lvi = new ListViewItem(rdr["documento"].ToString());//文档
+                            ListViewItem lvi = new ListViewItem(rdr["documento"].ToString());//员工编号
                             lvi.SubItems.Add(rdr["estado"].ToString()); //状态              
                             lvi.SubItems.Add(rdr["numtarjeta"].ToString());//NO.卡号
-                            lvi.SubItems.Add(rdr["nombres"].ToString());//名字
-                            lvi.SubItems.Add(rdr["apellidos"].ToString());//姓氏
+                            // 合并显示完整姓名
+                            string nombreCompleto = (rdr["nombres"].ToString() + " " + rdr["apellidos"].ToString()).Trim();
+                            lvi.SubItems.Add(nombreCompleto);//完整姓名
+                            lvi.SubItems.Add("");//姓氏字段留空
                             lvi.SubItems.Add(rdr["foto"].ToString());    //照片              
                             listView.Items.Add(lvi);
                             lvi = null;
@@ -679,23 +681,27 @@ namespace ControlEntradaSalida
             if (bd.conn != null)
             {
                 string sql = "INSERT INTO empleados "+
-                    "(documento, numtarjeta, nombres, apellidos, foto, estado, created，categoria)" +
-                    "VALUES (@documento, @documento, @nombres, @apellidos, @foto, @estado, @created,@categoria)";
+                    "(documento, numtarjeta, nombres, apellidos, foto, estado, created, categoria)" +
+                    "VALUES (@documento, @documento, @nombres, @apellidos, @foto, @estado, @created, @categoria)";
                 try
                 {
-                    string nombrecompleto = this.textBoxNombres.Text + " " + this.textBoxApellidos.Text;
+                    string nombrecompleto = this.textBoxNombreCompleto.Text;
                     if (nombrecompleto.Length > 30)                   
                         nombrecompleto = nombrecompleto.Substring(0, 29);                    
                     
+                    // 分离姓名为名和姓（以空格分隔）
+                    string[] nombres = nombrecompleto.Split(new char[] { ' ' }, 2);
+                    string nombre = nombres.Length > 0 ? nombres[0] : "";
+                    string apellido = nombres.Length > 1 ? nombres[1] : "";
+                    
                     MySqlCommand cmd = new MySqlCommand(sql, bd.conn);
-                    cmd.Parameters.AddWithValue("@documento", this.textBoxDocumento.Text);//文档
-                    cmd.Parameters.AddWithValue("@nombres", this.textBoxNombres.Text);//名字
-                    cmd.Parameters.AddWithValue("@apellidos", this.textBoxApellidos.Text);//姓氏
-                    cmd.Parameters.AddWithValue("@nombrecompleto", nombrecompleto);//编号
+                    cmd.Parameters.AddWithValue("@documento", this.textBoxDocumento.Text);//员工编号
+                    cmd.Parameters.AddWithValue("@nombres", nombre);//名字
+                    cmd.Parameters.AddWithValue("@apellidos", apellido);//姓氏
                     cmd.Parameters.AddWithValue("@foto", this.url_imagen);//照片路径
                     cmd.Parameters.AddWithValue("@estado", this.cmbEstado.Text);//状态
                     cmd.Parameters.AddWithValue("@created", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));//创建时间
-                    cmd.Parameters.AddWithValue("@estado", this.cmbCategoria.Text);
+                    cmd.Parameters.AddWithValue("@categoria", this.cmbCategoria.Text);
                     cmd.ExecuteNonQuery();
                     bd.desconectarMySQL();
                     
@@ -747,8 +753,8 @@ namespace ControlEntradaSalida
             {
                 ListViewItem item = this.listView.SelectedItems[0];
                 item.SubItems[1].Text = cmbEstado.Text;
-                item.SubItems[3].Text = this.textBoxNombres.Text;
-                item.SubItems[4].Text = this.textBoxApellidos.Text;
+                item.SubItems[3].Text = this.textBoxNombreCompleto.Text; // 显示完整姓名
+                item.SubItems[4].Text = ""; // 姓氏字段留空
                 item.SubItems[5].Text = "";
                 item.SubItems[6].Text = cmbCategoria.Text;
             }
@@ -764,18 +770,23 @@ namespace ControlEntradaSalida
             if (bd.conn != null)
             {
                 string sql = "UPDATE empleados SET nombres = @nombres, " +
-                    "apellidos = @apellidos, estado = @estado, modified = @modified ,categoria = @categoria" +
+                    "apellidos = @apellidos, estado = @estado, modified = @modified, categoria = @categoria " +
                     "WHERE documento = @documento";
                 try
                 {
-                    string nombrecompleto = this.textBoxNombres.Text + " " + this.textBoxApellidos.Text;
+                    string nombrecompleto = this.textBoxNombreCompleto.Text;
                     if (nombrecompleto.Length > 30)
                         nombrecompleto = nombrecompleto.Substring(0, 29);
+                    
+                    // 分离姓名为名和姓（以空格分隔）
+                    string[] nombres = nombrecompleto.Split(new char[] { ' ' }, 2);
+                    string nombre = nombres.Length > 0 ? nombres[0] : "";
+                    string apellido = nombres.Length > 1 ? nombres[1] : "";
 
                     MySqlCommand cmd = new MySqlCommand(sql, bd.conn);
                     cmd.Parameters.AddWithValue("@documento", this.textBoxDocumento.Text);
-                    cmd.Parameters.AddWithValue("@nombres", this.textBoxNombres.Text);
-                    cmd.Parameters.AddWithValue("@apellidos", this.textBoxApellidos.Text);                    
+                    cmd.Parameters.AddWithValue("@nombres", nombre);
+                    cmd.Parameters.AddWithValue("@apellidos", apellido);                    
                     cmd.Parameters.AddWithValue("@estado", this.cmbEstado.Text);                    
                     cmd.Parameters.AddWithValue("@modified", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
                     cmd.Parameters.AddWithValue("@categoria", this.cmbCategoria.Text);
@@ -808,7 +819,7 @@ namespace ControlEntradaSalida
             string url = "PUT /ISAPI/AccessControl/UserInfo/Modify?format=json";
             string UserInfo = "{{ \"UserInfo\" : {{\"employeeNo\": \"{0}\",\"name\": \"{1}\",\"userType\": \"normal\",   \"Valid\" : {{ \"enable\": true,\"beginTime\": \"{2}\",\"endTime\": \"{3}\", \"timeType\": \"local\"}}  }}}}";
 
-            string nombrecompleto = this.textBoxNombres.Text + " " + this.textBoxApellidos.Text;
+            string nombrecompleto = this.textBoxNombreCompleto.Text;
             if (nombrecompleto.Length > 30)
                 nombrecompleto = nombrecompleto.Substring(0, 29);
 
@@ -867,7 +878,7 @@ namespace ControlEntradaSalida
         private void buttonAgregar_Click(object sender, EventArgs e)
         {
 
-            if (!ValidarDocumento() || !ValidarEstado() || !ValidarNombres() || !ValidarApellidos()||!ValidarCategoria())
+            if (!ValidarDocumento() || !ValidarEstado() || !ValidarNombreCompleto() || !ValidarCategoria())
                 return;
 
             string msg;
@@ -891,7 +902,7 @@ namespace ControlEntradaSalida
             {
                 bool resultcrear = false;
                 bool resultenviar = false;
-                string nombrecompleto = this.textBoxNombres.Text + " " + this.textBoxApellidos.Text;
+                string nombrecompleto = this.textBoxNombreCompleto.Text;
                 if (nombrecompleto.Length > 30)
                     nombrecompleto = nombrecompleto.Substring(0, 29);
 
@@ -943,12 +954,28 @@ namespace ControlEntradaSalida
             if (GetConnectedDeviceUserID() < 0)
             {
                 MessageBox.Show("您必须在设备上登录", "登录错误", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                this.groupBox.Enabled = false;
-                return;
+                // 不再禁用整个groupBox，而是只禁用与设备相关的按钮
+                this.buttonCapturarFoto.Enabled = false;
+                this.buttonAgregar.Enabled = false;
+                this.buttonEliminar.Enabled = false;
             }
-            this.groupBox.Enabled = true;
+            else
+            {
+                // 启用与设备相关的按钮
+                this.buttonCapturarFoto.Enabled = true;
+                this.buttonAgregar.Enabled = true;
+                this.buttonEliminar.Enabled = true;
+            }
             LimpiarControles(true);//初始化控件
             CargarDatosTablaEmpleados();//加载所有员工数据到 listView
+            
+            // 确保所有控件都处于启用状态
+            this.textBoxNombreCompleto.Enabled = true;
+            this.textBoxDocumento.Enabled = true;
+            this.cmbEstado.Enabled = true;
+            this.cmbCategoria.Enabled = true;
+            this.buttonNuevo.Enabled = true;
+            this.buttonFiltrar.Enabled = true;
         }
         //删除本地保存的人脸图片
         private bool EliminarImagen(string filePath)
@@ -972,9 +999,11 @@ namespace ControlEntradaSalida
             this.cmbCategoria.Text = this.cmbCategoria.Items[0].ToString();
             this.textBoxDocumento.Enabled = true;
             this.textBoxDocumento.Text = "";            
-            this.textBoxNombres.Text = "";
-            this.textBoxApellidos.Text = "";
+            this.textBoxNombreCompleto.Text = "";
             this.buttonAgregar.Enabled = true;
+            this.buttonNuevo.Enabled = true;
+            this.buttonEliminar.Enabled = true;
+            this.buttonFiltrar.Enabled = true;
 
             if (this.pictureBoxUsuario.Image != null)
             {
@@ -1194,8 +1223,7 @@ namespace ControlEntradaSalida
                 this.textBoxDocumento.Text = item.SubItems[0].Text;
                 this.cmbEstado.Text = item.SubItems[1].Text;
                 this.textBoxTarjeta.Text = item.SubItems[2].Text;
-                this.textBoxNombres.Text = item.SubItems[3].Text;
-                this.textBoxApellidos.Text = item.SubItems[4].Text;
+                this.textBoxNombreCompleto.Text = item.SubItems[3].Text;
                 this.cmbCategoria.Text = item.SubItems[6].Text;
                 this.textBoxDocumento.Enabled = false;
                 //this.pictureBoxUsuario.ImageLocation = item.SubItems[5].Text;
@@ -1216,10 +1244,9 @@ namespace ControlEntradaSalida
                 retval += String.Format("AND documento LIKE '%{0}%' ", this.textBoxDocumento.Text);
             if (this.cmbEstado.Text.Trim() != "")
                 retval += String.Format("AND estado LIKE '%{0}%' ", this.cmbEstado.Text);
-            if (this.textBoxNombres.Text.Trim() != "")
-                retval += String.Format("AND nombres LIKE '%{0}%' ", this.textBoxNombres.Text);
-            if (this.textBoxApellidos.Text.Trim() != "")
-                retval += String.Format("AND apellidos LIKE '%{0}%' ", this.textBoxApellidos.Text);
+            // 使用完整姓名进行查询
+            if (this.textBoxNombreCompleto.Text.Trim() != "")
+                retval += String.Format("AND (nombres LIKE '%{0}%' OR apellidos LIKE '%{0}%') ", this.textBoxNombreCompleto.Text);
             if (this.cmbCategoria.Text.Trim() != "")
                 retval += String.Format("AND categoria LIKE '%{0}%' ", this.cmbCategoria.Text);
             return retval;
@@ -1250,8 +1277,10 @@ namespace ControlEntradaSalida
                             ListViewItem lvi = new ListViewItem(rdr["documento"].ToString());
                             lvi.SubItems.Add(rdr["estado"].ToString());
                             lvi.SubItems.Add(rdr["numtarjeta"].ToString());
-                            lvi.SubItems.Add(rdr["nombres"].ToString());
-                            lvi.SubItems.Add(rdr["apellidos"].ToString());
+                            // 合并显示完整姓名
+                            string nombreCompleto = (rdr["nombres"].ToString() + " " + rdr["apellidos"].ToString()).Trim();
+                            lvi.SubItems.Add(nombreCompleto);
+                            lvi.SubItems.Add(""); // 姓氏字段留空
                             lvi.SubItems.Add(rdr["foto"].ToString());
                             listView.Items.Add(lvi);
                             lvi = null;
@@ -1398,14 +1427,14 @@ namespace ControlEntradaSalida
             ValidarCategoria();
         }
 
-        private bool ValidarNombres()
+        private bool ValidarNombreCompleto()
         {
             bool retval = false;
-            if (string.IsNullOrEmpty(this.textBoxNombres.Text))
-                errorProvider.SetError(this.textBoxNombres, "不能为空");
+            if (string.IsNullOrEmpty(this.textBoxNombreCompleto.Text))
+                errorProvider.SetError(this.textBoxNombreCompleto, "不能为空");
             else
             {
-                errorProvider.SetError(this.textBoxNombres, "");
+                errorProvider.SetError(this.textBoxNombreCompleto, "");
                 retval = true;
             }
 
@@ -1413,29 +1442,9 @@ namespace ControlEntradaSalida
             return retval;
         }
 
-        private bool ValidarApellidos()
+        private void textBoxNombreCompleto_Validating(object sender, CancelEventArgs e)
         {
-            bool retval = false;
-            if (string.IsNullOrEmpty(this.textBoxApellidos.Text))
-                errorProvider.SetError(this.textBoxApellidos, "不能为空");
-            else
-            {
-                errorProvider.SetError(this.textBoxApellidos, "");
-                retval = true;
-            }
-
-
-            return retval;
-        }
-
-        private void textBoxNombres_Validating(object sender, CancelEventArgs e)
-        {
-            ValidarNombres();
-        }
-
-        private void textBoxApellidos_Validating(object sender, CancelEventArgs e)
-        {
-            ValidarApellidos();
+            ValidarNombreCompleto();
         }
 
         private void cmbEstado_SelectedIndexChanged(object sender, EventArgs e)

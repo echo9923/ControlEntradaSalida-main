@@ -53,7 +53,7 @@ namespace ControlEntradaSalida
             this.groupBox.Margin = new System.Windows.Forms.Padding(4);
             this.groupBox.Name = "groupBox";
             this.groupBox.Padding = new System.Windows.Forms.Padding(4);
-            this.groupBox.Size = new System.Drawing.Size(728, 218);
+            this.groupBox.Size = new System.Drawing.Size(866, 239);
             this.groupBox.TabIndex = 0;
             this.groupBox.TabStop = false;
             this.groupBox.Text = "设备列表";
@@ -73,11 +73,11 @@ namespace ControlEntradaSalida
             this.ultimavez});
             this.listView.FullRowSelect = true;
             this.listView.HideSelection = false;
-            this.listView.Location = new System.Drawing.Point(8, 22);
+            this.listView.Location = new System.Drawing.Point(8, 26);
             this.listView.Margin = new System.Windows.Forms.Padding(4);
             this.listView.MultiSelect = false;
             this.listView.Name = "listView";
-            this.listView.Size = new System.Drawing.Size(711, 188);
+            this.listView.Size = new System.Drawing.Size(832, 186);
             this.listView.TabIndex = 0;
             this.listView.UseCompatibleStateImageBehavior = false;
             this.listView.View = System.Windows.Forms.View.Details;
@@ -86,12 +86,12 @@ namespace ControlEntradaSalida
             // id
             // 
             this.id.Text = "编号";
-            this.id.Width = 36;
+            this.id.Width = 59;
             // 
             // Nombre
             // 
             this.Nombre.Text = "名称";
-            this.Nombre.Width = 95;
+            this.Nombre.Width = 86;
             // 
             // descripcion
             // 
@@ -101,7 +101,7 @@ namespace ControlEntradaSalida
             // direccionip
             // 
             this.direccionip.Text = "IP地址";
-            this.direccionip.Width = 85;
+            this.direccionip.Width = 96;
             // 
             // puerto
             // 
@@ -111,7 +111,7 @@ namespace ControlEntradaSalida
             // usuario
             // 
             this.usuario.Text = "用户";
-            this.usuario.Width = 63;
+            this.usuario.Width = 66;
             // 
             // conectado
             // 
@@ -121,20 +121,23 @@ namespace ControlEntradaSalida
             // activo
             // 
             this.activo.Text = "启用状态";
+            this.activo.Width = 84;
             // 
             // predeterminado
             // 
             this.predeterminado.Text = "默认设备";
+            this.predeterminado.Width = 81;
             // 
             // ultimavez
             // 
             this.ultimavez.Text = "最后连接时间";
+            this.ultimavez.Width = 105;
             // 
             // buttonEliminar
             // 
             this.buttonEliminar.Image = global::ControlEntradaSalida.Properties.Resources.DeleteAllRows_16x;
             this.buttonEliminar.ImageAlign = System.Drawing.ContentAlignment.MiddleLeft;
-            this.buttonEliminar.Location = new System.Drawing.Point(176, 238);
+            this.buttonEliminar.Location = new System.Drawing.Point(176, 261);
             this.buttonEliminar.Margin = new System.Windows.Forms.Padding(4);
             this.buttonEliminar.Name = "buttonEliminar";
             this.buttonEliminar.Size = new System.Drawing.Size(144, 26);
@@ -147,7 +150,7 @@ namespace ControlEntradaSalida
             // 
             this.buttonNuevo.Image = global::ControlEntradaSalida.Properties.Resources.NewItem_16x;
             this.buttonNuevo.ImageAlign = System.Drawing.ContentAlignment.MiddleLeft;
-            this.buttonNuevo.Location = new System.Drawing.Point(24, 238);
+            this.buttonNuevo.Location = new System.Drawing.Point(24, 261);
             this.buttonNuevo.Margin = new System.Windows.Forms.Padding(4);
             this.buttonNuevo.Name = "buttonNuevo";
             this.buttonNuevo.Size = new System.Drawing.Size(144, 26);
@@ -160,7 +163,7 @@ namespace ControlEntradaSalida
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 15F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(756, 278);
+            this.ClientSize = new System.Drawing.Size(924, 299);
             this.Controls.Add(this.buttonEliminar);
             this.Controls.Add(this.buttonNuevo);
             this.Controls.Add(this.groupBox);
