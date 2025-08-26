@@ -13,7 +13,7 @@ namespace ControlEntradaSalida
 {   //门禁系统中的一个事件报表参数选择与生成模块，功能类似于 ParamInformeEntradaSalida.cs，但它针对的是原始事件数据（如刷卡、人脸识别、门禁动作等）表 entradas_salidas，而非整理后的进出时间段。
     /*提供 UI 选择查询条件（员工、日期、时间等）；
     构建 SQL 查询语句；
-    查询 entradas_salidas 表与 empleados 联表数据；
+    查询 access_logs 表与 employees 联表数据；
     显示在界面 ListView 中；
     打开报表窗口 Informe 显示 InformeEventos 报表。
      */
@@ -28,46 +28,46 @@ namespace ControlEntradaSalida
 
 
 
-        //构造 SQL 查询语句，用于查询 entradas_salidas 表的事件记录,支持多种筛选条件拼接,默认按 documento, fecha, hora 升序排序。
+        //构造 SQL 查询语句，用于查询 access_logs 表的事件记录,支持多种筛选条件拼接,默认按 employee_id, log_date, log_time 升序排序。
         private string ObtenerExpresionQuery()
         {
             
             string retval = null;
-            retval = "SELECT entradas_salidas.num, empleados.documento, empleados.nombres, empleados.apellidos, entradas_salidas.fecha, entradas_salidas.hora, dispositivos.nombre as dispositivo FROM empleados, entradas_salidas LEFT JOIN dispositivos ON entradas_salidas.dispositivo_id = dispositivos.id WHERE empleados.documento = entradas_salidas.documento ";
+            retval = "SELECT access_logs.log_number, employees.employee_id, employees.first_name, employees.last_name, access_logs.log_date, access_logs.log_time, devices.device_name as dispositivo FROM employees, access_logs LEFT JOIN devices ON access_logs.device_id = devices.device_id WHERE employees.employee_id = access_logs.employee_id ";
 
             if (this.radioButtonTodosEmpleados.Checked == false)//员工文档号（精确匹配）
             {
-                retval += String.Format("AND empleados.documento = '{0}' ", this.textBoxDocumentoEmpleado.Text);
+                retval += String.Format("AND employees.employee_id = '{0}' ", this.textBoxDocumentoEmpleado.Text);
             }
 
             ComboboxItem selectedDispositivo = (ComboboxItem)this.cmbDispositivos.SelectedItem;
             if (selectedDispositivo != null && Convert.ToInt32(selectedDispositivo.Value) != 0)
             {
-                retval += String.Format("AND entradas_salidas.dispositivo_id = {0} ", selectedDispositivo.Value);
+                retval += String.Format("AND access_logs.device_id = {0} ", selectedDispositivo.Value);
             }
             
             if (this.radioButtonTodasFechas.Checked == false)//日期范围
             {
                 string fechainicial = dateTimePickerFechaInicial.Value.ToString("yyyy-MM-dd");
                 string fechafinal = dateTimePickerFechaFinal.Value.ToString("yyyy-MM-dd");
-                retval += String.Format("AND entradas_salidas.fecha BETWEEN CAST('{0}' AS DATE) AND CAST('{1}' AS DATE) ", fechainicial, fechafinal);
+                retval += String.Format("AND access_logs.log_date BETWEEN CAST('{0}' AS DATE) AND CAST('{1}' AS DATE) ", fechainicial, fechafinal);
                 
             }
             if (this.radioButtonTodasHoras.Checked == false)//时间范围；
             {
                 string horainicial = dateTimePickerHoraInicial.Value.ToString("HH:MM:ss");
                 string horafinal = dateTimePickerHoraFinal.Value.ToString("HH:MM:ss");
-                retval += String.Format("AND entradas_salidas.hora BETWEEN CAST('{0}' AS TIME) AND CAST('{1}' AS TIME) ", horainicial, horafinal);
+                retval += String.Format("AND access_logs.log_time BETWEEN CAST('{0}' AS TIME) AND CAST('{1}' AS TIME) ", horainicial, horafinal);
             }
             if (this.textBoxNombreEmpleado.Text.Length > 0)//姓名、姓氏（模糊匹配）；
             {
-                retval += String.Format("AND empleados.nombres LIKE '%{0}%' ", this.textBoxNombreEmpleado.Text);
+                retval += String.Format("AND employees.first_name LIKE '%{0}%' ", this.textBoxNombreEmpleado.Text);
             }
             if (this.textBoxApellidosEmpleado.Text.Length > 0)
             {
-                retval += String.Format("AND empleados.apellidos LIKE '%{0}%' ", this.textBoxApellidosEmpleado.Text);
+                retval += String.Format("AND employees.last_name LIKE '%{0}%' ", this.textBoxApellidosEmpleado.Text);
             }
-            retval += "ORDER BY documento, fecha, hora ASC";
+            retval += "ORDER BY employee_id, log_date, log_time ASC";
 
             return retval;
         }
@@ -92,24 +92,24 @@ namespace ControlEntradaSalida
                         while (rdr.Read())
                         {
 
-                            DateTime fecha = DateTime.Parse(rdr["fecha"].ToString());//日期
-                            DateTime hora = DateTime.Parse(rdr["hora"].ToString());//时间
+                            DateTime fecha = DateTime.Parse(rdr["log_date"].ToString());//日期
+                            DateTime hora = DateTime.Parse(rdr["log_time"].ToString());//时间
 
                             InformeEventos ie = new InformeEventos();
-                            ie.num = rdr["num"].ToString();//编号
-                            ie.documento = rdr["documento"].ToString();//文档号
-                            ie.nombres = rdr["nombres"].ToString();//名字
-                            ie.apellidos = rdr["apellidos"].ToString();
+                            ie.num = rdr["log_number"].ToString();//编号
+                            ie.documento = rdr["employee_id"].ToString();//文档号
+                            ie.nombres = rdr["first_name"].ToString();//名字
+                            ie.apellidos = rdr["last_name"].ToString();
                             ie.fecha = fecha.ToString("yyyy-MM-dd");
                             ie.hora = hora.ToString("HH:MM:ss");
                             ie.dispositivo = rdr["dispositivo"].ToString();
                             lieventos.Add(ie);
                             ie = null;
 
-                            ListViewItem lvi = new ListViewItem(rdr["num"].ToString());
-                            lvi.SubItems.Add(rdr["documento"].ToString());
-                            lvi.SubItems.Add(rdr["nombres"].ToString());
-                            lvi.SubItems.Add(rdr["apellidos"].ToString());
+                            ListViewItem lvi = new ListViewItem(rdr["log_number"].ToString());
+                            lvi.SubItems.Add(rdr["employee_id"].ToString());
+                            lvi.SubItems.Add(rdr["first_name"].ToString());
+                            lvi.SubItems.Add(rdr["last_name"].ToString());
                             lvi.SubItems.Add(rdr["hora"].ToString());
                             lvi.SubItems.Add(rdr["fecha"].ToString());
                             lvi.SubItems.Add(rdr["dispositivo"].ToString());
@@ -190,7 +190,7 @@ namespace ControlEntradaSalida
 
             if (bd.conn != null)
             {
-                string sql = "SELECT id, nombre FROM dispositivos ORDER BY nombre";
+                string sql = "SELECT device_id, device_name FROM devices ORDER BY device_name";
                 try
                 {
                     MySqlCommand cmd = new MySqlCommand(sql, bd.conn);

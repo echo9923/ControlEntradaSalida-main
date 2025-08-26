@@ -27,18 +27,18 @@ namespace ControlEntradaSalida
             bd.conectarMySQL(connstr);
             if (bd.conn != null)
             {
-                string sql = "SELECT contrasena FROM dispositivos WHERE id = @id";//数据库操作语句
+                string sql = "SELECT password FROM devices WHERE device_id = @device_id";//数据库操作语句
                 try
                 {
                     MySqlCommand cmd = new MySqlCommand(sql, bd.conn);
-                    cmd.Parameters.AddWithValue("@id", id);
+                    cmd.Parameters.AddWithValue("@device_id", id);
                     MySqlDataReader rdr = cmd.ExecuteReader();
                     if (rdr.HasRows)
                     {
 
                         while (rdr.Read())
                         {
-                            contrasena = rdr["contrasena"].ToString();//查询密码
+                            contrasena = rdr["password"].ToString();//查询密码
                         }
                     }
                     rdr.Close();
@@ -62,11 +62,11 @@ namespace ControlEntradaSalida
             bd.conectarMySQL(connstr);
             if (bd.conn != null)
             {
-                string sql = "DELETE FROM dispositivos WHERE id = @id";
+                string sql = "DELETE FROM devices WHERE device_id = @device_id";
                 try
                 {
                     MySqlCommand cmd = new MySqlCommand(sql, bd.conn);
-                    cmd.Parameters.AddWithValue("@id", id);                    
+                    cmd.Parameters.AddWithValue("@device_id", id);                    
                     cmd.ExecuteNonQuery();
                     bd.desconectarMySQL();
                     retval = true;
@@ -92,7 +92,7 @@ namespace ControlEntradaSalida
             bd.conectarMySQL(connstr);//连接数据库
             if (bd.conn != null)
             {
-                string sql = "SELECT * FROM dispositivos";
+                string sql = "SELECT * FROM devices";
                 try
                 {
                     MySqlCommand cmd = new MySqlCommand(sql, bd.conn);
@@ -102,15 +102,15 @@ namespace ControlEntradaSalida
                         listView.Items.Clear();
                         while (rdr.Read())
                         {
-                            ListViewItem lvi = new ListViewItem(rdr["id"].ToString());//设备id
-                            lvi.SubItems.Add(rdr["nombre"].ToString());//设备名称
-                            lvi.SubItems.Add(rdr["descripcion"].ToString());//设备描述
-                            lvi.SubItems.Add(rdr["direccionip"].ToString());//设备ip
-                            lvi.SubItems.Add(rdr["puerto"].ToString());//设备端口
-                            lvi.SubItems.Add(rdr["usuario"].ToString());//设备用户
+                            ListViewItem lvi = new ListViewItem(rdr["device_id"].ToString());//设备id
+                            lvi.SubItems.Add(rdr["device_name"].ToString());//设备名称
+                            lvi.SubItems.Add(rdr["description"].ToString());//设备描述
+                            lvi.SubItems.Add(rdr["ip_address"].ToString());//设备ip
+                            lvi.SubItems.Add(rdr["port"].ToString());//设备端口
+                            lvi.SubItems.Add(rdr["username"].ToString());//设备用户
                             // 检查当前设备是否是已连接的设备
-                            string currentIp = rdr["direccionip"].ToString();
-                            string currentPort = rdr["puerto"].ToString();
+                            string currentIp = rdr["ip_address"].ToString();
+                            string currentPort = rdr["port"].ToString();
                             bool isConnected = false;
                             
                             // 使用设备连接管理器检查设备连接状态
@@ -127,9 +127,9 @@ namespace ControlEntradaSalida
                             {
                                 lvi.SubItems.Add("未连接");
                             }
-                            lvi.SubItems.Add(rdr["estado"].ToString());//状态
-                            lvi.SubItems.Add(rdr["predeterminado"].ToString());//默认状态
-                            lvi.SubItems.Add(rdr["lastimeused"].ToString());//最后一次登录时间
+                            lvi.SubItems.Add(rdr["status"].ToString());//状态
+                            lvi.SubItems.Add(rdr["is_default"].ToString());//默认状态
+                            lvi.SubItems.Add(rdr["last_used_time"].ToString());//最后一次登录时间
                             listView.Items.Add(lvi);
                             lvi = null;
                         }

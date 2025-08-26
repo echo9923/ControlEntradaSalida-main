@@ -560,7 +560,7 @@ namespace ControlEntradaSalida
             Marshal.FreeHGlobal(ptrdwState);
             return retval;
         }
-        //从数据库中查询 empleados 表中最大 ID 值
+        //从数据库中查询 employees 表中最大 ID 值
         private int ConsultarUltimoID()
         {
             int retval = 0;
@@ -570,7 +570,7 @@ namespace ControlEntradaSalida
             bd.conectarMySQL(connstr);
             if (bd.conn != null)
             {
-                string sql = "SELECT MAX(id) AS lastid FROM empleados";
+                string sql = "SELECT MAX(employee_id) AS lastid FROM employees";
                 try
                 {
                     MySqlCommand cmd = new MySqlCommand(sql, bd.conn);
@@ -634,7 +634,7 @@ namespace ControlEntradaSalida
             bd.conectarMySQL(connstr);
             if (bd.conn != null)
             {
-                string sql = "SELECT * FROM empleados";
+                string sql = "SELECT * FROM employees";
                 try
                 {
                     MySqlCommand cmd = new MySqlCommand(sql, bd.conn);
@@ -643,14 +643,14 @@ namespace ControlEntradaSalida
                     {
                         while (rdr.Read())
                         {
-                            ListViewItem lvi = new ListViewItem(rdr["documento"].ToString());//员工编号
-                            lvi.SubItems.Add(rdr["estado"].ToString()); //状态              
-                            lvi.SubItems.Add(rdr["numtarjeta"].ToString());//NO.卡号
+                            ListViewItem lvi = new ListViewItem(rdr["employee_id"].ToString());//员工编号
+                            lvi.SubItems.Add(rdr["status"].ToString()); //状态              
+                            lvi.SubItems.Add(rdr["card_number"].ToString());//NO.卡号
                             // 合并显示完整姓名
-                            string nombreCompleto = (rdr["nombres"].ToString() + " " + rdr["apellidos"].ToString()).Trim();
+                            string nombreCompleto = (rdr["first_name"].ToString() + " " + rdr["last_name"].ToString()).Trim();
                             lvi.SubItems.Add(nombreCompleto);//完整姓名
                             lvi.SubItems.Add("");//姓氏字段留空
-                            lvi.SubItems.Add(rdr["foto"].ToString());    //照片              
+                            lvi.SubItems.Add(rdr["photo_path"].ToString());    //照片              
                             listView.Items.Add(lvi);
                             lvi = null;
                         }
@@ -670,7 +670,7 @@ namespace ControlEntradaSalida
             }
             return retval;
         }
-        //插入新员工到数据库中的empleados 表
+        //插入新员工到数据库中的employees 表
         private bool InsertarUsuario()
         {
             bool retval = false;
@@ -680,9 +680,9 @@ namespace ControlEntradaSalida
             bd.conectarMySQL(connstr);
             if (bd.conn != null)
             {
-                string sql = "INSERT INTO empleados "+
-                    "(documento, numtarjeta, nombres, apellidos, foto, estado, created, categoria)" +
-                    "VALUES (@documento, @documento, @nombres, @apellidos, @foto, @estado, @created, @categoria)";
+                string sql = "INSERT INTO employees "+
+                    "(employee_id, card_number, first_name, last_name, photo_path, status, created_at) " +
+                    "VALUES (@employee_id, @card_number, @first_name, @last_name, @photo_path, @status, @created_at)";
                 try
                 {
                     string nombrecompleto = this.textBoxNombreCompleto.Text;
@@ -695,13 +695,13 @@ namespace ControlEntradaSalida
                     string apellido = nombres.Length > 1 ? nombres[1] : "";
                     
                     MySqlCommand cmd = new MySqlCommand(sql, bd.conn);
-                    cmd.Parameters.AddWithValue("@documento", this.textBoxDocumento.Text);//员工编号
-                    cmd.Parameters.AddWithValue("@nombres", nombre);//名字
-                    cmd.Parameters.AddWithValue("@apellidos", apellido);//姓氏
-                    cmd.Parameters.AddWithValue("@foto", this.url_imagen);//照片路径
-                    cmd.Parameters.AddWithValue("@estado", this.cmbEstado.Text);//状态
-                    cmd.Parameters.AddWithValue("@created", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));//创建时间
-                    cmd.Parameters.AddWithValue("@categoria", this.cmbCategoria.Text);
+                    cmd.Parameters.AddWithValue("@employee_id", this.textBoxDocumento.Text);//员工编号
+                    cmd.Parameters.AddWithValue("@card_number", this.textBoxDocumento.Text);//卡号
+                    cmd.Parameters.AddWithValue("@first_name", nombre);//名字
+                    cmd.Parameters.AddWithValue("@last_name", apellido);//姓氏
+                    cmd.Parameters.AddWithValue("@photo_path", this.url_imagen);//照片路径
+                    cmd.Parameters.AddWithValue("@status", this.cmbEstado.Text);//状态
+                    cmd.Parameters.AddWithValue("@created_at", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));//创建时间
                     cmd.ExecuteNonQuery();
                     bd.desconectarMySQL();
                     
@@ -716,7 +716,7 @@ namespace ControlEntradaSalida
             }        
             return retval;
         }
-        //从数据库中的empleados 表删除员工
+        //从数据库中的employees 表删除员工
         private bool EliminarUsuario(string documento)
         {
             bool retval = false;
@@ -726,11 +726,11 @@ namespace ControlEntradaSalida
             bd.conectarMySQL(connstr);
             if (bd.conn != null)
             {
-                string sql = "CALL ELIMINAR_EMPLEADO(@documento)";
+                string sql = "CALL delete_employee(@employee_id)";
                 try
                 {
                     MySqlCommand cmd = new MySqlCommand(sql, bd.conn);
-                    cmd.Parameters.AddWithValue("@documento", documento);
+                    cmd.Parameters.AddWithValue("@employee_id", documento);
                     cmd.ExecuteNonQuery();
                     bd.desconectarMySQL();
                     retval = true;
@@ -769,9 +769,9 @@ namespace ControlEntradaSalida
             bd.conectarMySQL(connstr);
             if (bd.conn != null)
             {
-                string sql = "UPDATE empleados SET nombres = @nombres, " +
-                    "apellidos = @apellidos, estado = @estado, modified = @modified, categoria = @categoria " +
-                    "WHERE documento = @documento";
+                string sql = "UPDATE employees SET first_name = @first_name, " +
+                    "last_name = @last_name, status = @status, updated_at = @updated_at " +
+                    "WHERE employee_id = @employee_id";
                 try
                 {
                     string nombrecompleto = this.textBoxNombreCompleto.Text;
@@ -784,12 +784,11 @@ namespace ControlEntradaSalida
                     string apellido = nombres.Length > 1 ? nombres[1] : "";
 
                     MySqlCommand cmd = new MySqlCommand(sql, bd.conn);
-                    cmd.Parameters.AddWithValue("@documento", this.textBoxDocumento.Text);
-                    cmd.Parameters.AddWithValue("@nombres", nombre);
-                    cmd.Parameters.AddWithValue("@apellidos", apellido);                    
-                    cmd.Parameters.AddWithValue("@estado", this.cmbEstado.Text);                    
-                    cmd.Parameters.AddWithValue("@modified", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
-                    cmd.Parameters.AddWithValue("@categoria", this.cmbCategoria.Text);
+                    cmd.Parameters.AddWithValue("@employee_id", this.textBoxDocumento.Text);
+                    cmd.Parameters.AddWithValue("@first_name", nombre);
+                    cmd.Parameters.AddWithValue("@last_name", apellido);                    
+                    cmd.Parameters.AddWithValue("@status", this.cmbEstado.Text);                    
+                    cmd.Parameters.AddWithValue("@updated_at", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
                     cmd.ExecuteNonQuery();
                     bd.desconectarMySQL();
 
@@ -1238,17 +1237,15 @@ namespace ControlEntradaSalida
         {
             string retval = null;
 
-            retval = "SELECT * FROM empleados WHERE 1 = 1 ";
+            retval = "SELECT * FROM employees WHERE 1 = 1 ";
 
             if (this.textBoxDocumento.Text.Trim() != "")
-                retval += String.Format("AND documento LIKE '%{0}%' ", this.textBoxDocumento.Text);
+                retval += String.Format("AND employee_id LIKE '%{0}%' ", this.textBoxDocumento.Text);
             if (this.cmbEstado.Text.Trim() != "")
-                retval += String.Format("AND estado LIKE '%{0}%' ", this.cmbEstado.Text);
+                retval += String.Format("AND status LIKE '%{0}%' ", this.cmbEstado.Text);
             // 使用完整姓名进行查询
             if (this.textBoxNombreCompleto.Text.Trim() != "")
-                retval += String.Format("AND (nombres LIKE '%{0}%' OR apellidos LIKE '%{0}%') ", this.textBoxNombreCompleto.Text);
-            if (this.cmbCategoria.Text.Trim() != "")
-                retval += String.Format("AND categoria LIKE '%{0}%' ", this.cmbCategoria.Text);
+                retval += String.Format("AND (first_name LIKE '%{0}%' OR last_name LIKE '%{0}%') ", this.textBoxNombreCompleto.Text);
             return retval;
         }
         //执行查询并更新 listView
@@ -1274,14 +1271,14 @@ namespace ControlEntradaSalida
                         while (rdr.Read())
                         {
                             
-                            ListViewItem lvi = new ListViewItem(rdr["documento"].ToString());
-                            lvi.SubItems.Add(rdr["estado"].ToString());
-                            lvi.SubItems.Add(rdr["numtarjeta"].ToString());
+                            ListViewItem lvi = new ListViewItem(rdr["employee_id"].ToString());
+                            lvi.SubItems.Add(rdr["status"].ToString());
+                            lvi.SubItems.Add(rdr["card_number"].ToString());
                             // 合并显示完整姓名
-                            string nombreCompleto = (rdr["nombres"].ToString() + " " + rdr["apellidos"].ToString()).Trim();
+                            string nombreCompleto = (rdr["first_name"].ToString() + " " + rdr["last_name"].ToString()).Trim();
                             lvi.SubItems.Add(nombreCompleto);
                             lvi.SubItems.Add(""); // 姓氏字段留空
-                            lvi.SubItems.Add(rdr["foto"].ToString());
+                            lvi.SubItems.Add(rdr["photo_path"].ToString());
                             listView.Items.Add(lvi);
                             lvi = null;
                         }

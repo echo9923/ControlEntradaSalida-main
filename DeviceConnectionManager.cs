@@ -96,7 +96,7 @@ namespace ControlEntradaSalida
             if (bd.conn != null)
             {
                 // 修改SQL查询，加载所有设备并获取其启用状态
-                string sql = "SELECT id, nombre, direccionip, puerto, usuario, contrasena, estado, lastimeused FROM dispositivos";
+                string sql = "SELECT device_id, device_name, ip_address, port, username, password, status, last_used_time FROM devices";
                 try
                 {
                     MySqlCommand cmd = new MySqlCommand(sql, bd.conn);
@@ -106,15 +106,15 @@ namespace ControlEntradaSalida
                     {
                         DeviceConnectionInfo device = new DeviceConnectionInfo
                         {
-                            Id = Convert.ToInt32(rdr["id"]),
-                            Name = rdr["nombre"].ToString(),
-                            IpAddress = rdr["direccionip"].ToString(),
-                            Port = rdr["puerto"].ToString(),
-                            Username = rdr["usuario"].ToString(),
-                            Password = rdr["contrasena"].ToString(),
+                            Id = Convert.ToInt32(rdr["device_id"]),
+                            Name = rdr["device_name"].ToString(),
+                            IpAddress = rdr["ip_address"].ToString(),
+                            Port = rdr["port"].ToString(),
+                            Username = rdr["username"].ToString(),
+                            Password = rdr["password"].ToString(),
                             // 设置设备启用状态（状态为1表示启用，其他值表示禁用）
-                            IsEnabled = Convert.ToInt32(rdr["estado"]) == 1,
-                            LastUsed = rdr["lastimeused"] != DBNull.Value ? Convert.ToDateTime(rdr["lastimeused"]) : DateTime.MinValue
+                            IsEnabled = Convert.ToInt32(rdr["status"]) == 1,
+                            LastUsed = rdr["last_used_time"] != DBNull.Value ? Convert.ToDateTime(rdr["last_used_time"]) : DateTime.MinValue
                         };
                         
                         _devices.Add(device);
@@ -421,10 +421,10 @@ namespace ControlEntradaSalida
                 
                 if (bd.conn != null)
                 {
-                    string sql = "UPDATE dispositivos SET lastimeused = @lastimeused WHERE id = @id";
+                    string sql = "UPDATE devices SET last_used_time = @last_used_time WHERE device_id = @device_id";
                     MySqlCommand cmd = new MySqlCommand(sql, bd.conn);
-                    cmd.Parameters.AddWithValue("@lastimeused", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
-                    cmd.Parameters.AddWithValue("@id", deviceId);
+                    cmd.Parameters.AddWithValue("@last_used_time", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
+                    cmd.Parameters.AddWithValue("@device_id", deviceId);
                     cmd.ExecuteNonQuery();
                     
                     bd.desconectarMySQL();

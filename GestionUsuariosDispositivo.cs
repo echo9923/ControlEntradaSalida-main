@@ -436,7 +436,7 @@ namespace ControlEntradaSalida
             }
         }
 
-        //清空本地 MySQL 表 usuarios_dispositivo
+        //清空本地 MySQL 表 device_users_backup
         private bool EliminarUsuariosTablaUsuariosDispositivo()
         {
             bool retval = false;
@@ -450,7 +450,7 @@ namespace ControlEntradaSalida
 
                 try
                 {
-                    string sql = "DELETE FROM usuarios_dispositivo";
+                    string sql = "DELETE FROM device_users_backup";
                     MySqlCommand cmd = new MySqlCommand(sql, bd.conn);
                     cmd.ExecuteNonQuery();
                     bd.desconectarMySQL();
@@ -491,7 +491,7 @@ namespace ControlEntradaSalida
                 
                 try
                 {
-                    string sql = "INSERT INTO usuarios_dispositivo (userdata, image) " +
+                    string sql = "INSERT INTO device_users_backup (userdata, image) " +
                                  "VALUES (@userdata, @image)";
                     MySqlCommand cmd = new MySqlCommand(sql, bd.conn);                    
                     

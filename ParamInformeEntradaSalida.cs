@@ -19,7 +19,7 @@ namespace ControlEntradaSalida
         {
             InitializeComponent();
         }
-        //调用数据库中存储过程 CREAR_TABLA_INFORME_ES()；该过程负责整理原始进出数据为报表格式，临时存入temp_informe_es表。
+        //调用数据库中存储过程 generate_attendance_report()；该过程负责整理原始进出数据为报表格式，临时存入temp_attendance_report表。
         private bool CrearTablaInformeES()
         {
             bool retval = false;
@@ -32,7 +32,7 @@ namespace ControlEntradaSalida
             {
                 try
                 {
-                    string sql = "CALL CREAR_TABLA_INFORME_ES()";//数据库中存储过程 CREAR_TABLA_INFORME_ES()
+                    string sql = "CALL generate_attendance_report()";//数据库中存储过程 generate_attendance_report()
                     MySqlCommand cmd = new MySqlCommand(sql, bd.conn);
                     cmd.ExecuteNonQuery();
                     bd.desconectarMySQL();
@@ -51,46 +51,46 @@ namespace ControlEntradaSalida
             return retval;
         }
 
-        //构建最终 SQL 查询语句字符串；根据用户勾选/填写的条件筛选,查询关联表 empleados 和 temp_informe_es,按 fecha, documento 升序排序。
+        //构建最终 SQL 查询语句字符串；根据用户勾选/填写的条件筛选,查询关联表 employees 和 temp_attendance_report,按 report_date, employee_id 升序排序。
         private string ObtenerExpresionQuery()
         {
             
             string retval = null;
-            retval = "SELECT temp_informe_es.id, temp_informe_es.documento, nombres, empleados.apellidos, temp_informe_es.fecha, temp_informe_es.hora_a, temp_informe_es.hora_b, dispositivos.nombre as dispositivo FROM empleados, temp_informe_es LEFT JOIN dispositivos ON temp_informe_es.dispositivo_id = dispositivos.id WHERE empleados.documento = temp_informe_es.documento ";
+            retval = "SELECT temp_attendance_report.id, temp_attendance_report.employee_id, first_name, employees.last_name, temp_attendance_report.report_date, temp_attendance_report.check_in_time, temp_attendance_report.check_out_time, devices.device_name as dispositivo FROM employees, temp_attendance_report LEFT JOIN devices ON temp_attendance_report.device_id = devices.device_id WHERE employees.employee_id = temp_attendance_report.employee_id ";
 
             if (this.radioButtonTodosEmpleados.Checked == false)
             {
-                retval += String.Format("AND temp_informe_es.documento = '{0}' ", this.textBoxDocumentoEmpleado.Text);
+                retval += String.Format("AND temp_attendance_report.employee_id = '{0}' ", this.textBoxDocumentoEmpleado.Text);
             }
 
             ComboboxItem selectedDispositivo = (ComboboxItem)this.cmbDispositivos.SelectedItem;
             if (selectedDispositivo != null && Convert.ToInt32(selectedDispositivo.Value) != 0)
             {
-                retval += String.Format("AND temp_informe_es.dispositivo_id = {0} ", selectedDispositivo.Value);
+                retval += String.Format("AND temp_attendance_report.device_id = {0} ", selectedDispositivo.Value);
             }
             
             if (this.radioButtonTodasFechas.Checked == false)
             {
                 string fechainicial = dateTimePickerFechaInicial.Value.ToString("yyyy-MM-dd");
                 string fechafinal = dateTimePickerFechaFinal.Value.ToString("yyyy-MM-dd");
-                retval += String.Format("AND temp_informe_es.fecha BETWEEN CAST('{0}' AS DATE) AND CAST('{1}' AS DATE) ", fechainicial, fechafinal);
+                retval += String.Format("AND temp_attendance_report.report_date BETWEEN CAST('{0}' AS DATE) AND CAST('{1}' AS DATE) ", fechainicial, fechafinal);
                 
             }
             if (this.radioButtonTodasHoras.Checked == false)
             {
                 string horainicial = dateTimePickerHoraInicial.Value.ToString("HH:MM:ss");
                 string horafinal = dateTimePickerHoraFinal.Value.ToString("HH:MM:ss");
-                retval += String.Format("AND temp_informe_es.hora_a AND temp_informe_es.hora_b BETWEEN CAST('{0}' AS TIME) AND CAST('{1}' AS TIME) ", horainicial, horafinal);
+                retval += String.Format("AND temp_attendance_report.check_in_time AND temp_attendance_report.check_out_time BETWEEN CAST('{0}' AS TIME) AND CAST('{1}' AS TIME) ", horainicial, horafinal);
             }
             if (this.textBoxNombreEmpleado.Text.Length > 0)
             {
-                retval += String.Format("AND empleados.nombres LIKE '%{0}%' ", this.textBoxNombreEmpleado.Text);
+                retval += String.Format("AND employees.first_name LIKE '%{0}%' ", this.textBoxNombreEmpleado.Text);
             }
             if (this.textBoxApellidosEmpleado.Text.Length > 0)
             {
-                retval += String.Format("AND empleados.apellidos LIKE '%{0}%' ", this.textBoxApellidosEmpleado.Text);
+                retval += String.Format("AND employees.last_name LIKE '%{0}%' ", this.textBoxApellidosEmpleado.Text);
             }
-            retval += "ORDER BY fecha, documento ASC";
+            retval += "ORDER BY report_date, employee_id ASC";
 
             return retval;
         }
@@ -122,7 +122,7 @@ namespace ControlEntradaSalida
                             string strhorab;
                             try
                             {
-                                fecha = DateTime.Parse(rdr["fecha"].ToString());
+                                fecha = DateTime.Parse(rdr["report_date"].ToString());
                                 strfecha = fecha.ToString("yyyy-MM-dd");
                             }
                             catch
@@ -131,7 +131,7 @@ namespace ControlEntradaSalida
                             }
                             try
                             {
-                                horaa = DateTime.Parse(rdr["hora_a"].ToString());
+                                horaa = DateTime.Parse(rdr["check_in_time"].ToString());
                                 strhoraa = horaa.ToString("HH:MM:ss");
                             }
                             catch
@@ -140,7 +140,7 @@ namespace ControlEntradaSalida
                             }
                             try
                             {
-                                horab = DateTime.Parse(rdr["hora_b"].ToString());
+                                horab = DateTime.Parse(rdr["check_out_time"].ToString());
                                 strhorab = horab.ToString("HH:MM:ss");
                             }
                             catch
@@ -151,9 +151,9 @@ namespace ControlEntradaSalida
 
                             InformeEntradaSalida ies = new InformeEntradaSalida();
                             ies.num = rdr["id"].ToString();
-                            ies.documento = rdr["documento"].ToString();
-                            ies.nombres = rdr["nombres"].ToString();
-                            ies.apellidos = rdr["apellidos"].ToString();
+                            ies.documento = rdr["employee_id"].ToString();
+                            ies.nombres = rdr["first_name"].ToString();
+                            ies.apellidos = rdr["last_name"].ToString();
                             ies.fecha = strfecha;
                             ies.horaa = strhoraa;
                             ies.horab = strhorab;
@@ -162,9 +162,9 @@ namespace ControlEntradaSalida
                             ies = null;
 
                             ListViewItem lvi = new ListViewItem(rdr["id"].ToString());//id
-                            lvi.SubItems.Add(rdr["documento"].ToString());//文档号
-                            lvi.SubItems.Add(rdr["nombres"].ToString());//名字
-                            lvi.SubItems.Add(rdr["apellidos"].ToString());//姓氏
+                            lvi.SubItems.Add(rdr["employee_id"].ToString());//文档号
+                            lvi.SubItems.Add(rdr["first_name"].ToString());//名字
+                            lvi.SubItems.Add(rdr["last_name"].ToString());//姓氏
                             lvi.SubItems.Add(strfecha);
                             lvi.SubItems.Add(strhoraa);
                             lvi.SubItems.Add(strhorab);
@@ -248,7 +248,7 @@ namespace ControlEntradaSalida
 
             if (bd.conn != null)
             {
-                string sql = "SELECT id, nombre FROM dispositivos ORDER BY nombre";
+                string sql = "SELECT device_id, device_name FROM devices ORDER BY device_name";
                 try
                 {
                     MySqlCommand cmd = new MySqlCommand(sql, bd.conn);
@@ -256,8 +256,8 @@ namespace ControlEntradaSalida
                     while (rdr.Read())
                     {
                         ComboboxItem item = new ComboboxItem();
-                        item.Text = rdr["nombre"].ToString();
-                        item.Value = Convert.ToInt32(rdr["id"]);
+                        item.Text = rdr["device_name"].ToString();
+                        item.Value = Convert.ToInt32(rdr["device_id"]);
                         this.cmbDispositivos.Items.Add(item);
                     }
                     rdr.Close();

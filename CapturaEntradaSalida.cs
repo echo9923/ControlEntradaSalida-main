@@ -43,20 +43,20 @@ namespace ControlEntradaSalida
             bd.conectarMySQL(connstr);
             if (bd.conn != null)
             {
-                string sql = "INSERT INTO entradas_salidas " +
-                    "(num, fecha, hora, documento, dispositivo_id, evento, created) " +
-                    "VALUES (@num, @fecha, @hora, @documento, @dispositivo_id, @evento, @created)";
+                string sql = "INSERT INTO access_logs " +
+                    "(log_number, log_date, log_time, employee_id, device_id, event_type, created_at) " +
+                    "VALUES (@log_number, @log_date, @log_time, @employee_id, @device_id, @event_type, @created_at)";
                 try
                 {
 
                     MySqlCommand cmd = new MySqlCommand(sql, bd.conn);
-                    cmd.Parameters.AddWithValue("@num", num);//事件编号
-                    cmd.Parameters.AddWithValue("@fecha", fecha);//日期
-                    cmd.Parameters.AddWithValue("@hora", hora);//时间
-                    cmd.Parameters.AddWithValue("@documento", documento);//人员编号（卡号）
-                    cmd.Parameters.AddWithValue("@dispositivo_id", dispositivo_id);
-                    cmd.Parameters.AddWithValue("@evento", evento);//事件类型                
-                    cmd.Parameters.AddWithValue("@created", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));//时间
+                    cmd.Parameters.AddWithValue("@log_number", num);//事件编号
+                    cmd.Parameters.AddWithValue("@log_date", fecha);//日期
+                    cmd.Parameters.AddWithValue("@log_time", hora);//时间
+                    cmd.Parameters.AddWithValue("@employee_id", documento);//人员编号（卡号）
+                    cmd.Parameters.AddWithValue("@device_id", dispositivo_id);
+                    cmd.Parameters.AddWithValue("@event_type", evento);//事件类型                
+                    cmd.Parameters.AddWithValue("@created_at", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));//时间
                     cmd.ExecuteNonQuery();
                     bd.desconectarMySQL();
 
@@ -344,18 +344,18 @@ namespace ControlEntradaSalida
 
             if (bd.conn != null)
             {
-                string sql = "SELECT * FROM empleados WHERE documento = @documento";
+                string sql = "SELECT * FROM employees WHERE employee_id = @employee_id";
                 try
                 {
                     MySqlCommand cmd = new MySqlCommand(sql, bd.conn);
-                    cmd.Parameters.AddWithValue("@documento", documento);                    
+                    cmd.Parameters.AddWithValue("@employee_id", documento);                    
                     MySqlDataReader rdr = cmd.ExecuteReader();
                     if (rdr.HasRows)
                     {
                         
                         while (rdr.Read())
                         {
-                            retval = rdr["nombres"].ToString() + " " + rdr["apellidos"].ToString();
+                            retval = rdr["first_name"].ToString() + " " + rdr["last_name"].ToString();
                         }
                     }
                     rdr.Close();

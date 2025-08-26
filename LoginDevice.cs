@@ -72,11 +72,11 @@ namespace ControlEntradaSalida
             bd.conectarMySQL(connstr);
             if (bd.conn != null)
             {
-                string sql = "INSERT INTO dispositivos (nombre, " +
-                    "descripcion, direccionip, puerto, usuario, " +
-                    "contrasena, estado, predeterminado, lastimeused, created)" +
-                    "VALUES (@nombre, @descripcion, @direccionip, @puerto, " +
-                    "@usuario, @contrasena, @estado, @predeterminado, @lastimeused, @created)";//SQL语句，插入数据库
+                string sql = "INSERT INTO devices (device_name, " +
+                    "description, ip_address, port, username, " +
+                    "password, status, is_default, last_used_time, created_at)" +
+                    "VALUES (@device_name, @description, @ip_address, @port, " +
+                    "@username, @password, @status, @is_default, @last_used_time, @created_at)";//SQL语句，插入数据库
                 try
                 {
                     int estado = 0;
@@ -91,16 +91,16 @@ namespace ControlEntradaSalida
 
 
                     MySqlCommand cmd = new MySqlCommand(sql, bd.conn);
-                    cmd.Parameters.AddWithValue("@nombre", this.textBoxNombre.Text);//名称
-                    cmd.Parameters.AddWithValue("@descripcion", this.textBoxDescripcion.Text);//描述
-                    cmd.Parameters.AddWithValue("@direccionip", this.txtDireccionIP.Text);//IP
-                    cmd.Parameters.AddWithValue("@puerto", this.txtPuerto.Text);//端口
-                    cmd.Parameters.AddWithValue("@usuario", this.txtUsuario.Text);//用户
-                    cmd.Parameters.AddWithValue("@contrasena", this.txtContrasena.Text);//密码
-                    cmd.Parameters.AddWithValue("@estado", estado);//状态
-                    cmd.Parameters.AddWithValue("@predeterminado", predeterminado);//是否默认
-                    cmd.Parameters.AddWithValue("@created", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
-                    cmd.Parameters.AddWithValue("@lastimeused", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
+                    cmd.Parameters.AddWithValue("@device_name", this.textBoxNombre.Text);//名称
+                    cmd.Parameters.AddWithValue("@description", this.textBoxDescripcion.Text);//描述
+                    cmd.Parameters.AddWithValue("@ip_address", this.txtDireccionIP.Text);//IP
+                    cmd.Parameters.AddWithValue("@port", this.txtPuerto.Text);//端口
+                    cmd.Parameters.AddWithValue("@username", this.txtUsuario.Text);//用户
+                    cmd.Parameters.AddWithValue("@password", this.txtContrasena.Text);//密码
+                    cmd.Parameters.AddWithValue("@status", estado);//状态
+                    cmd.Parameters.AddWithValue("@is_default", predeterminado);//是否默认
+                    cmd.Parameters.AddWithValue("@created_at", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
+                    cmd.Parameters.AddWithValue("@last_used_time", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
                     cmd.ExecuteNonQuery();
                     bd.desconectarMySQL();
                     retval = true;
@@ -117,7 +117,7 @@ namespace ControlEntradaSalida
             }
             return retval;
         }
-        //设置默认设备,将数据库dispositivos表中所有predeterminado=1的记录设置为0,保证数据库中只有一个默认设备。
+        //设置默认设备,将数据库devices表中所有is_default=1的记录设置为0,保证数据库中只有一个默认设备。
         private bool ActualizarPredeterminado()
         {
             bool retval = false;
@@ -127,9 +127,9 @@ namespace ControlEntradaSalida
             bd.conectarMySQL(connstr);
             if (bd.conn != null)
             {
-                string sql = "UPDATE dispositivos " +
-                    "SET predeterminado = 0 " +                    
-                    "WHERE predeterminado = 1";
+                string sql = "UPDATE devices " +
+                    "SET is_default = 0 " +                    
+                    "WHERE is_default = 1";
                 try
                 {
                     MySqlCommand cmd = new MySqlCommand(sql, bd.conn);                   
@@ -159,17 +159,17 @@ namespace ControlEntradaSalida
             bd.conectarMySQL(connstr);
             if (bd.conn != null)
             {
-                string sql = "UPDATE dispositivos SET nombre = @nombre, " +
-                    "descripcion = @descripcion, " +
-                    "direccionip = @direccionip, " +
-                    "puerto =  @puerto, " +
-                    "usuario = @usuario, " +
-                    "contrasena = @contrasena," +
-                    "estado = @estado, " +
-                    "predeterminado = @predeterminado, " +
-                    "modified = @modified," +
-                    "lastimeused = @lasttime " +
-                    "WHERE id = @id";
+                string sql = "UPDATE devices SET device_name = @device_name, " +
+                    "description = @description, " +
+                    "ip_address = @ip_address, " +
+                    "port =  @port, " +
+                    "username = @username, " +
+                    "password = @password," +
+                    "status = @status, " +
+                    "is_default = @is_default, " +
+                    "updated_at = @updated_at," +
+                    "last_used_time = @last_used_time " +
+                    "WHERE device_id = @device_id";
                 try
                 {
                     int estado = 0;
@@ -183,17 +183,17 @@ namespace ControlEntradaSalida
                     }
 
                     MySqlCommand cmd = new MySqlCommand(sql, bd.conn);
-                    cmd.Parameters.AddWithValue("@nombre", this.textBoxNombre.Text);//名称
-                    cmd.Parameters.AddWithValue("@descripcion", this.textBoxDescripcion.Text);//描述
-                    cmd.Parameters.AddWithValue("@direccionip", this.txtDireccionIP.Text);//IP
-                    cmd.Parameters.AddWithValue("@puerto", this.txtPuerto.Text);//端口
-                    cmd.Parameters.AddWithValue("@usuario", this.txtUsuario.Text);//用户
-                    cmd.Parameters.AddWithValue("@contrasena", this.txtContrasena.Text);//密码
-                    cmd.Parameters.AddWithValue("@estado", estado);//状态
-                    cmd.Parameters.AddWithValue("@predeterminado", predeterminado);//是否默认
-                    cmd.Parameters.AddWithValue("@modified", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
-                    cmd.Parameters.AddWithValue("@lasttime", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));//最后登录时间
-                    cmd.Parameters.AddWithValue("@id", this.textBoxID.Text);//编号
+                    cmd.Parameters.AddWithValue("@device_name", this.textBoxNombre.Text);//名称
+                    cmd.Parameters.AddWithValue("@description", this.textBoxDescripcion.Text);//描述
+                    cmd.Parameters.AddWithValue("@ip_address", this.txtDireccionIP.Text);//IP
+                    cmd.Parameters.AddWithValue("@port", this.txtPuerto.Text);//端口
+                    cmd.Parameters.AddWithValue("@username", this.txtUsuario.Text);//用户
+                    cmd.Parameters.AddWithValue("@password", this.txtContrasena.Text);//密码
+                    cmd.Parameters.AddWithValue("@status", estado);//状态
+                    cmd.Parameters.AddWithValue("@is_default", predeterminado);//是否默认
+                    cmd.Parameters.AddWithValue("@updated_at", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
+                    cmd.Parameters.AddWithValue("@last_used_time", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));//最后登录时间
+                    cmd.Parameters.AddWithValue("@device_id", this.textBoxID.Text);//编号
                     cmd.ExecuteNonQuery();
                     bd.desconectarMySQL();
 
