@@ -233,6 +233,7 @@ namespace ControlEntradaSalida
                 {
                     ListView.SelectedIndexCollection indexes = this.listView.SelectedIndices;
                     string id = this.listView.Items[indexes[0]].Text;
+                    string deviceInfo = $"{this.listView.Items[indexes[0]].SubItems[1].Text} - {this.listView.Items[indexes[0]].SubItems[3].Text}";
                     if (EliminarDispositivo(id))
                     {
                         ConsultarDispositivos();//刷新列表
@@ -240,7 +241,7 @@ namespace ControlEntradaSalida
                         // 通知其他界面设备已删除
                         _notifier?.NotifyDeviceDataChanged(
                             id, 
-                            "设备已删除",
+                            deviceInfo,
                             DeviceChangeType.Deleted,
                             this.GetType().Name);
                     }

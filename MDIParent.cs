@@ -206,6 +206,16 @@ namespace ControlEntradaSalida
             DeviceConnectionManager.Instance.DeviceStatusChanged += OnDeviceStatusChanged;
         }
         
+        // 清理所有设备状态卡片
+        private void ClearAllDeviceStatusCards()
+        {
+            // 从面板中移除所有控件
+            deviceStatusPanel.Controls.Clear();
+            
+            // 清空字典
+            deviceStatusCards.Clear();
+        }
+        
         // 初始化数据变更通知器
         private void InitializeDataChangeNotifier()
         {
@@ -614,7 +624,10 @@ namespace ControlEntradaSalida
         {
             var devices = DeviceConnectionManager.Instance.GetAllDevices();
 
-            // 首先为所有设备创建卡片（不检查状态），避免UI阻塞
+            // 清理现有的设备卡片，避免重复创建
+            ClearAllDeviceStatusCards();
+
+            // 为所有设备创建卡片（不检查状态），避免UI阻塞
             foreach (var device in devices)
             {
                 CreateDeviceStatusCard(device);
@@ -739,14 +752,22 @@ namespace ControlEntradaSalida
         
         #region 数据变更事件处理
         
-        /// <summary>
-        /// 处理设备数据变更事件
-        /// </summary>
+        // 处理设备数据变更事件
         private void OnDeviceDataChanged(object sender, DeviceDataChangedEventArgs e)
         {
             if (this.IsFormVisible)
             {
-                RefreshDeviceData();
+                // 根据变更类型执行不同的操作
+                switch (e.ChangeType)
+                {
+                    case DeviceChangeType.Added:
+                    case DeviceChangeType.Deleted:
+                    case DeviceChangeType.Updated:
+                        // 重新加载设备数据并刷新显示
+                        DeviceConnectionManager.Instance.LoadAllDevices();
+                        InitializeDeviceStatusDisplay();
+                        break;
+                }
             }
         }
         
