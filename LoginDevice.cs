@@ -240,11 +240,14 @@ namespace ControlEntradaSalida
         private void buttonLogin_Click(object sender, EventArgs e)
         {
             int userID = -1;
+            bool operationSucceeded = false;
+            string deviceInfo = $"{this.textBoxNombre.Text} - {this.txtDireccionIP.Text}";
+            
             if (nuevo)
             {
                 if (login(out userID))
                 {
-                    InsertarDispositivo();
+                    operationSucceeded = InsertarDispositivo();
                     // 如果登录成功，断开连接（因为设备连接管理器会管理连接）
                     if (userID >= 0)
                     {
@@ -257,23 +260,45 @@ namespace ControlEntradaSalida
 
                     if (res == DialogResult.Yes)
                     {
-                        InsertarDispositivo();
+                        operationSucceeded = InsertarDispositivo();
                     }
-
                 }
-
+                
+                // 如果成功添加设备，通知其他界面
+                if (operationSucceeded)
+                {
+                    DataChangeNotifier.Instance.NotifyDeviceDataChanged(
+                        "", // 新设备还没有ID
+                        deviceInfo,
+                        DeviceChangeType.Added,
+                        this.GetType().Name);
+                }
             } 
             else
             {
                 login(out userID);
-                ActualizarDispositivo(this.textBoxID.Text);
+                operationSucceeded = ActualizarDispositivo(this.textBoxID.Text);
                 // 如果登录成功，断开连接（因为设备连接管理器会管理连接）
                 if (userID >= 0)
                 {
                     HCNetSDK.NET_DVR_Logout_V30(userID);
                 }
+                
+                // 如果成功更新设备，通知其他界面
+                if (operationSucceeded)
+                {
+                    DataChangeNotifier.Instance.NotifyDeviceDataChanged(
+                        this.textBoxID.Text,
+                        deviceInfo,
+                        DeviceChangeType.Updated,
+                        this.GetType().Name);
+                }
             }
-            this.Close();
+            
+            if (operationSucceeded)
+            {
+                this.Close();
+            }
         }
 
         private void txtPuerto_Enter(object sender, EventArgs e)

@@ -42,7 +42,7 @@ namespace ControlEntradaSalida
         }
     }
 
-    public partial class MDIParent : Form
+    public partial class MDIParent : Form, IRefreshableForm
     {
         // 设备状态面板
         private BufferedFlowLayoutPanel deviceStatusPanel;
@@ -50,6 +50,10 @@ namespace ControlEntradaSalida
         private Timer animationTimer;
         private Dictionary<int, DateTime> lastUpdateTimes;
         private ToolTip deviceToolTip;
+        private DataChangeNotifier _notifier;
+        private readonly object _statusUpdateLock = new object();
+        
+        public bool IsFormVisible => this.Visible;
 
         //初始化窗体和控件
         public MDIParent()
@@ -61,6 +65,9 @@ namespace ControlEntradaSalida
             // 添加窗体事件处理，确保悬停状态正确清理
             this.Deactivate += (sender, e) => ClearAllHoverStates();
             this.Leave += (sender, e) => ClearAllHoverStates();
+            
+            // 初始化数据变更通知器
+            InitializeDataChangeNotifier();
         }
 
         // 初始化动画定时器
@@ -197,6 +204,14 @@ namespace ControlEntradaSalida
 
             // 订阅设备状态改变事件
             DeviceConnectionManager.Instance.DeviceStatusChanged += OnDeviceStatusChanged;
+        }
+        
+        // 初始化数据变更通知器
+        private void InitializeDataChangeNotifier()
+        {
+            _notifier = DataChangeNotifier.Instance;
+            _notifier.DeviceDataChanged += OnDeviceDataChanged;
+            _notifier.DoorControlStatusChanged += OnDoorControlStatusChanged;
         }
 
         // 设备状态改变事件处理
@@ -637,6 +652,13 @@ namespace ControlEntradaSalida
 
             // 取消订阅设备状态改变事件
             DeviceConnectionManager.Instance.DeviceStatusChanged -= OnDeviceStatusChanged;
+            
+            // 取消订阅数据变更事件
+            if (_notifier != null)
+            {
+                _notifier.DeviceDataChanged -= OnDeviceDataChanged;
+                _notifier.DoorControlStatusChanged -= OnDoorControlStatusChanged;
+            }
 
             // 断开所有设备连接
             DeviceConnectionManager.Instance.DisconnectAllDevices();
@@ -678,5 +700,185 @@ namespace ControlEntradaSalida
             frmGestionUsuariosDispositivo.MdiParent = this;
             frmGestionUsuariosDispositivo.Show();
         }
+        
+        #region IRefreshableForm 实现
+        
+        /// <summary>
+        /// 刷新设备数据
+        /// </summary>
+        public void RefreshDeviceData()
+        {
+            SafeUIUpdater.UpdateUI(this, () => 
+            {
+                InitializeDeviceStatusDisplay();
+            });
+        }
+        
+        /// <summary>
+        /// 刷新员工数据（主界面不需要）
+        /// </summary>
+        public void RefreshEmployeeData()
+        {
+            // 主界面不需要刷新员工数据
+        }
+        
+        /// <summary>
+        /// 刷新门状态
+        /// </summary>
+        /// <param name="deviceId">设备ID</param>
+        /// <param name="status">门状态</param>
+        public void RefreshDoorStatus(string deviceId, DoorStatus status)
+        {
+            SafeUIUpdater.UpdateUI(this, () => 
+            {
+                UpdateDoorStatusInCards(deviceId, status);
+            });
+        }
+        
+        #endregion
+        
+        #region 数据变更事件处理
+        
+        /// <summary>
+        /// 处理设备数据变更事件
+        /// </summary>
+        private void OnDeviceDataChanged(object sender, DeviceDataChangedEventArgs e)
+        {
+            if (this.IsFormVisible)
+            {
+                RefreshDeviceData();
+            }
+        }
+        
+        /// <summary>
+        /// 处理门控状态变更事件
+        /// </summary>
+        private void OnDoorControlStatusChanged(object sender, DoorControlStatusChangedEventArgs e)
+        {
+            if (this.IsFormVisible)
+            {
+                RefreshDoorStatus(e.DeviceId, e.Status);
+            }
+        }
+        
+        /// <summary>
+        /// 更新设备状态卡片中的门状态显示
+        /// </summary>
+        /// <param name="deviceId">设备ID</param>
+        /// <param name="doorStatus">门状态</param>
+        private void UpdateDoorStatusInCards(string deviceId, DoorStatus doorStatus)
+        {
+            lock (_statusUpdateLock)
+            {
+                try
+                {
+                    // 在所有设备卡片中查找匹配的设备
+                    foreach (var kvp in deviceStatusCards)
+                    {
+                        var cardPanel = kvp.Value;
+                        
+                        // 查找设备名称标签，用于匹配设备
+                        Label nameLabel = null;
+                        Panel statusIcon = null;
+                        Label statusLabel = null;
+                        
+                        foreach (Control control in cardPanel.Controls)
+                        {
+                            if (control is Label label)
+                            {
+                                if (label.Location.Y == 8) // 设备名称标签
+                                {
+                                    nameLabel = label;
+                                }
+                                else if (label.Location.X == 40 && label.Location.Y == 42) // 状态标签
+                                {
+                                    statusLabel = label;
+                                }
+                            }
+                            else if (control is Panel panel && panel.Size.Width == 16)
+                            {
+                                statusIcon = panel;
+                            }
+                        }
+                        
+                        // 尝试匹配设备（可以根据名称或IP匹配）
+                        if (nameLabel != null && (nameLabel.Text.Contains(deviceId) || deviceId.Contains(nameLabel.Text)))
+                        {
+                            UpdateCardDoorStatus(statusIcon, statusLabel, doorStatus);
+                            break;
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"更新门状态卡片显示异常: {ex.Message}");
+                }
+            }
+        }
+        
+        /// <summary>
+        /// 更新卡片中的门状态显示
+        /// </summary>
+        /// <param name="statusIcon">状态图标</param>
+        /// <param name="statusLabel">状态标签</param>
+        /// <param name="doorStatus">门状态</param>
+        private void UpdateCardDoorStatus(Panel statusIcon, Label statusLabel, DoorStatus doorStatus)
+        {
+            if (statusIcon == null || statusLabel == null) return;
+            
+            try
+            {
+                string statusText = GetDoorStatusDisplayText(doorStatus);
+                Color statusColor = GetDoorStatusColor(doorStatus);
+                
+                // 更新状态显示
+                statusIcon.BackColor = statusColor;
+                statusLabel.Text = statusText;
+                statusLabel.ForeColor = statusColor;
+                
+                // 重绘图标
+                statusIcon.Invalidate();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"更新卡片门状态显示异常: {ex.Message}");
+            }
+        }
+        
+        /// <summary>
+        /// 获取门状态显示文本
+        /// </summary>
+        /// <param name="status">门状态</param>
+        /// <returns>显示文本</returns>
+        private string GetDoorStatusDisplayText(DoorStatus status)
+        {
+            return status switch
+            {
+                DoorStatus.Opened => "门已开启",
+                DoorStatus.Closed => "门已关闭",
+                DoorStatus.AlwaysOpen => "门常开",
+                DoorStatus.AlwaysClosed => "门常闭",
+                _ => "门状态未知"
+            };
+        }
+        
+        /// <summary>
+        /// 获取门状态颜色
+        /// </summary>
+        /// <param name="status">门状态</param>
+        /// <returns>状态颜色</returns>
+        private Color GetDoorStatusColor(DoorStatus status)
+        {
+            return status switch
+            {
+                DoorStatus.Opened => Color.FromArgb(40, 167, 69), // 绿色
+                DoorStatus.Closed => Color.FromArgb(220, 53, 69), // 红色
+                DoorStatus.AlwaysOpen => Color.FromArgb(255, 193, 7), // 黄色
+                DoorStatus.AlwaysClosed => Color.FromArgb(220, 53, 69), // 红色
+                _ => Color.FromArgb(108, 117, 125) // 灰色
+            };
+        }
+        
+        #endregion
     }
 }

@@ -17,9 +17,12 @@ namespace ControlEntradaSalida
     显示在界面 ListView 中；
     打开报表窗口 Informe 显示 InformeEventos 报表。
      */
-    public partial class ParamInformeEventos : Form
+    public partial class ParamInformeEventos : Form, IRefreshableForm
     {
         private string comboboxplanid = null;
+        private DataChangeNotifier _notifier;
+        
+        public bool IsFormVisible => this.Visible;
         //构造函数，初始化窗体控件
         public ParamInformeEventos()
         {
@@ -172,6 +175,11 @@ namespace ControlEntradaSalida
         {
             this.radioButtonTodosEmpleados.Checked = true;
             CargarDispositivos();
+            
+            // 初始化数据变更通知器
+            _notifier = DataChangeNotifier.Instance;
+            _notifier.DeviceDataChanged += OnDeviceDataChanged;
+            _notifier.EmployeeDataChanged += OnEmployeeDataChanged;
         }
 
         private void CargarDispositivos()
@@ -241,5 +249,122 @@ namespace ControlEntradaSalida
             this.textBoxNombreEmpleado.Text = "";
             this.textBoxApellidosEmpleado.Text = "";
         }
+        
+        #region IRefreshableForm 实现
+        
+        /// <summary>
+        /// 刷新设备数据
+        /// </summary>
+        public void RefreshDeviceData()
+        {
+            SafeUIUpdater.UpdateUI(this, () => 
+            {
+                string selectedDeviceValue = GetSelectedDeviceValue();
+                CargarDispositivos();
+                RestoreSelectedDevice(selectedDeviceValue);
+            });
+        }
+        
+        /// <summary>
+        /// 刷新员工数据
+        /// </summary>
+        public void RefreshEmployeeData()
+        {
+            // 事件报表参数界面不需要刷新员工数据（没有员工下拉列表）
+        }
+        
+        /// <summary>
+        /// 刷新门状态（事件报表参数界面不需要）
+        /// </summary>
+        /// <param name="deviceId">设备ID</param>
+        /// <param name="status">门状态</param>
+        public void RefreshDoorStatus(string deviceId, DoorStatus status)
+        {
+            // 事件报表参数界面不需要刷新门状态
+        }
+        
+        #endregion
+        
+        #region 数据变更事件处理
+        
+        /// <summary>
+        /// 处理设备数据变更事件
+        /// </summary>
+        private void OnDeviceDataChanged(object sender, DeviceDataChangedEventArgs e)
+        {
+            if (this.IsFormVisible)
+            {
+                RefreshDeviceData();
+            }
+        }
+        
+        /// <summary>
+        /// 处理员工数据变更事件
+        /// </summary>
+        private void OnEmployeeDataChanged(object sender, EmployeeDataChangedEventArgs e)
+        {
+            // 事件报表参数界面不需要处理员工数据变更
+        }
+        
+        /// <summary>
+        /// 获取当前选中的设备值
+        /// </summary>
+        /// <returns>设备值</returns>
+        private string GetSelectedDeviceValue()
+        {
+            if (cmbDispositivos.SelectedItem is ComboboxItem selectedItem)
+            {
+                return selectedItem.Value?.ToString();
+            }
+            return "0";
+        }
+        
+        /// <summary>
+        /// 恢复之前选中的设备
+        /// </summary>
+        /// <param name="deviceValue">设备值</param>
+        private void RestoreSelectedDevice(string deviceValue)
+        {
+            try
+            {
+                foreach (ComboboxItem item in cmbDispositivos.Items)
+                {
+                    if (item.Value?.ToString() == deviceValue)
+                    {
+                        cmbDispositivos.SelectedItem = item;
+                        break;
+                    }
+                }
+            }
+            catch
+            {
+                // 如果恢复失败，选择默认的第一个选项
+                if (cmbDispositivos.Items.Count > 0)
+                {
+                    cmbDispositivos.SelectedIndex = 0;
+                }
+            }
+        }
+        
+        #endregion
+        
+        #region 窗体关闭处理
+        
+        /// <summary>
+        /// 窗体关闭时取消事件订阅
+        /// </summary>
+        protected override void OnFormClosed(FormClosedEventArgs e)
+        {
+            // 取消事件订阅，防止内存泄漏
+            if (_notifier != null)
+            {
+                _notifier.DeviceDataChanged -= OnDeviceDataChanged;
+                _notifier.EmployeeDataChanged -= OnEmployeeDataChanged;
+            }
+            
+            base.OnFormClosed(e);
+        }
+        
+        #endregion
     }
 }

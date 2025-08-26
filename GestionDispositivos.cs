@@ -11,8 +11,12 @@ using MySql.Data.MySqlClient;
 
 namespace ControlEntradaSalida
 {   //设备管理界面的功能
-    public partial class GestionDispositivos : Form
+    public partial class GestionDispositivos : Form, IRefreshableForm
     {
+        private DataChangeNotifier _notifier;
+        
+        public bool IsFormVisible => this.Visible;
+        
         public GestionDispositivos()
         {
             InitializeComponent();
@@ -147,6 +151,11 @@ namespace ControlEntradaSalida
         private void GestionDispositivos_Load(object sender, EventArgs e)
         {
             ConsultarDispositivos();
+            
+            // 订阅数据变更事件
+            _notifier = DataChangeNotifier.Instance;
+            _notifier.DeviceDataChanged += OnDeviceDataChanged;
+            _notifier.EmployeeDataChanged += OnEmployeeDataChanged;
         }
         //双击列表中的某个设备：查看或修改设备信息
         private void listView_DoubleClick(object sender, EventArgs e)
@@ -183,6 +192,13 @@ namespace ControlEntradaSalida
                     frmLoginDevice.ShowDialog();
                     // 设备连接状态已在 ConsultarDispositivos 中正确处理
                     ConsultarDispositivos();
+                    
+                    // 通知其他界面设备数据已变更
+                    _notifier?.NotifyDeviceDataChanged(
+                        id, 
+                        $"{nombre} - {ip}",
+                        DeviceChangeType.Updated,
+                        this.GetType().Name);
 
                 }
             }
@@ -195,6 +211,13 @@ namespace ControlEntradaSalida
             frmLoginDevice.ShowDialog();
             ConsultarDispositivos();
             // 新设备连接状态已在 ConsultarDispositivos 中正确处理
+            
+            // 通知其他界面有新设备添加
+            _notifier?.NotifyDeviceDataChanged(
+                "新设备", 
+                "设备列表已更新",
+                DeviceChangeType.Added,
+                this.GetType().Name);
         }
         //删除设备
         private void buttonEliminar_Click(object sender, EventArgs e)
@@ -213,10 +236,145 @@ namespace ControlEntradaSalida
                     if (EliminarDispositivo(id))
                     {
                         ConsultarDispositivos();//刷新列表
+                        
+                        // 通知其他界面设备已删除
+                        _notifier?.NotifyDeviceDataChanged(
+                            id, 
+                            "设备已删除",
+                            DeviceChangeType.Deleted,
+                            this.GetType().Name);
                     }
                 }
             }
         }
+        
+        #region IRefreshableForm 实现
+        
+        /// <summary>
+        /// 刷新设备数据
+        /// </summary>
+        public void RefreshDeviceData()
+        {
+            SafeUIUpdater.UpdateUI(this, () => 
+            {
+                ConsultarDispositivos();
+            });
+        }
+        
+        /// <summary>
+        /// 刷新员工数据（设备管理界面不需要）
+        /// </summary>
+        public void RefreshEmployeeData()
+        {
+            // 设备管理界面不需要刷新员工数据
+        }
+        
+        /// <summary>
+        /// 刷新门状态（在设备列表中更新状态显示）
+        /// </summary>
+        /// <param name="deviceId">设备ID</param>
+        /// <param name="status">门状态</param>
+        public void RefreshDoorStatus(string deviceId, DoorStatus status)
+        {
+            SafeUIUpdater.UpdateUI(this, () => 
+            {
+                UpdateDeviceStatusInGrid(deviceId, status);
+            });
+        }
+        
+        #endregion
+        
+        #region 事件处理方法
+        
+        /// <summary>
+        /// 处理设备数据变更事件
+        /// </summary>
+        private void OnDeviceDataChanged(object sender, DeviceDataChangedEventArgs e)
+        {
+            // 避免自己触发的事件导致重复刷新
+            if (e.Source == this.GetType().Name) return;
+            
+            if (this.IsFormVisible)
+            {
+                RefreshDeviceData();
+            }
+        }
+        
+        /// <summary>
+        /// 处理员工数据变更事件
+        /// </summary>
+        private void OnEmployeeDataChanged(object sender, EmployeeDataChangedEventArgs e)
+        {
+            // 设备管理界面不需要处理员工数据变更
+        }
+        
+        /// <summary>
+        /// 更新设备列表中的状态显示
+        /// </summary>
+        /// <param name="deviceId">设备ID</param>
+        /// <param name="status">门状态</param>
+        private void UpdateDeviceStatusInGrid(string deviceId, DoorStatus status)
+        {
+            try
+            {
+                foreach (ListViewItem item in listView.Items)
+                {
+                    if (item.Text == deviceId)
+                    {
+                        // 更新门状态显示（在现有状态列中添加门状态信息）
+                        string doorStatusText = GetDoorStatusDisplayText(status);
+                        if (item.SubItems.Count > 7)
+                        {
+                            string currentStatus = item.SubItems[7].Text;
+                            item.SubItems[7].Text = $"{currentStatus} | {doorStatusText}";
+                        }
+                        break;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"更新设备状态显示异常: {ex.Message}");
+            }
+        }
+        
+        /// <summary>
+        /// 获取门状态显示文本
+        /// </summary>
+        /// <param name="status">门状态</param>
+        /// <returns>显示文本</returns>
+        private string GetDoorStatusDisplayText(DoorStatus status)
+        {
+            return status switch
+            {
+                DoorStatus.Opened => "门已开启",
+                DoorStatus.Closed => "门已关闭",
+                DoorStatus.AlwaysOpen => "门常开",
+                DoorStatus.AlwaysClosed => "门常闭",
+                _ => "门状态未知"
+            };
+        }
+        
+        #endregion
+        
+        #region 窗体关闭处理
+        
+        /// <summary>
+        /// 窗体关闭时取消事件订阅
+        /// </summary>
+        protected override void OnFormClosed(FormClosedEventArgs e)
+        {
+            // 取消事件订阅，防止内存泄漏
+            if (_notifier != null)
+            {
+                _notifier.DeviceDataChanged -= OnDeviceDataChanged;
+                _notifier.EmployeeDataChanged -= OnEmployeeDataChanged;
+            }
+            
+            base.OnFormClosed(e);
+        }
+        
+        #endregion
     }
 }
 

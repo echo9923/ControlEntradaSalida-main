@@ -1,4 +1,4 @@
-﻿using MySql.Data.MySqlClient;
+using MySql.Data.MySqlClient;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
@@ -15,7 +15,7 @@ using System.Windows.Forms;
 
 namespace ControlEntradaSalida
 {   //实现员工管理功能
-    public partial class GestionEmpleados : Form
+    public partial class GestionEmpleados : Form, IRefreshableForm
     {
         private int m_lCapFaceCfgHandle = -1;
         private int m_lGetCardCfgHandle = -1;
@@ -25,6 +25,9 @@ namespace ControlEntradaSalida
         private int m_lDelCardCfgHandle = -1; // 添加删除卡片配置句柄
         private string url_imagen = null;
         private bool nuevo = true; // 是否为新增员工
+        private DataChangeNotifier _notifier;
+        
+        public bool IsFormVisible => this.Visible;
 
         //初始化窗体
         public GestionEmpleados()
@@ -873,6 +876,107 @@ namespace ControlEntradaSalida
             }
             return retval;
         }
+
+        // 验证文档号
+        private bool ValidarDocumento()
+        {
+            if (string.IsNullOrWhiteSpace(textBoxDocumento.Text))
+            {
+                MessageBox.Show("请输入文档号", "验证错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                textBoxDocumento.Focus();
+                return false;
+            }
+            return true;
+        }
+
+        // 验证状态
+        private bool ValidarEstado()
+        {
+            if (cmbEstado.SelectedItem == null || string.IsNullOrWhiteSpace(cmbEstado.SelectedItem.ToString()))
+            {
+                MessageBox.Show("请选择状态", "验证错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                cmbEstado.Focus();
+                return false;
+            }
+            return true;
+        }
+
+        // 验证姓名
+        private bool ValidarNombreCompleto()
+        {
+            if (string.IsNullOrWhiteSpace(textBoxNombreCompleto.Text))
+            {
+                MessageBox.Show("请输入姓名", "验证错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                textBoxNombreCompleto.Focus();
+                return false;
+            }
+            return true;
+        }
+
+        // 验证类别
+        private bool ValidarCategoria()
+        {
+            if (cmbCategoria.SelectedItem == null || string.IsNullOrWhiteSpace(cmbCategoria.SelectedItem.ToString()))
+            {
+                MessageBox.Show("请选择类别", "验证错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                cmbCategoria.Focus();
+                return false;
+            }
+            return true;
+        }
+
+        // 文档号验证事件
+        private void textBoxDocumento_Validating(object sender, System.ComponentModel.CancelEventArgs e)
+        {
+            if (string.IsNullOrWhiteSpace(textBoxDocumento.Text))
+            {
+                e.Cancel = true;
+                MessageBox.Show("请输入文档号", "验证错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        // 姓名验证事件
+        private void textBoxNombreCompleto_Validating(object sender, System.ComponentModel.CancelEventArgs e)
+        {
+            if (string.IsNullOrWhiteSpace(textBoxNombreCompleto.Text))
+            {
+                e.Cancel = true;
+                MessageBox.Show("请输入姓名", "验证错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        // 状态选择事件
+        private void cmbEstado_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            // 状态选择改变时的处理逻辑
+        }
+
+        // 状态验证事件
+        private void cmbEstado_Validating(object sender, System.ComponentModel.CancelEventArgs e)
+        {
+            if (cmbEstado.SelectedItem == null || string.IsNullOrWhiteSpace(cmbEstado.SelectedItem.ToString()))
+            {
+                e.Cancel = true;
+                MessageBox.Show("请选择状态", "验证错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        // 类别选择事件
+        private void cmbCategoria_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            // 类别选择改变时的处理逻辑
+        }
+
+        // 类别验证事件
+        private void cmbCategoria_Validating(object sender, System.ComponentModel.CancelEventArgs e)
+        {
+            if (cmbCategoria.SelectedItem == null || string.IsNullOrWhiteSpace(cmbCategoria.SelectedItem.ToString()))
+            {
+                e.Cancel = true;
+                MessageBox.Show("请选择类别", "验证错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
         //"保存"按钮相应，同时在设备和数据库中更新
         private void buttonAgregar_Click(object sender, EventArgs e)
         {
@@ -922,6 +1026,13 @@ namespace ControlEntradaSalida
                         AgregarUsuarioListView();//更新 UI界面列表
                         LimpiarControles(false);
                         url_imagen = null;
+                        
+                        // 通知其他界面员工数据已变更
+                        _notifier?.NotifyEmployeeDataChanged(
+                            this.textBoxDocumento.Text,
+                            this.textBoxNombreCompleto.Text,
+                            EmployeeChangeType.Added,
+                            this.GetType().Name);
                     }
                 }
                 if (!nuevo)//更新已有员工
@@ -942,6 +1053,17 @@ namespace ControlEntradaSalida
 
                     if (!resultactbd)
                         MessageBox.Show("无法在本地数据库中更新用户", "更新错误", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    
+                    // 如果更新成功，通知其他界面
+                    if (resultactbd)
+                    {
+                        _notifier?.NotifyEmployeeDataChanged(
+                            this.textBoxDocumento.Text,
+                            this.textBoxNombreCompleto.Text,
+                            EmployeeChangeType.Updated,
+                            this.GetType().Name);
+                    }
+                    
                     LimpiarControles(false);
                 }
             }
@@ -975,6 +1097,11 @@ namespace ControlEntradaSalida
             this.cmbCategoria.Enabled = true;
             this.buttonNuevo.Enabled = true;
             this.buttonFiltrar.Enabled = true;
+            
+            // 初始化数据变更通知器
+            _notifier = DataChangeNotifier.Instance;
+            _notifier.DeviceDataChanged += OnDeviceDataChanged;
+            _notifier.EmployeeDataChanged += OnEmployeeDataChanged;
         }
         //删除本地保存的人脸图片
         private bool EliminarImagen(string filePath)
@@ -1061,6 +1188,13 @@ namespace ControlEntradaSalida
                             result = EliminarUsuario(documento);//从数据库中删除
                             if (result)
                             {
+                                // 通知其他界面员工数据已变更
+                                string nombreCompleto = item.SubItems.Count > 3 ? item.SubItems[3].Text : "未知";
+                                _notifier?.NotifyEmployeeDataChanged(
+                                    documento,
+                                    nombreCompleto,
+                                    EmployeeChangeType.Deleted,
+                                    this.GetType().Name);
                                 /*result = EliminarImagen(item.SubItems[5].Text);
                                 if (!result)
                                 {
@@ -1308,150 +1442,88 @@ namespace ControlEntradaSalida
         //清空所有输入，用于新增
         private void buttonNuevo_Click(object sender, EventArgs e)
         {
-            LimpiarControles(true);
+            nuevo = true;
+            LimpiarControles(false);
+            this.textBoxDocumento.Enabled = true;
+            this.buttonCapturarFoto.Enabled = true;
         }
-        //对应控件是否为空或格式是否正确
-        private bool ValidarOpcionCombo(ComboBox cmb)
+        
+        #region IRefreshableForm 实现
+        
+        /// <summary>
+        /// 刷新设备数据（员工管理界面不需要）
+        /// </summary>
+        public void RefreshDeviceData()
         {
-
-            string textocombo = cmb.Text;
-
-            ComboBox.ObjectCollection items = cmb.Items;
-            bool encontrado = false;
-
-            if (items.Count > 0)
+            // 员工管理界面不需要刷新设备数据
+        }
+        
+        /// <summary>
+        /// 刷新员工数据
+        /// </summary>
+        public void RefreshEmployeeData()
+        {
+            SafeUIUpdater.UpdateUI(this, () => 
             {
-                for (int i = 0; i < items.Count; i++)
-                {
-                    if (items[i].ToString() == textocombo)
-                    {
-                        encontrado = true;
-                        break;
-                    }
-
-                }
-            }
-            return encontrado;
-
+                CargarDatosTablaEmpleados();
+            });
         }
-
-        private bool ValidarEstado()
+        
+        /// <summary>
+        /// 刷新门状态（员工管理界面不需要）
+        /// </summary>
+        /// <param name="deviceId">设备ID</param>
+        /// <param name="status">门状态</param>
+        public void RefreshDoorStatus(string deviceId, DoorStatus status)
         {
-            bool retval = false;
-            if (string.IsNullOrEmpty(this.cmbEstado.Text))
+            // 员工管理界面不需要刷新门状态
+        }
+        
+        #endregion
+        
+        #region 数据变更事件处理
+        
+        /// <summary>
+        /// 处理设备数据变更事件
+        /// </summary>
+        private void OnDeviceDataChanged(object sender, DeviceDataChangedEventArgs e)
+        {
+            // 员工管理界面不需要处理设备数据变更
+        }
+        
+        /// <summary>
+        /// 处理员工数据变更事件
+        /// </summary>
+        private void OnEmployeeDataChanged(object sender, EmployeeDataChangedEventArgs e)
+        {
+            // 避免自己触发的事件导致重复刷新
+            if (e.Source == this.GetType().Name) return;
+            
+            if (this.IsFormVisible)
             {
-                errorProvider.SetError(this.cmbEstado, "不能为空");
+                RefreshEmployeeData();
             }
-            else
+        }
+        
+        #endregion
+        
+        #region 窗体关闭处理
+        
+        /// <summary>
+        /// 窗体关闭时取消事件订阅
+        /// </summary>
+        protected override void OnFormClosed(FormClosedEventArgs e)
+        {
+            // 取消事件订阅，防止内存泄漏
+            if (_notifier != null)
             {
-                bool encontrado = ValidarOpcionCombo(this.cmbEstado);
-
-                if (!encontrado)
-                    errorProvider.SetError(this.cmbEstado, "该字段的选项无效");
-                else
-                {
-                    errorProvider.SetError(this.cmbEstado, "");
-                    retval = true;
-                }
+                _notifier.DeviceDataChanged -= OnDeviceDataChanged;
+                _notifier.EmployeeDataChanged -= OnEmployeeDataChanged;
             }
-            return retval;
+            
+            base.OnFormClosed(e);
         }
-        private bool ValidarCategoria()
-        {
-            bool retval = false;
-            if (string.IsNullOrEmpty(this.cmbCategoria.Text))
-            {
-                errorProvider.SetError(this.cmbCategoria, "不能为空");
-            }
-            else
-            {
-                bool encmbCategoria = ValidarOpcionCombo(this.cmbCategoria);
-
-                if (!encmbCategoria)
-                    errorProvider.SetError(this.cmbCategoria, "该字段的选项无效");
-                else
-                {
-                    errorProvider.SetError(this.cmbCategoria, "");
-                    retval = true;
-                }
-            }
-            return retval;
-        }
-
-        private bool ValidarDocumento()
-        {
-            bool retval = false;
-
-            try
-            {
-                if (string.IsNullOrEmpty(this.textBoxDocumento.Text) || this.textBoxDocumento.Text.Trim().Length == 0) 
-                {
-                    errorProvider.SetError(this.textBoxDocumento, "不能为空");
-                }
-                else
-                {
-                    int valtemp = int.Parse(this.textBoxDocumento.Text);
-                    if (valtemp <= 0)
-                        errorProvider.SetError(this.textBoxDocumento, "不允许的值");
-                    else
-                    {
-                        errorProvider.SetError(this.textBoxDocumento, "");
-                        retval = true;
-                    }
-                }
-            }
-            catch
-            {
-                errorProvider.SetError(this.textBoxDocumento, "必须是一个数字");
-            }
-
-            return retval;
-
-        }
-
-
-        private void textBoxDocumento_Validating(object sender, CancelEventArgs e)
-        {
-            ValidarDocumento();
-        }
-
-        private void cmbEstado_Validating(object sender, CancelEventArgs e)
-        {
-            ValidarEstado();
-        }
-        private void cmbCategoria_Validating(object sender, CancelEventArgs e)
-        {
-            ValidarCategoria();
-        }
-
-        private bool ValidarNombreCompleto()
-        {
-            bool retval = false;
-            if (string.IsNullOrEmpty(this.textBoxNombreCompleto.Text))
-                errorProvider.SetError(this.textBoxNombreCompleto, "不能为空");
-            else
-            {
-                errorProvider.SetError(this.textBoxNombreCompleto, "");
-                retval = true;
-            }
-
-
-            return retval;
-        }
-
-        private void textBoxNombreCompleto_Validating(object sender, CancelEventArgs e)
-        {
-            ValidarNombreCompleto();
-        }
-
-        private void cmbEstado_SelectedIndexChanged(object sender, EventArgs e)
-        {
-
-        }
-
-        private void cmbCategoria_SelectedIndexChanged(object sender, EventArgs e)
-        {
-
-        }
+        
+        #endregion
     }
 }
