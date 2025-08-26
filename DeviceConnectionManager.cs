@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using System.Timers;
 using MySql.Data.MySqlClient;
 using System.Runtime.InteropServices;
+using System.Diagnostics;
 
 namespace ControlEntradaSalida
 {
@@ -292,7 +293,8 @@ namespace ControlEntradaSalida
                         };
                         
                         // 初始化设备信号量
-                        _connectionSemaphores.TryAdd(device.Id, new SemaphoreSlim(1, 1));
+                        _connectionSemaphores.TryAdd(device.Id, 
+                            SynchronizationHelper.CreateSemaphore(1, 1, $"Device-{device.Id}-Connection"));
                         
                         _devices.Add(device);
                     }
@@ -358,38 +360,39 @@ namespace ControlEntradaSalida
             if (_disposed) return false;
 
             // 获取设备的连接信号量，防止并发连接冲突
-            var semaphore = _connectionSemaphores.GetOrAdd(device.Id, _ => new SemaphoreSlim(1, 1));
+            var semaphore = _connectionSemaphores.GetOrAdd(device.Id, _ => 
+                SynchronizationHelper.CreateSemaphore(1, 1, $"Device-{device.Id}-Connection"));
             
-            try
+            // 使用安全的信号量操作
+            using (var semaphoreResult = await SynchronizationHelper.SafeWaitAsync(
+                semaphore, CONNECTION_TIMEOUT, $"ConnectDevice-{device.Id}"))
             {
-                // 等待连接许可
-                await semaphore.WaitAsync(CONNECTION_TIMEOUT);
-                
+                if (!semaphoreResult.IsAcquired)
+                {
+                    var errorMsg = "连接超时，设备可能忙碌";
+                    device.RecordConnectionFailure(0, errorMsg);
+                    device.UpdateStatus(DeviceStatus.Offline, errorMsg);
+                    OnDeviceError(new DeviceErrorEventArgs(device, 0, errorMsg, null, "Timeout"));
+                    return false;
+                }
+
                 try
                 {
-                    return await Task.Run(() => ConnectToDeviceInternal(device));
+                    Debug.WriteLine($"[DeviceConnectionManager] 开始连接设备 {device.Id} ({device.Name})");
+                    var result = await Task.Run(() => ConnectToDeviceInternal(device));
+                    Debug.WriteLine($"[DeviceConnectionManager] 设备 {device.Id} 连接结果: {result}");
+                    return result;
                 }
-                finally
+                catch (Exception ex)
                 {
-                    semaphore.Release();
+                    var errorMsg = $"连接异常: {ex.Message}";
+                    device.RecordConnectionFailure(0, errorMsg);
+                    device.UpdateStatus(DeviceStatus.Offline, errorMsg);
+                    OnDeviceError(new DeviceErrorEventArgs(device, 0, errorMsg, ex, "Exception"));
+                    Debug.WriteLine($"[DeviceConnectionManager] 设备 {device.Id} 连接异常: {ex.Message}");
+                    return false;
                 }
-            }
-            catch (TimeoutException)
-            {
-                var errorMsg = "连接超时，设备可能忙碌";
-                device.RecordConnectionFailure(0, errorMsg);
-                device.UpdateStatus(DeviceStatus.Offline, errorMsg);
-                OnDeviceError(new DeviceErrorEventArgs(device, 0, errorMsg, null, "Timeout"));
-                return false;
-            }
-            catch (Exception ex)
-            {
-                var errorMsg = $"连接异常: {ex.Message}";
-                device.RecordConnectionFailure(0, errorMsg);
-                device.UpdateStatus(DeviceStatus.Offline, errorMsg);
-                OnDeviceError(new DeviceErrorEventArgs(device, 0, errorMsg, ex, "Exception"));
-                return false;
-            }
+            } // using语句确保信号量正确释放
         }
         
         /// <summary>
@@ -520,19 +523,31 @@ namespace ControlEntradaSalida
         {
             if (device == null) return;
             
-            var semaphore = _connectionSemaphores.GetOrAdd(device.Id, _ => new SemaphoreSlim(1, 1));
+            var semaphore = _connectionSemaphores.GetOrAdd(device.Id, _ => 
+                SynchronizationHelper.CreateSemaphore(1, 1, $"Device-{device.Id}-Disconnect"));
             
-            try
+            // 使用安全的信号量操作
+            using (var semaphoreResult = SynchronizationHelper.SafeWait(
+                semaphore, CONNECTION_TIMEOUT, $"DisconnectDevice-{device.Id}"))
             {
-                semaphore.Wait(CONNECTION_TIMEOUT);
-                
+                if (!semaphoreResult.IsAcquired)
+                {
+                    var errorMsg = "断开设备连接等待信号量超时，设备可能忙碌";
+                    Debug.WriteLine($"[DeviceConnectionManager] {errorMsg} - 设备ID: {device.Id}");
+                    OnDeviceError(new DeviceErrorEventArgs(device, 0, errorMsg, null, "Timeout"));
+                    return;
+                }
+
                 try
                 {
+                    Debug.WriteLine($"[DeviceConnectionManager] 开始断开设备 {device.Id} ({device.Name})");
+                    
                     lock (device.LockObject)
                     {
                         if (device.UserID >= 0)
                         {
                             HCNetSDK.NET_DVR_Logout_V30(device.UserID);
+                            Debug.WriteLine($"[DeviceConnectionManager] 设备 {device.Id} SDK登出完成");
                         }
                         
                         device.UserID = -1;
@@ -544,17 +559,15 @@ namespace ControlEntradaSalida
                     // 触发事件
                     OnDeviceConnectionStateChanged(new DeviceConnectionEventArgs(device, false, "手动断开连接"));
                     OnDeviceStatusChanged(new DeviceStatusChangedEventArgs(device, false, "手动断开连接", "Manual"));
+                    
+                    Debug.WriteLine($"[DeviceConnectionManager] 设备 {device.Id} 断开连接完成");
                 }
-                finally
+                catch (Exception ex)
                 {
-                    semaphore.Release();
+                    Debug.WriteLine($"[DeviceConnectionManager] 断开设备 {device.Id} 连接时发生异常: {ex.Message}");
+                    OnDeviceError(new DeviceErrorEventArgs(device, 0, $"断开连接异常: {ex.Message}", ex, "DisconnectException"));
                 }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"断开设备连接时发生异常: {ex.Message}");
-                OnDeviceError(new DeviceErrorEventArgs(device, 0, $"断开连接异常: {ex.Message}", ex, "DisconnectException"));
-            }
+            } // using语句确保信号量正确释放
         }
 
         /// <summary>
