@@ -23,7 +23,7 @@ namespace ControlEntradaSalida
             InitializeComponent();
         }
         //调用数据库中存储过程 generate_attendance_report()；该过程负责整理原始进出数据为报表格式，临时存入temp_attendance_report表。
-        private bool CrearTablaInformeES()
+        private bool GenerateAttendanceReport()
         {
             bool retval = false;
 
@@ -55,7 +55,7 @@ namespace ControlEntradaSalida
         }
 
         //构建最终 SQL 查询语句字符串；根据用户勾选/填写的条件筛选,查询关联表 employees 和 temp_attendance_report,按 report_date, employee_id 升序排序。
-        private string ObtenerExpresionQuery()
+        private string GetQueryExpression()
         {
             
             string retval = null;
@@ -98,9 +98,9 @@ namespace ControlEntradaSalida
             return retval;
         }
         //执行 SQL 查询；解析每一行记录为 InformeEntradaSalida 实例，并添加到列表中；同时将结果添加到 listView 控件中进行显示；如果没有记录，弹出“没有可显示的记录”。
-        private bool GenerarConsulta(string sql, out List<InformeEntradaSalida> listaes)
+        private bool ExecuteQuery(string sql, out List<InformeEntradaSalida> attendanceList)
         {
-            listaes = new List<InformeEntradaSalida>();
+            attendanceList = new List<InformeEntradaSalida>();
             bool retval = false;
             Common cmn = new Common();
             string connstr = cmn.obtenerCadenaConexion();
@@ -117,38 +117,38 @@ namespace ControlEntradaSalida
                     {
                         while (rdr.Read())
                         {
-                            DateTime fecha;
-                            DateTime horaa;
-                            DateTime horab;
-                            string strfecha;
-                            string strhoraa;
-                            string strhorab;
+                            DateTime date;
+                            DateTime checkInTime;
+                            DateTime checkOutTime;
+                            string strDate;
+                            string strCheckInTime;
+                            string strCheckOutTime;
                             try
                             {
-                                fecha = DateTime.Parse(rdr["report_date"].ToString());
-                                strfecha = fecha.ToString("yyyy-MM-dd");
+                                date = DateTime.Parse(rdr["report_date"].ToString());
+                                strDate = date.ToString("yyyy-MM-dd");
                             }
                             catch
                             {
-                                strfecha = "";
+                                strDate = "";
                             }
                             try
                             {
-                                horaa = DateTime.Parse(rdr["check_in_time"].ToString());
-                                strhoraa = horaa.ToString("HH:MM:ss");
+                                checkInTime = DateTime.Parse(rdr["check_in_time"].ToString());
+                                strCheckInTime = checkInTime.ToString("HH:MM:ss");
                             }
                             catch
                             {
-                                strhoraa = "";
+                                strCheckInTime = "";
                             }
                             try
                             {
-                                horab = DateTime.Parse(rdr["check_out_time"].ToString());
-                                strhorab = horab.ToString("HH:MM:ss");
+                                checkOutTime = DateTime.Parse(rdr["check_out_time"].ToString());
+                                strCheckOutTime = checkOutTime.ToString("HH:MM:ss");
                             }
                             catch
                             {
-                                strhorab = "";
+                                strCheckOutTime = "";
                             }
                             
 
@@ -157,20 +157,20 @@ namespace ControlEntradaSalida
                             ies.documento = rdr["employee_id"].ToString();
                             ies.nombres = rdr["first_name"].ToString();
                             ies.apellidos = rdr["last_name"].ToString();
-                            ies.fecha = strfecha;
-                            ies.horaa = strhoraa;
-                            ies.horab = strhorab;
+                            ies.fecha = strDate;
+                            ies.horaa = strCheckInTime;
+                            ies.horab = strCheckOutTime;
                             ies.dispositivo = rdr["dispositivo"].ToString();
-                            listaes.Add(ies);
+                            attendanceList.Add(ies);
                             ies = null;
 
                             ListViewItem lvi = new ListViewItem(rdr["id"].ToString());//id
                             lvi.SubItems.Add(rdr["employee_id"].ToString());//文档号
                             lvi.SubItems.Add(rdr["first_name"].ToString());//名字
                             lvi.SubItems.Add(rdr["last_name"].ToString());//姓氏
-                            lvi.SubItems.Add(strfecha);
-                            lvi.SubItems.Add(strhoraa);
-                            lvi.SubItems.Add(strhorab);
+                            lvi.SubItems.Add(strDate);
+                            lvi.SubItems.Add(strCheckInTime);
+                            lvi.SubItems.Add(strCheckOutTime);
                             lvi.SubItems.Add(rdr["dispositivo"].ToString());
                             listView.Items.Add(lvi);
                             lvi = null;
@@ -198,13 +198,13 @@ namespace ControlEntradaSalida
         //点击“查看报表”按钮的事件处理,调用 CrearTablaInformeES() 生成临时表；调用 ObtenerExpresionQuery() 获取 SQL 查询字符串；清空当前 listView；调用 GenerarConsulta(...) 执行 SQL 并填充界面；创建 Informe 报表窗体并传入数据，展示报表。
         private void buttonVerInforme_Click(object sender, EventArgs e)
         {
-            if (CrearTablaInformeES())
+            if (GenerateAttendanceReport())
             {
-                string result = ObtenerExpresionQuery().Trim();
+                string result = GetQueryExpression().Trim();
                 if (this.listView.Items.Count > 0)
                     this.listView.Items.Clear();
                 List<InformeEntradaSalida> objinf = null;
-                bool res = GenerarConsulta(result, out objinf);
+                bool res = ExecuteQuery(result, out objinf);
                 if (res && objinf != null)
                 {
                     Informe frmInforme = new Informe();
@@ -431,8 +431,13 @@ namespace ControlEntradaSalida
             
             base.OnFormClosed(e);
         }
-        
+
         #endregion
+
+        private void groupBox5_Enter(object sender, EventArgs e)
+        {
+
+        }
     }
 
     public class ComboboxItem

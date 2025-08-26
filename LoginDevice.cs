@@ -20,7 +20,7 @@ namespace ControlEntradaSalida
         public string ip = null;//ip
         public string puerto = null;//端口
         public string usuario = null;//用户名
-        public string contrasena = null;//密码
+        public string password = null;//密码
         public string ultimavez = null;//最后登录时间
         public string predeterminado = null;//是否默认
         public string activo = null;//是否启用
@@ -37,7 +37,7 @@ namespace ControlEntradaSalida
         //窗体加载时，如果已有设备信息（不是新增），则填充表单字段；根据状态字段显示“是否默认设备”和“是否启用”
         private void LoginDevice_Load(object sender, EventArgs e)
         {
-            if (this.id != null && this.nombre != null && this.ip != null && this.puerto != null && this.usuario != null && this.contrasena != null )
+            if (this.id != null && this.nombre != null && this.ip != null && this.puerto != null && this.usuario != null && this.password != null )
             {
                 this.textBoxID.Text = this.id.ToString();
                 this.textBoxNombre.Text = this.nombre.ToString();
@@ -55,7 +55,7 @@ namespace ControlEntradaSalida
                 this.txtDireccionIP.Text = this.ip.ToString();
                 this.txtPuerto.Text = this.puerto.ToString();
                 this.txtUsuario.Text = this.usuario.ToString();
-                this.txtContrasena.Text = this.contrasena.ToString();
+                this.txtContrasena.Text = this.password.ToString();
                 this.textBoxUltimaVez.Text = this.ultimavez.ToString();
 
             } 
@@ -63,7 +63,7 @@ namespace ControlEntradaSalida
         }
 
         //添加新设备到数据库,保存设备的所有字段,添加当前时间为 created 和 lastimeused 字段
-        private bool InsertarDispositivo()
+        private bool AddDevice()
         {
             bool retval = false;
             Common cmn = new Common();
@@ -79,14 +79,14 @@ namespace ControlEntradaSalida
                     "@username, @password, @status, @is_default, @last_used_time, @created_at)";//SQL语句，插入数据库
                 try
                 {
-                    int estado = 0;
-                    int predeterminado = 0;
+                    int status = 0;
+                    int isDefault = 0;
                     if (this.checkBoxEstado.Checked)
-                        estado = 1;
+                        status = 1;
                     if (this.checkBoxPredeterminado.Checked)
                     {
-                        predeterminado = 1;
-                        ActualizarPredeterminado();
+                        isDefault = 1;
+                        UpdateDefaultDevice();
                     }
 
 
@@ -97,8 +97,8 @@ namespace ControlEntradaSalida
                     cmd.Parameters.AddWithValue("@port", this.txtPuerto.Text);//端口
                     cmd.Parameters.AddWithValue("@username", this.txtUsuario.Text);//用户
                     cmd.Parameters.AddWithValue("@password", this.txtContrasena.Text);//密码
-                    cmd.Parameters.AddWithValue("@status", estado);//状态
-                    cmd.Parameters.AddWithValue("@is_default", predeterminado);//是否默认
+                    cmd.Parameters.AddWithValue("@status", status);//状态
+                    cmd.Parameters.AddWithValue("@is_default", isDefault);//是否默认
                     cmd.Parameters.AddWithValue("@created_at", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
                     cmd.Parameters.AddWithValue("@last_used_time", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
                     cmd.ExecuteNonQuery();
@@ -118,7 +118,7 @@ namespace ControlEntradaSalida
             return retval;
         }
         //设置默认设备,将数据库devices表中所有is_default=1的记录设置为0,保证数据库中只有一个默认设备。
-        private bool ActualizarPredeterminado()
+        private bool UpdateDefaultDevice()
         {
             bool retval = false;
             Common cmn = new Common();
@@ -150,7 +150,7 @@ namespace ControlEntradaSalida
             return retval;
         }
         //更新数据库设备记录；包括名称、描述、地址、端口、用户信息、状态、是否默认等；
-        private bool ActualizarDispositivo(string id)
+        private bool UpdateDevice(string deviceId)
         {
             bool retval = false;
             Common cmn = new Common();
@@ -172,14 +172,14 @@ namespace ControlEntradaSalida
                     "WHERE device_id = @device_id";
                 try
                 {
-                    int estado = 0;
-                    int predeterminado = 0;
+                    int status = 0;
+                    int isDefault = 0;
                     if (this.checkBoxEstado.Checked)
-                        estado = 1;
+                        status = 1;
                     if (this.checkBoxPredeterminado.Checked)
                     {
-                        predeterminado = 1;
-                        ActualizarPredeterminado();
+                        isDefault = 1;
+                        UpdateDefaultDevice();
                     }
 
                     MySqlCommand cmd = new MySqlCommand(sql, bd.conn);
@@ -189,8 +189,8 @@ namespace ControlEntradaSalida
                     cmd.Parameters.AddWithValue("@port", this.txtPuerto.Text);//端口
                     cmd.Parameters.AddWithValue("@username", this.txtUsuario.Text);//用户
                     cmd.Parameters.AddWithValue("@password", this.txtContrasena.Text);//密码
-                    cmd.Parameters.AddWithValue("@status", estado);//状态
-                    cmd.Parameters.AddWithValue("@is_default", predeterminado);//是否默认
+                    cmd.Parameters.AddWithValue("@status", status);//状态
+                    cmd.Parameters.AddWithValue("@is_default", isDefault);//是否默认
                     cmd.Parameters.AddWithValue("@updated_at", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
                     cmd.Parameters.AddWithValue("@last_used_time", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));//最后登录时间
                     cmd.Parameters.AddWithValue("@device_id", this.textBoxID.Text);//编号
@@ -247,7 +247,7 @@ namespace ControlEntradaSalida
             {
                 if (login(out userID))
                 {
-                    operationSucceeded = InsertarDispositivo();
+                    operationSucceeded = AddDevice();
                     // 如果登录成功，断开连接（因为设备连接管理器会管理连接）
                     if (userID >= 0)
                     {
@@ -260,7 +260,7 @@ namespace ControlEntradaSalida
 
                     if (res == DialogResult.Yes)
                     {
-                        operationSucceeded = InsertarDispositivo();
+                        operationSucceeded = AddDevice();
                     }
                 }
                 
@@ -277,7 +277,7 @@ namespace ControlEntradaSalida
             else
             {
                 login(out userID);
-                operationSucceeded = ActualizarDispositivo(this.textBoxID.Text);
+                operationSucceeded = UpdateDevice(this.textBoxID.Text);
                 // 如果登录成功，断开连接（因为设备连接管理器会管理连接）
                 if (userID >= 0)
                 {

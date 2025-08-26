@@ -601,20 +601,20 @@ namespace ControlEntradaSalida
             return retval;
         }
         //向 listView 添加新用户并显示
-        private bool AgregarUsuarioListView()
+        private bool AddUserToListView()
         {
             bool retval = false;
             //int lastid = 0;
             //lastid = ConsultarUltimoID();
 
-            string nombrecompleto = this.textBoxNombreCompleto.Text;
-            if (nombrecompleto.Length > 30)
-                nombrecompleto = nombrecompleto.Substring(0, 29);
+            string fullName = this.textBoxNombreCompleto.Text;
+            if (fullName.Length > 30)
+                fullName = fullName.Substring(0, 29);
 
             ListViewItem lvi = new ListViewItem(this.textBoxDocumento.Text);
             lvi.SubItems.Add(this.cmbEstado.Text);
             lvi.SubItems.Add(this.textBoxDocumento.Text);           
-            lvi.SubItems.Add(nombrecompleto); // 显示完整姓名
+            lvi.SubItems.Add(fullName); // 显示完整姓名
             lvi.SubItems.Add(""); // 姓氏字段留空
             lvi.SubItems.Add(this.url_imagen);
             lvi.SubItems.Add(this.cmbCategoria.Text);
@@ -1023,7 +1023,7 @@ namespace ControlEntradaSalida
                     if (resultcrear && resultenviar)
                     {
                         InsertarUsuario();// 插入数据库
-                        AgregarUsuarioListView();//更新 UI界面列表
+                        AddUserToListView();//更新 UI界面列表
                         LimpiarControles(false);
                         url_imagen = null;
                         

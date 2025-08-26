@@ -22,9 +22,9 @@ namespace ControlEntradaSalida
             InitializeComponent();
         }
         //查询指定设备 ID 的密码,从数据库读取
-        private string ConsultarContrasenaDispositivo(string id)
+        private string GetDevicePassword(string deviceId)
         {
-            string contrasena = null;
+            string password = null;
             Common cmn = new Common();
             String connstr = cmn.obtenerCadenaConexion();
             BaseDatosMySQL bd = new BaseDatosMySQL();//连接数据库
@@ -35,14 +35,14 @@ namespace ControlEntradaSalida
                 try
                 {
                     MySqlCommand cmd = new MySqlCommand(sql, bd.conn);
-                    cmd.Parameters.AddWithValue("@device_id", id);
+                    cmd.Parameters.AddWithValue("@device_id", deviceId);
                     MySqlDataReader rdr = cmd.ExecuteReader();
                     if (rdr.HasRows)
                     {
 
                         while (rdr.Read())
                         {
-                            contrasena = rdr["password"].ToString();//查询密码
+                            password = rdr["password"].ToString();//查询密码
                         }
                     }
                     rdr.Close();
@@ -54,10 +54,10 @@ namespace ControlEntradaSalida
                 }
 
             }
-            return contrasena;
+            return password;
         }
         //删除指定设备 ID 的记录,从数据库中删除
-        private bool EliminarDispositivo(string id)
+        private bool DeleteDevice(string deviceId)
         {
             bool retval = false;
             Common cmn = new Common();
@@ -70,7 +70,7 @@ namespace ControlEntradaSalida
                 try
                 {
                     MySqlCommand cmd = new MySqlCommand(sql, bd.conn);
-                    cmd.Parameters.AddWithValue("@device_id", id);                    
+                    cmd.Parameters.AddWithValue("@device_id", deviceId);                    
                     cmd.ExecuteNonQuery();
                     bd.desconectarMySQL();
                     retval = true;
@@ -88,7 +88,7 @@ namespace ControlEntradaSalida
             return retval;            
         }
         //从数据库中查询所有设备，显示列表
-        private void ConsultarDispositivos()
+        private void LoadDevices()
         {
             Common cmn = new Common();
             String connstr = cmn.obtenerCadenaConexion();
@@ -150,7 +150,7 @@ namespace ControlEntradaSalida
         //窗体加载时：加载所有设备信息
         private void GestionDispositivos_Load(object sender, EventArgs e)
         {
-            ConsultarDispositivos();
+            LoadDevices();
             
             // 订阅数据变更事件
             _notifier = DataChangeNotifier.Instance;
@@ -172,7 +172,7 @@ namespace ControlEntradaSalida
                     string ip = this.listView.Items[index].SubItems[3].Text;
                     string puerto = this.listView.Items[index].SubItems[4].Text;
                     string usuario = this.listView.Items[index].SubItems[5].Text;
-                    string contrasena = ConsultarContrasenaDispositivo(this.listView.Items[index].Text);
+                    string password = GetDevicePassword(this.listView.Items[index].Text);
                     string activo = this.listView.Items[index].SubItems[7].Text;
                     string predeterminado = this.listView.Items[index].SubItems[8].Text;
                     string ultimavez = this.listView.Items[index].SubItems[9].Text;
@@ -185,13 +185,13 @@ namespace ControlEntradaSalida
                     frmLoginDevice.ip = ip;
                     frmLoginDevice.puerto = puerto;
                     frmLoginDevice.usuario = usuario;
-                    frmLoginDevice.contrasena = contrasena;
+                    frmLoginDevice.password = password;
                     frmLoginDevice.activo = activo;
                     frmLoginDevice.predeterminado = predeterminado;
                     frmLoginDevice.ultimavez = ultimavez;
                     frmLoginDevice.ShowDialog();
-                    // 设备连接状态已在 ConsultarDispositivos 中正确处理
-                    ConsultarDispositivos();
+                    // 设备连接状态已在 LoadDevices 中正确处理
+                    LoadDevices();
                     
                     // 通知其他界面设备数据已变更
                     _notifier?.NotifyDeviceDataChanged(
@@ -209,8 +209,8 @@ namespace ControlEntradaSalida
             LoginDevice frmLoginDevice = new LoginDevice();// LoginDevice窗口登录设备
             frmLoginDevice.nuevo = true;
             frmLoginDevice.ShowDialog();
-            ConsultarDispositivos();
-            // 新设备连接状态已在 ConsultarDispositivos 中正确处理
+            LoadDevices();
+            // 新设备连接状态已在 LoadDevices 中正确处理
             
             // 通知其他界面有新设备添加
             _notifier?.NotifyDeviceDataChanged(
@@ -232,15 +232,15 @@ namespace ControlEntradaSalida
                 if (res == DialogResult.Yes)
                 {
                     ListView.SelectedIndexCollection indexes = this.listView.SelectedIndices;
-                    string id = this.listView.Items[indexes[0]].Text;
+                    string deviceId = this.listView.Items[indexes[0]].Text;
                     string deviceInfo = $"{this.listView.Items[indexes[0]].SubItems[1].Text} - {this.listView.Items[indexes[0]].SubItems[3].Text}";
-                    if (EliminarDispositivo(id))
+                    if (DeleteDevice(deviceId))
                     {
-                        ConsultarDispositivos();//刷新列表
+                        LoadDevices();//刷新列表
                         
                         // 通知其他界面设备已删除
                         _notifier?.NotifyDeviceDataChanged(
-                            id, 
+                            deviceId, 
                             deviceInfo,
                             DeviceChangeType.Deleted,
                             this.GetType().Name);
@@ -258,7 +258,7 @@ namespace ControlEntradaSalida
         {
             SafeUIUpdater.UpdateUI(this, () => 
             {
-                ConsultarDispositivos();
+                LoadDevices();
             });
         }
         

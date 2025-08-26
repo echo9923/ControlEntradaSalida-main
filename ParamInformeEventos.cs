@@ -32,7 +32,7 @@ namespace ControlEntradaSalida
 
 
         //构造 SQL 查询语句，用于查询 access_logs 表的事件记录,支持多种筛选条件拼接,默认按 employee_id, log_date, log_time 升序排序。
-        private string ObtenerExpresionQuery()
+        private string GetQueryExpression()
         {
             
             string retval = null;
@@ -51,16 +51,16 @@ namespace ControlEntradaSalida
             
             if (this.radioButtonTodasFechas.Checked == false)//日期范围
             {
-                string fechainicial = dateTimePickerFechaInicial.Value.ToString("yyyy-MM-dd");
-                string fechafinal = dateTimePickerFechaFinal.Value.ToString("yyyy-MM-dd");
-                retval += String.Format("AND access_logs.log_date BETWEEN CAST('{0}' AS DATE) AND CAST('{1}' AS DATE) ", fechainicial, fechafinal);
+                string startDate = dateTimePickerFechaInicial.Value.ToString("yyyy-MM-dd");
+                string endDate = dateTimePickerFechaFinal.Value.ToString("yyyy-MM-dd");
+                retval += String.Format("AND access_logs.log_date BETWEEN CAST('{0}' AS DATE) AND CAST('{1}' AS DATE) ", startDate, endDate);
                 
             }
             if (this.radioButtonTodasHoras.Checked == false)//时间范围；
             {
-                string horainicial = dateTimePickerHoraInicial.Value.ToString("HH:MM:ss");
-                string horafinal = dateTimePickerHoraFinal.Value.ToString("HH:MM:ss");
-                retval += String.Format("AND access_logs.log_time BETWEEN CAST('{0}' AS TIME) AND CAST('{1}' AS TIME) ", horainicial, horafinal);
+                string startTime = dateTimePickerHoraInicial.Value.ToString("HH:MM:ss");
+                string endTime = dateTimePickerHoraFinal.Value.ToString("HH:MM:ss");
+                retval += String.Format("AND access_logs.log_time BETWEEN CAST('{0}' AS TIME) AND CAST('{1}' AS TIME) ", startTime, endTime);
             }
             if (this.textBoxNombreEmpleado.Text.Length > 0)//姓名、姓氏（模糊匹配）；
             {
@@ -75,9 +75,9 @@ namespace ControlEntradaSalida
             return retval;
         }
         //执行 SQL 查询；将查询结果填充进一个 List<InformeEventos> 对象；同时在界面的 ListView 控件中显示；如果无数据，弹出提示框
-        private bool GenerarConsulta(string sql, out List<InformeEventos> lieventos)
+        private bool ExecuteQuery(string sql, out List<InformeEventos> eventList)
         {
-            lieventos = new List<InformeEventos>();
+            eventList = new List<InformeEventos>();
             bool retval = false;
             Common cmn = new Common();
             string connstr = cmn.obtenerCadenaConexion();
@@ -95,26 +95,26 @@ namespace ControlEntradaSalida
                         while (rdr.Read())
                         {
 
-                            DateTime fecha = DateTime.Parse(rdr["log_date"].ToString());//日期
-                            DateTime hora = DateTime.Parse(rdr["log_time"].ToString());//时间
+                            DateTime logDate = DateTime.Parse(rdr["log_date"].ToString());//日期
+                            DateTime logTime = DateTime.Parse(rdr["log_time"].ToString());//时间
 
                             InformeEventos ie = new InformeEventos();
                             ie.num = rdr["log_number"].ToString();//编号
                             ie.documento = rdr["employee_id"].ToString();//文档号
                             ie.nombres = rdr["first_name"].ToString();//名字
                             ie.apellidos = rdr["last_name"].ToString();
-                            ie.fecha = fecha.ToString("yyyy-MM-dd");
-                            ie.hora = hora.ToString("HH:MM:ss");
+                            ie.fecha = logDate.ToString("yyyy-MM-dd");
+                            ie.hora = logTime.ToString("HH:MM:ss");
                             ie.dispositivo = rdr["dispositivo"].ToString();
-                            lieventos.Add(ie);
+                            eventList.Add(ie);
                             ie = null;
 
                             ListViewItem lvi = new ListViewItem(rdr["log_number"].ToString());
                             lvi.SubItems.Add(rdr["employee_id"].ToString());
                             lvi.SubItems.Add(rdr["first_name"].ToString());
                             lvi.SubItems.Add(rdr["last_name"].ToString());
-                            lvi.SubItems.Add(rdr["hora"].ToString());
-                            lvi.SubItems.Add(rdr["fecha"].ToString());
+                            lvi.SubItems.Add(rdr["log_time"].ToString());  // 修改：hora -> log_time
+                            lvi.SubItems.Add(rdr["log_date"].ToString());  // 修改：fecha -> log_date
                             lvi.SubItems.Add(rdr["dispositivo"].ToString());
                             listView.Items.Add(lvi);
                             lvi = null;
@@ -139,14 +139,14 @@ namespace ControlEntradaSalida
             }
             return retval;
         }
-        //“查看报表”按钮事件处理函数；调用 ObtenerExpresionQuery() 获取 SQL查询语句,调用 GenerarConsulta() 执行查询；
+        //“查看报表”按钮事件处理函数；调用 GetQueryExpression() 获取 SQL查询语句,调用 ExecuteQuery() 执行查询；
         private void buttonVerInforme_Click(object sender, EventArgs e)
         {
-            string result = ObtenerExpresionQuery().Trim();
+            string result = GetQueryExpression().Trim();
             if (this.listView.Items.Count > 0)
                 this.listView.Items.Clear();
             List<InformeEventos> objinf = null;
-            bool res = GenerarConsulta(result, out objinf);
+            bool res = ExecuteQuery(result, out objinf);
             if (res && objinf != null)
             {
                 Informe frmInforme = new Informe();//创建 Informe 报表窗体并设置

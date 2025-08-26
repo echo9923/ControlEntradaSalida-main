@@ -33,8 +33,8 @@ namespace ControlEntradaSalida
             InitializeComponent();
         }
 
-        //插入一条出入事件到数据库 entradas_salidas 表,参数：事件编号、日期、时间、人员编号（卡号）、事件类型
-                private bool InsertarEntradaSalida(string num, string fecha, string hora, string documento, string evento, int dispositivo_id)
+        //插入一条出入事件到数据库 access_logs 表,参数：事件编号、日期、时间、人员编号（卡号）、事件类型
+                private bool InsertAccessLog(string logNumber, string logDate, string logTime, string employeeId, string eventType, int deviceId)
         {
             bool retval = false;
             Common cmn = new Common();
@@ -50,12 +50,12 @@ namespace ControlEntradaSalida
                 {
 
                     MySqlCommand cmd = new MySqlCommand(sql, bd.conn);
-                    cmd.Parameters.AddWithValue("@log_number", num);//事件编号
-                    cmd.Parameters.AddWithValue("@log_date", fecha);//日期
-                    cmd.Parameters.AddWithValue("@log_time", hora);//时间
-                    cmd.Parameters.AddWithValue("@employee_id", documento);//人员编号（卡号）
-                    cmd.Parameters.AddWithValue("@device_id", dispositivo_id);
-                    cmd.Parameters.AddWithValue("@event_type", evento);//事件类型                
+                    cmd.Parameters.AddWithValue("@log_number", logNumber);//事件编号
+                    cmd.Parameters.AddWithValue("@log_date", logDate);//日期
+                    cmd.Parameters.AddWithValue("@log_time", logTime);//时间
+                    cmd.Parameters.AddWithValue("@employee_id", employeeId);//人员编号（卡号）
+                    cmd.Parameters.AddWithValue("@device_id", deviceId);
+                    cmd.Parameters.AddWithValue("@event_type", eventType);//事件类型                
                     cmd.Parameters.AddWithValue("@created_at", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));//时间
                     cmd.ExecuteNonQuery();
                     bd.desconectarMySQL();
@@ -196,7 +196,7 @@ namespace ControlEntradaSalida
             string tipoevento = string.Format("{0}", szInfo);
             string fecha = string.Format("{0,4}-{1:D2}-{2}", struAcsAlarmInfo.struTime.dwYear, struAcsAlarmInfo.struTime.dwMonth, struAcsAlarmInfo.struTime.dwDay);
             string hora = string.Format("{0:D2}:{1:D2}:{2:D2}", struAcsAlarmInfo.struTime.dwHour, struAcsAlarmInfo.struTime.dwMinute, struAcsAlarmInfo.struTime.dwSecond);
-            string numerotarjeta = null;
+            string cardNumber = null;
 
             szInfoBuf = string.Format("{0} time:{1,4}-{2:D2}-{3} {4:D2}:{5:D2}:{6:D2}, [{7}]({8})", szInfo, struAcsAlarmInfo.struTime.dwYear, struAcsAlarmInfo.struTime.dwMonth,
                 struAcsAlarmInfo.struTime.dwDay, struAcsAlarmInfo.struTime.dwHour, struAcsAlarmInfo.struTime.dwMinute, struAcsAlarmInfo.struTime.dwSecond,
@@ -206,7 +206,7 @@ namespace ControlEntradaSalida
             {
                 this.cardnumber = System.Text.Encoding.UTF8.GetString(struAcsAlarmInfo.struAcsEventInfo.byCardNo).TrimEnd('\0');
                 szInfoBuf = szInfoBuf + "+卡号:" + cardnumber;
-                numerotarjeta = cardnumber;
+                cardNumber = cardnumber;
                 
             }
             String[] szCardType = { "普通卡", "禁用卡", "黑名单卡", "夜班卡", "压力卡", "超级卡", "访客卡" };
@@ -307,9 +307,9 @@ namespace ControlEntradaSalida
             {
                 if (tipoevento == "MINOR_FACE_VERIFY_PASS")
                 {
-                    string nombreempleado = null;
-                    if (numerotarjeta != null)
-                        nombreempleado = ObtenerNombreEmpleado(numerotarjeta);
+                    string employeeName = null;
+                    if (cardNumber != null)
+                        employeeName = GetEmployeeName(cardNumber);
                     ListViewItem Item = new ListViewItem();
                     m_lLogNum += 1;
                     Item.Text = m_lLogNum.ToString();
@@ -318,21 +318,21 @@ namespace ControlEntradaSalida
                     Item.SubItems.Add(fecha);
                     Item.SubItems.Add(hora);
                     Item.SubItems.Add(tipoevento);
-                    Item.SubItems.Add(numerotarjeta);
-                    Item.SubItems.Add(nombreempleado);
+                    Item.SubItems.Add(cardNumber);
+                    Item.SubItems.Add(employeeName);
                     this.listViewEventos.Items.Add(Item);
 
                     var device = DeviceConnectionManager.Instance.GetAllDevices().FirstOrDefault(d => d.UserID == userId);
                     if (device != null)
                     {
-                        InsertarEntradaSalida(m_lLogNum.ToString(), fecha, hora, numerotarjeta, tipoevento, device.Id);
+                        InsertAccessLog(m_lLogNum.ToString(), fecha, hora, cardNumber, tipoevento, device.Id);
                     }
                 }
                 
             })); 
         }
-        //根据卡号（文档号）从 empleados 表中查找员工姓名；用于显示在事件列表中。
-        private string ObtenerNombreEmpleado(string documento)
+        //根据卡号（文档号）从 employees 表中查找员工姓名；用于显示在事件列表中。
+        private string GetEmployeeName(string employeeId)
         {
             string retval = null;
 
@@ -348,7 +348,7 @@ namespace ControlEntradaSalida
                 try
                 {
                     MySqlCommand cmd = new MySqlCommand(sql, bd.conn);
-                    cmd.Parameters.AddWithValue("@employee_id", documento);                    
+                    cmd.Parameters.AddWithValue("@employee_id", employeeId);                    
                     MySqlDataReader rdr = cmd.ExecuteReader();
                     if (rdr.HasRows)
                     {
