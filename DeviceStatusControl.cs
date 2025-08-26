@@ -16,6 +16,8 @@ namespace ControlEntradaSalida
         private Timer _refreshTimer;
         private bool _isDoorOpen = false;
         private bool _isDoorLocked = true;
+        private DeviceStatusManager _statusManager;
+        private DeviceStatusInfo _lastStatus;
 
         public DeviceConnectionInfo Device
         {
@@ -30,6 +32,7 @@ namespace ControlEntradaSalida
         public DeviceStatusControl()
         {
             InitializeComponent();
+            _statusManager = DeviceStatusManager.Instance;
             InitializeTimer();
             SetupEventHandlers();
         }
@@ -238,30 +241,45 @@ namespace ControlEntradaSalida
 
             try
             {
-                // 获取门状态（这里需要根据实际SDK调用调整）
-                // 这是一个示例实现，您可能需要根据实际的海康威视SDK进行调整
-                var status = GetDoorStatusFromDevice(_device.UserID);
-                _isDoorOpen = status.IsOpen;
-                _isDoorLocked = status.IsLocked;
+                // 使用真实的SDK调用获取设备状态
+                _lastStatus = _statusManager.GetRealDeviceStatus(_device);
                 
+                // 根据SDK返回的状态更新本地变量
+                UpdateLocalStatusFromSDK(_lastStatus);
+                
+                // 线程安全更新UI
                 this.Invoke((MethodInvoker)delegate {
                     UpdateDoorStatusDisplay();
+                    UpdateDeviceHealthIndicator(_lastStatus);
                 });
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"检查门状态时出错: {ex.Message}");
+                this.Invoke((MethodInvoker)delegate {
+                    ShowOfflineStatus("状态检查失败");
+                });
             }
         }
 
-        private (bool IsOpen, bool IsLocked) GetDoorStatusFromDevice(int userId)
+        /// <summary>
+        /// 根据SDK返回的状态更新本地状态变量
+        /// </summary>
+        /// <param name="statusInfo">SDK返回的设备状态信息</param>
+        private void UpdateLocalStatusFromSDK(DeviceStatusInfo statusInfo)
         {
-            // 这里应该调用海康威视SDK获取实际门状态
-            // 由于SDK限制，这里返回模拟状态
-            // 实际实现应该调用类似 HCNetSDK.NET_DVR_GetDVRConfig 的方法
+            if (statusInfo == null || !statusInfo.IsOnline)
+            {
+                _isDoorOpen = false;
+                _isDoorLocked = true;
+                return;
+            }
+
+            // 根据海康威视SDK状态判断门的开启状态
+            _isDoorOpen = statusInfo.DoorStatus == DoorStatus.AlwaysOpen;
             
-            // 模拟实现 - 返回随机状态用于测试
-            return (false, true);
+            // 根据门锁状态判断锁定状态：常开状态表示门锁打开（未锁定）
+            _isDoorLocked = statusInfo.DoorLockStatus != DoorLockStatus.NormalOpen;
         }
 
         public void UpdateDisplay()
@@ -397,6 +415,74 @@ namespace ControlEntradaSalida
                 }
             }
             return bitmap;
+        }
+
+        /// <summary>
+        /// 更新设备健康指示器
+        /// </summary>
+        /// <param name="statusInfo">设备状态信息</param>
+        private void UpdateDeviceHealthIndicator(DeviceStatusInfo statusInfo)
+        {
+            if (statusInfo == null || !statusInfo.IsOnline)
+            {
+                ShowOfflineStatus("设备离线");
+                return;
+            }
+
+            // 根据综合状态更新显示
+            switch (statusInfo.OverallStatus)
+            {
+                case DeviceOverallStatus.Online:
+                    UpdateHealthStatus(Color.Green, "正常", statusInfo.StatusMessage);
+                    break;
+                case DeviceOverallStatus.OnlineWithWarning:
+                    UpdateHealthStatus(Color.Orange, "警告", statusInfo.StatusMessage);
+                    break;
+                case DeviceOverallStatus.OnlineWithError:
+                    UpdateHealthStatus(Color.Red, "错误", statusInfo.StatusMessage);
+                    break;
+                case DeviceOverallStatus.Offline:
+                default:
+                    ShowOfflineStatus(statusInfo.StatusMessage);
+                    break;
+            }
+        }
+
+        /// <summary>
+        /// 更新健康状态显示
+        /// </summary>
+        private void UpdateHealthStatus(Color color, string status, string tooltip)
+        {
+            pbStatusIcon.BackColor = color;
+            pbStatusIcon.Image = CreateStatusIcon(color, true);
+            lblStatus.Text = $"在线 ({status})"; 
+            lblStatus.ForeColor = color;
+            
+            // 设置工具提示
+            if (!string.IsNullOrEmpty(tooltip))
+            {
+                var toolTip = new ToolTip();
+                toolTip.SetToolTip(pnlMain, tooltip);
+            }
+        }
+
+        /// <summary>
+        /// 显示离线状态
+        /// </summary>
+        /// <param name="message">离线消息</param>
+        private void ShowOfflineStatus(string message)
+        {
+            pbStatusIcon.BackColor = Color.Gray;
+            pbStatusIcon.Image = CreateStatusIcon(Color.Gray, false);
+            lblStatus.Text = "离线";
+            lblStatus.ForeColor = Color.Gray;
+            
+            pbDoorIcon.BackColor = Color.Gray;
+            pbDoorIcon.Image = CreateDoorIcon(Color.Gray, "offline");
+            lblDoorStatus.Text = message;
+            lblDoorStatus.ForeColor = Color.Gray;
+            
+            pnlMain.BackColor = Color.LightGray;
         }
 
         protected override void Dispose(bool disposing)
