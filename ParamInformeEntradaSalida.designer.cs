@@ -87,7 +87,7 @@ namespace ControlEntradaSalida
             this.groupBox1.Size = new System.Drawing.Size(793, 275);
             this.groupBox1.TabIndex = 0;
             this.groupBox1.TabStop = false;
-            this.groupBox1.Text = "报告参数";
+            this.groupBox1.Text = "筛选条件";
             // 
             // groupBox5
             // 
@@ -114,7 +114,7 @@ namespace ControlEntradaSalida
             this.label5.Name = "label5";
             this.label5.Size = new System.Drawing.Size(67, 15);
             this.label5.TabIndex = 15;
-            this.label5.Text = "结束时刻";
+            this.label5.Text = "结束时间";
             // 
             // dateTimePickerHoraFinal
             // 
@@ -134,7 +134,7 @@ namespace ControlEntradaSalida
             this.label6.Name = "label6";
             this.label6.Size = new System.Drawing.Size(67, 15);
             this.label6.TabIndex = 13;
-            this.label6.Text = "起始时刻";
+            this.label6.Text = "开始时间";
             // 
             // dateTimePickerHoraInicial
             // 
@@ -153,10 +153,10 @@ namespace ControlEntradaSalida
             this.radioButtonTodasHoras.Location = new System.Drawing.Point(8, 22);
             this.radioButtonTodasHoras.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
             this.radioButtonTodasHoras.Name = "radioButtonTodasHoras";
-            this.radioButtonTodasHoras.Size = new System.Drawing.Size(88, 19);
+            this.radioButtonTodasHoras.Size = new System.Drawing.Size(58, 19);
             this.radioButtonTodasHoras.TabIndex = 5;
             this.radioButtonTodasHoras.TabStop = true;
-            this.radioButtonTodasHoras.Text = "所有时刻";
+            this.radioButtonTodasHoras.Text = "全天";
             this.radioButtonTodasHoras.UseVisualStyleBackColor = true;
             this.radioButtonTodasHoras.CheckedChanged += new System.EventHandler(this.radioButtonTodasHoras_CheckedChanged);
             // 
@@ -166,9 +166,9 @@ namespace ControlEntradaSalida
             this.radioButtonRangoHoras.Location = new System.Drawing.Point(219, 22);
             this.radioButtonRangoHoras.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
             this.radioButtonRangoHoras.Name = "radioButtonRangoHoras";
-            this.radioButtonRangoHoras.Size = new System.Drawing.Size(88, 19);
+            this.radioButtonRangoHoras.Size = new System.Drawing.Size(103, 19);
             this.radioButtonRangoHoras.TabIndex = 6;
-            this.radioButtonRangoHoras.Text = "时刻范围";
+            this.radioButtonRangoHoras.Text = "指定时间段";
             this.radioButtonRangoHoras.UseVisualStyleBackColor = true;
             this.radioButtonRangoHoras.CheckedChanged += new System.EventHandler(this.radioButtonRangoHoras_CheckedChanged);
             // 
@@ -215,7 +215,7 @@ namespace ControlEntradaSalida
             this.label2.Name = "label2";
             this.label2.Size = new System.Drawing.Size(67, 15);
             this.label2.TabIndex = 13;
-            this.label2.Text = "起始日期";
+            this.label2.Text = "开始日期";
             // 
             // dateTimePickerFechaInicial
             // 
@@ -236,7 +236,7 @@ namespace ControlEntradaSalida
             this.radioButtonTodasFechas.Size = new System.Drawing.Size(88, 19);
             this.radioButtonTodasFechas.TabIndex = 5;
             this.radioButtonTodasFechas.TabStop = true;
-            this.radioButtonTodasFechas.Text = "所有日期";
+            this.radioButtonTodasFechas.Text = "全部日期";
             this.radioButtonTodasFechas.UseVisualStyleBackColor = true;
             this.radioButtonTodasFechas.Click += new System.EventHandler(this.radioButtonTodasFechas_Click);
             // 
@@ -246,9 +246,9 @@ namespace ControlEntradaSalida
             this.radioButtonRangoFechas.Location = new System.Drawing.Point(219, 22);
             this.radioButtonRangoFechas.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
             this.radioButtonRangoFechas.Name = "radioButtonRangoFechas";
-            this.radioButtonRangoFechas.Size = new System.Drawing.Size(88, 19);
+            this.radioButtonRangoFechas.Size = new System.Drawing.Size(118, 19);
             this.radioButtonRangoFechas.TabIndex = 6;
-            this.radioButtonRangoFechas.Text = "日期范围";
+            this.radioButtonRangoFechas.Text = "指定日期区间";
             this.radioButtonRangoFechas.UseVisualStyleBackColor = true;
             this.radioButtonRangoFechas.Click += new System.EventHandler(this.radioButtonRangoFechas_Click);
             // 
@@ -281,9 +281,9 @@ namespace ControlEntradaSalida
             this.label7.Location = new System.Drawing.Point(193, 9);
             this.label7.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.label7.Name = "label7";
-            this.label7.Size = new System.Drawing.Size(67, 15);
+            this.label7.Size = new System.Drawing.Size(52, 15);
             this.label7.TabIndex = 20;
-            this.label7.Text = "员工姓氏";
+            this.label7.Text = "部门：";
             // 
             // textBoxNombreEmpleado
             // 
@@ -292,6 +292,7 @@ namespace ControlEntradaSalida
             this.textBoxNombreEmpleado.Name = "textBoxNombreEmpleado";
             this.textBoxNombreEmpleado.Size = new System.Drawing.Size(176, 25);
             this.textBoxNombreEmpleado.TabIndex = 19;
+            this.textBoxNombreEmpleado.KeyPress += new System.Windows.Forms.KeyPressEventHandler(this.textBoxNombreEmpleado_KeyPress);
             // 
             // label4
             // 
@@ -299,9 +300,9 @@ namespace ControlEntradaSalida
             this.label4.Location = new System.Drawing.Point(8, 10);
             this.label4.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.label4.Name = "label4";
-            this.label4.Size = new System.Drawing.Size(67, 15);
+            this.label4.Size = new System.Drawing.Size(52, 15);
             this.label4.TabIndex = 11;
-            this.label4.Text = "员工名字";
+            this.label4.Text = "姓名：";
             // 
             // groupBox2
             // 
@@ -322,9 +323,9 @@ namespace ControlEntradaSalida
             this.label1.Location = new System.Drawing.Point(4, 10);
             this.label1.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.label1.Name = "label1";
-            this.label1.Size = new System.Drawing.Size(67, 15);
+            this.label1.Size = new System.Drawing.Size(82, 15);
             this.label1.TabIndex = 5;
-            this.label1.Text = "员工文件";
+            this.label1.Text = "员工工号：";
             // 
             // textBoxDocumentoEmpleado
             // 
@@ -334,6 +335,7 @@ namespace ControlEntradaSalida
             this.textBoxDocumentoEmpleado.Size = new System.Drawing.Size(165, 25);
             this.textBoxDocumentoEmpleado.TabIndex = 1;
             this.textBoxDocumentoEmpleado.Click += new System.EventHandler(this.textBoxDocumentoEmpleado_Click);
+            this.textBoxDocumentoEmpleado.KeyPress += new System.Windows.Forms.KeyPressEventHandler(this.textBoxDocumentoEmpleado_KeyPress);
             // 
             // radioButtonTodosEmpleados
             // 
@@ -344,7 +346,7 @@ namespace ControlEntradaSalida
             this.radioButtonTodosEmpleados.Size = new System.Drawing.Size(88, 19);
             this.radioButtonTodosEmpleados.TabIndex = 2;
             this.radioButtonTodosEmpleados.TabStop = true;
-            this.radioButtonTodosEmpleados.Text = "所有员工";
+            this.radioButtonTodosEmpleados.Text = "全部员工";
             this.radioButtonTodosEmpleados.UseVisualStyleBackColor = true;
             this.radioButtonTodosEmpleados.CheckedChanged += new System.EventHandler(this.radioButtonTodosEmpleados_CheckedChanged);
             // 
@@ -357,18 +359,18 @@ namespace ControlEntradaSalida
             this.buttonVerInforme.Name = "buttonVerInforme";
             this.buttonVerInforme.Size = new System.Drawing.Size(143, 27);
             this.buttonVerInforme.TabIndex = 13;
-            this.buttonVerInforme.Text = "查询报告";
+            this.buttonVerInforme.Text = "查询";
             this.buttonVerInforme.UseVisualStyleBackColor = true;
             this.buttonVerInforme.Click += new System.EventHandler(this.buttonVerInforme_Click);
             // 
             // labelDispositivo
             // 
             this.labelDispositivo.AutoSize = true;
-            this.labelDispositivo.Location = new System.Drawing.Point(36, 244);
+            this.labelDispositivo.Location = new System.Drawing.Point(13, 244);
             this.labelDispositivo.Name = "labelDispositivo";
-            this.labelDispositivo.Size = new System.Drawing.Size(45, 15);
+            this.labelDispositivo.Size = new System.Drawing.Size(105, 15);
             this.labelDispositivo.TabIndex = 17;
-            this.labelDispositivo.Text = "设备:";
+            this.labelDispositivo.Text = "设备/门禁机：";
             this.labelDispositivo.Click += new System.EventHandler(this.labelDispositivo_Click);
             // 
             // cmbDispositivos
@@ -404,17 +406,17 @@ namespace ControlEntradaSalida
             // 
             // documento
             // 
-            this.documento.Text = "文档";
+            this.documento.Text = "工号";
             this.documento.Width = 70;
             // 
             // nombres
             // 
-            this.nombres.Text = "名字";
+            this.nombres.Text = "姓名";
             this.nombres.Width = 92;
             // 
             // apellidos
             // 
-            this.apellidos.Text = "姓氏";
+            this.apellidos.Text = "部门";
             this.apellidos.Width = 87;
             // 
             // fecha
@@ -423,11 +425,11 @@ namespace ControlEntradaSalida
             // 
             // horaa
             // 
-            this.horaa.Text = "时刻 1";
+            this.horaa.Text = "首次刷脸";
             // 
             // horab
             // 
-            this.horab.Text = "时刻 2";
+            this.horab.Text = "末次刷脸";
             // 
             // ParamInformeEntradaSalida
             // 
@@ -442,7 +444,7 @@ namespace ControlEntradaSalida
             this.MinimizeBox = false;
             this.Name = "ParamInformeEntradaSalida";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
-            this.Text = "进出日志";
+            this.Text = "员工出入记录报表";
             this.Load += new System.EventHandler(this.ParamInformeConsumos_Load);
             this.groupBox1.ResumeLayout(false);
             this.groupBox1.PerformLayout();

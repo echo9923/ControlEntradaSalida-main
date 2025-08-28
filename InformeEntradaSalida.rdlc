@@ -43,7 +43,7 @@
                         <Paragraph>
                           <TextRuns>
                             <TextRun>
-                              <Value>Num</Value>
+                              <Value>序号</Value>
                               <Style>
                                 <FontWeight>Bold</FontWeight>
                               </Style>
@@ -75,7 +75,7 @@
                         <Paragraph>
                           <TextRuns>
                             <TextRun>
-                              <Value>Documento</Value>
+                              <Value>工号</Value>
                               <Style>
                                 <FontWeight>Bold</FontWeight>
                               </Style>
@@ -107,7 +107,7 @@
                         <Paragraph>
                           <TextRuns>
                             <TextRun>
-                              <Value>Nombres</Value>
+                              <Value>姓名</Value>
                               <Style>
                                 <FontWeight>Bold</FontWeight>
                               </Style>
@@ -139,7 +139,7 @@
                         <Paragraph>
                           <TextRuns>
                             <TextRun>
-                              <Value>Apellidos</Value>
+                              <Value>部门</Value>
                               <Style>
                                 <FontWeight>Bold</FontWeight>
                               </Style>
@@ -171,7 +171,7 @@
                         <Paragraph>
                           <TextRuns>
                             <TextRun>
-                              <Value>Fecha</Value>
+                              <Value>日期</Value>
                               <Style>
                                 <FontWeight>Bold</FontWeight>
                               </Style>
@@ -203,7 +203,7 @@
                         <Paragraph>
                           <TextRuns>
                             <TextRun>
-                              <Value>Hora 1</Value>
+                              <Value>首次刷脸</Value>
                               <Style>
                                 <FontWeight>Bold</FontWeight>
                               </Style>
@@ -235,7 +235,7 @@
                         <Paragraph>
                           <TextRuns>
                             <TextRun>
-                              <Value>Hora 2</Value>
+                              <Value>末次刷脸</Value>
                               <Style>
                                 <FontWeight>Bold</FontWeight>
                               </Style>
@@ -590,7 +590,7 @@
             <Paragraph>
               <TextRuns>
                 <TextRun>
-                  <Value>INFORME DE ENTRADAS Y SALIDAS</Value>
+                  <Value>员工出入记录报表</Value>
                   <Style>
                     <FontWeight>Bold</FontWeight>
                   </Style>
