@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -108,7 +108,7 @@ namespace ControlEntradaSalida
                         {
                             ListViewItem lvi = new ListViewItem(rdr["device_id"].ToString());//设备id
                             lvi.SubItems.Add(rdr["device_name"].ToString());//设备名称
-                            lvi.SubItems.Add(rdr["description"].ToString());//设备描述
+                            lvi.SubItems.Add(rdr["description"].ToString());//设备类别
                             lvi.SubItems.Add(rdr["ip_address"].ToString());//设备ip
                             lvi.SubItems.Add(rdr["port"].ToString());//设备端口
                             lvi.SubItems.Add(rdr["username"].ToString());//设备用户
@@ -168,7 +168,7 @@ namespace ControlEntradaSalida
                     
                     string id = this.listView.Items[index].Text;
                     string nombre = this.listView.Items[index].SubItems[1].Text;
-                    string descripcion = this.listView.Items[index].SubItems[2].Text;
+                    string categoria = this.listView.Items[index].SubItems[2].Text;
                     string ip = this.listView.Items[index].SubItems[3].Text;
                     string puerto = this.listView.Items[index].SubItems[4].Text;
                     string usuario = this.listView.Items[index].SubItems[5].Text;
@@ -181,7 +181,7 @@ namespace ControlEntradaSalida
                     frmLoginDevice.nuevo = false;
                     frmLoginDevice.id = id;
                     frmLoginDevice.nombre = nombre;
-                    frmLoginDevice.descripcion = descripcion;
+                    frmLoginDevice.descripcion = categoria;
                     frmLoginDevice.ip = ip;
                     frmLoginDevice.puerto = puerto;
                     frmLoginDevice.usuario = usuario;

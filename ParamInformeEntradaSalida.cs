@@ -13,7 +13,6 @@ namespace ControlEntradaSalida
 {   //生成员工出入记录报表的窗体类。其核心功能是根据筛选条件查询entradas_salidas数据，生成报表数据展示，并调用报表窗体进行图形化展示
     public partial class ParamInformeEntradaSalida : Form, IRefreshableForm
     {
-        private string comboboxplanid = null;
         private DataChangeNotifier _notifier;
         
         public bool IsFormVisible => this.Visible;

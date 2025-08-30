@@ -1,4 +1,4 @@
-﻿
+
 namespace ControlEntradaSalida
 {
     partial class LoginDevice
@@ -38,7 +38,7 @@ namespace ControlEntradaSalida
             this.label7 = new System.Windows.Forms.Label();
             this.textBoxNombre = new System.Windows.Forms.TextBox();
             this.label6 = new System.Windows.Forms.Label();
-            this.textBoxDescripcion = new System.Windows.Forms.TextBox();
+            this.comboBoxCategoria = new System.Windows.Forms.ComboBox();
             this.label5 = new System.Windows.Forms.Label();
             this.buttonCancelar = new System.Windows.Forms.Button();
             this.buttonLogin = new System.Windows.Forms.Button();
@@ -63,7 +63,7 @@ namespace ControlEntradaSalida
             this.groupBox1.Controls.Add(this.label7);
             this.groupBox1.Controls.Add(this.textBoxNombre);
             this.groupBox1.Controls.Add(this.label6);
-            this.groupBox1.Controls.Add(this.textBoxDescripcion);
+            this.groupBox1.Controls.Add(this.comboBoxCategoria);
             this.groupBox1.Controls.Add(this.label5);
             this.groupBox1.Controls.Add(this.buttonCancelar);
             this.groupBox1.Controls.Add(this.buttonLogin);
@@ -160,14 +160,19 @@ namespace ControlEntradaSalida
             this.label6.TabIndex = 12;
             this.label6.Text = "名称*";
             // 
-            // textBoxDescripcion
+            // comboBoxCategoria
             // 
-            this.textBoxDescripcion.Location = new System.Drawing.Point(77, 79);
-            this.textBoxDescripcion.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
-            this.textBoxDescripcion.Name = "textBoxDescripcion";
-            this.textBoxDescripcion.Size = new System.Drawing.Size(181, 21);
-            this.textBoxDescripcion.TabIndex = 2;
-            this.textBoxDescripcion.Text = "门禁控制器";
+            this.comboBoxCategoria.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.comboBoxCategoria.FormattingEnabled = true;
+            this.comboBoxCategoria.Items.AddRange(new object[] {
+            "类别1",
+            "类别2",
+            "类别3"});
+            this.comboBoxCategoria.Location = new System.Drawing.Point(77, 79);
+            this.comboBoxCategoria.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.comboBoxCategoria.Name = "comboBoxCategoria";
+            this.comboBoxCategoria.Size = new System.Drawing.Size(181, 20);
+            this.comboBoxCategoria.TabIndex = 2;
             // 
             // label5
             // 
@@ -176,7 +181,7 @@ namespace ControlEntradaSalida
             this.label5.Name = "label5";
             this.label5.Size = new System.Drawing.Size(29, 12);
             this.label5.TabIndex = 10;
-            this.label5.Text = "描述";
+            this.label5.Text = "类别";
             // 
             // buttonCancelar
             // 
@@ -312,7 +317,7 @@ namespace ControlEntradaSalida
         private System.Windows.Forms.Label label1;
         private System.Windows.Forms.TextBox textBoxNombre;
         private System.Windows.Forms.Label label6;
-        private System.Windows.Forms.TextBox textBoxDescripcion;
+        private System.Windows.Forms.ComboBox comboBoxCategoria;
         private System.Windows.Forms.Label label5;
         private System.Windows.Forms.TextBox textBoxID;
         private System.Windows.Forms.Label label7;

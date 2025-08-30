@@ -99,23 +99,6 @@ namespace ControlEntradaSalida
 
         #endregion
 
-        private System.Windows.Forms.ListView listView;
-        private System.Windows.Forms.ColumnHeader id;
-        private System.Windows.Forms.ColumnHeader Nombre;
-        private System.Windows.Forms.ColumnHeader descripcion;
-        private System.Windows.Forms.ColumnHeader direccionip;
-        private System.Windows.Forms.ColumnHeader usuario;
-        private System.Windows.Forms.ColumnHeader conectado;
-        private System.Windows.Forms.ColumnHeader puerto;
-        private System.Windows.Forms.Button buttonNuevo;
-        private System.Windows.Forms.Button buttonEliminar;
-        private System.Windows.Forms.ColumnHeader activo;
-        private System.Windows.Forms.ColumnHeader predeterminado;
-        private System.Windows.Forms.ColumnHeader ultimavez;
-        private System.Windows.Forms.Button btnOpen;
-        private System.Windows.Forms.Button btnClose;
-        private System.Windows.Forms.Button btnStayOpen;
-        private System.Windows.Forms.Button btnStayClose;
         private System.Windows.Forms.Button btnWeekPlan;
         private System.Windows.Forms.Button btnHolidayPlan;
         private System.Windows.Forms.Button btnHolidayGroup;

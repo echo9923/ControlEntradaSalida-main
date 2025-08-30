@@ -23,7 +23,6 @@ namespace ControlEntradaSalida
     public partial class GestionUsuariosDispositivo : Form
     {
         private uint iLastErr = 0;
-        private string strErr;
         
         //初始化窗体
         public GestionUsuariosDispositivo()

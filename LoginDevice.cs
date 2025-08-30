@@ -1,4 +1,4 @@
-﻿using MySql.Data.MySqlClient;
+using MySql.Data.MySqlClient;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -42,9 +42,19 @@ namespace ControlEntradaSalida
                 this.textBoxID.Text = this.id.ToString();
                 this.textBoxNombre.Text = this.nombre.ToString();
                 if (this.descripcion != null)
-                    this.textBoxDescripcion.Text = this.descripcion.ToString().ToUpper();
+                {
+                    string categoria = this.descripcion.ToString().ToUpper();
+                    // 尝试在下拉框中选择对应的类别
+                    int index = this.comboBoxCategoria.FindStringExact(categoria);
+                    if (index >= 0)
+                        this.comboBoxCategoria.SelectedIndex = index;
+                    else
+                        this.comboBoxCategoria.SelectedIndex = 0; // 默认选择第一个
+                }
                 else
-                    this.textBoxDescripcion.Text = "";
+                {
+                    this.comboBoxCategoria.SelectedIndex = 0; // 默认选择第一个
+                }
                 if (this.activo.ToString() == "1")
                     this.checkBoxEstado.Checked = true;
                 if (this.predeterminado.ToString() == "1")
@@ -92,7 +102,7 @@ namespace ControlEntradaSalida
 
                     MySqlCommand cmd = new MySqlCommand(sql, bd.conn);
                     cmd.Parameters.AddWithValue("@device_name", this.textBoxNombre.Text);//名称
-                    cmd.Parameters.AddWithValue("@description", this.textBoxDescripcion.Text);//描述
+                    cmd.Parameters.AddWithValue("@description", this.comboBoxCategoria.Text);//类别
                     cmd.Parameters.AddWithValue("@ip_address", this.txtDireccionIP.Text);//IP
                     cmd.Parameters.AddWithValue("@port", this.txtPuerto.Text);//端口
                     cmd.Parameters.AddWithValue("@username", this.txtUsuario.Text);//用户
@@ -184,7 +194,7 @@ namespace ControlEntradaSalida
 
                     MySqlCommand cmd = new MySqlCommand(sql, bd.conn);
                     cmd.Parameters.AddWithValue("@device_name", this.textBoxNombre.Text);//名称
-                    cmd.Parameters.AddWithValue("@description", this.textBoxDescripcion.Text);//描述
+                    cmd.Parameters.AddWithValue("@description", this.comboBoxCategoria.Text);//类别
                     cmd.Parameters.AddWithValue("@ip_address", this.txtDireccionIP.Text);//IP
                     cmd.Parameters.AddWithValue("@port", this.txtPuerto.Text);//端口
                     cmd.Parameters.AddWithValue("@username", this.txtUsuario.Text);//用户

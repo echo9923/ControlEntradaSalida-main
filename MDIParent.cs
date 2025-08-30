@@ -9,6 +9,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Runtime.InteropServices;
+using MySql.Data.MySqlClient;
 
 namespace ControlEntradaSalida
 {
@@ -45,7 +46,8 @@ namespace ControlEntradaSalida
     public partial class MDIParent : Form, IRefreshableForm
     {
         // 设备状态面板
-        private BufferedFlowLayoutPanel deviceStatusPanel;
+        private Panel mainDevicePanel;
+        private Dictionary<string, BufferedFlowLayoutPanel> categoryPanels;
         private Dictionary<int, Panel> deviceStatusCards;
         private Timer animationTimer;
         private Dictionary<int, DateTime> lastUpdateTimes;
@@ -140,7 +142,7 @@ namespace ControlEntradaSalida
             // 只有在需要时才进行全量刷新
             if (needsFullRefresh)
             {
-                deviceStatusPanel.Invalidate(false);
+                mainDevicePanel.Invalidate(false);
             }
         }
 
@@ -185,32 +187,118 @@ namespace ControlEntradaSalida
         // 初始化设备状态面板
         private void InitializeDeviceStatusPanel()
         {
-            // 创建设备状态面板
-            deviceStatusPanel = new BufferedFlowLayoutPanel();
-            deviceStatusPanel.Dock = DockStyle.Top;
-            deviceStatusPanel.Height = 140; // 增加高度以适应新的卡片设计
-            deviceStatusPanel.BackColor = Color.FromArgb(248, 249, 250); // 现代化的浅灰背景
-            deviceStatusPanel.AutoScroll = true;
-            deviceStatusPanel.WrapContents = true;
-            deviceStatusPanel.FlowDirection = FlowDirection.LeftToRight;
-            deviceStatusPanel.Padding = new Padding(15, 10, 15, 10); // 添加内边距
+            // 创建主设备面板
+            mainDevicePanel = new Panel();
+            mainDevicePanel.Dock = DockStyle.Top;
+            mainDevicePanel.Height = 600; // 增加高度以容纳所有类别面板
+            mainDevicePanel.BackColor = Color.FromArgb(248, 249, 250);
+            mainDevicePanel.AutoScroll = true;
+            mainDevicePanel.Padding = new Padding(15, 10, 15, 10);
 
             // 初始化字典
             deviceStatusCards = new Dictionary<int, Panel>();
+            categoryPanels = new Dictionary<string, BufferedFlowLayoutPanel>();
+
+            // 创建类别面板
+            CreateCategoryPanels();
 
             // 将面板添加到窗体中，放在菜单栏下方
-            this.Controls.Add(deviceStatusPanel);
-            deviceStatusPanel.BringToFront();
+            this.Controls.Add(mainDevicePanel);
+            mainDevicePanel.BringToFront();
 
             // 订阅设备状态改变事件
             DeviceConnectionManager.Instance.DeviceStatusChanged += OnDeviceStatusChanged;
         }
         
+        // 获取设备类别
+        private string GetDeviceCategory(int deviceId)
+        {
+            string category = "类别1"; // 默认类别
+            Common cmn = new Common();
+            string connstr = cmn.obtenerCadenaConexion();
+            BaseDatosMySQL bd = new BaseDatosMySQL();
+            bd.conectarMySQL(connstr);
+            
+            if (bd.conn != null)
+            {
+                string sql = "SELECT description FROM devices WHERE device_id = @device_id";
+                try
+                {
+                    MySqlCommand cmd = new MySqlCommand(sql, bd.conn);
+                    cmd.Parameters.AddWithValue("@device_id", deviceId);
+                    MySqlDataReader rdr = cmd.ExecuteReader();
+                    
+                    if (rdr.HasRows && rdr.Read())
+                    {
+                        string description = rdr["description"].ToString();
+                        if (!string.IsNullOrEmpty(description))
+                        {
+                            category = description;
+                        }
+                    }
+                    rdr.Close();
+                }
+                catch (Exception ex)
+                {
+                    // 记录错误但使用默认类别
+                    Console.WriteLine($"获取设备类别时出错: {ex.Message}");
+                }
+                finally
+                {
+                    bd.desconectarMySQL();
+                }
+            }
+            
+            return category;
+        }
+
+        // 创建类别面板
+        private void CreateCategoryPanels()
+        {
+            string[] categories = { "类别1", "类别2", "类别3" };
+            int yPosition = 0;
+
+            foreach (string category in categories)
+            {
+                // 创建类别标题标签
+                Label categoryLabel = new Label();
+                categoryLabel.Text = category;
+                categoryLabel.Font = new Font("Microsoft YaHei", 10, FontStyle.Bold);
+                categoryLabel.ForeColor = Color.FromArgb(52, 58, 64);
+                categoryLabel.AutoSize = true;
+                categoryLabel.Location = new Point(5, yPosition);
+                mainDevicePanel.Controls.Add(categoryLabel);
+
+                yPosition += 25;
+
+                // 创建类别设备面板
+                BufferedFlowLayoutPanel categoryPanel = new BufferedFlowLayoutPanel();
+                categoryPanel.Location = new Point(0, yPosition);
+                categoryPanel.Width = mainDevicePanel.Width - 30;
+                categoryPanel.Height = 150; // 增加高度以容纳更多卡片
+                categoryPanel.BackColor = Color.Transparent;
+                categoryPanel.WrapContents = true;
+                categoryPanel.FlowDirection = FlowDirection.LeftToRight;
+                categoryPanel.Padding = new Padding(5, 0, 5, 0);
+                categoryPanel.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
+                categoryPanel.AutoSize = true; // 启用自动调整大小
+                categoryPanel.AutoSizeMode = AutoSizeMode.GrowAndShrink; // 根据内容自动增长和收缩
+
+                categoryPanels[category] = categoryPanel;
+                mainDevicePanel.Controls.Add(categoryPanel);
+
+                yPosition += 170; // 调整间距以适应新的面板高度
+            }
+        }
+
         // 清理所有设备状态卡片
         private void ClearAllDeviceStatusCards()
         {
-            // 从面板中移除所有控件
-            deviceStatusPanel.Controls.Clear();
+            // 从所有类别面板中移除控件
+            foreach (var panel in categoryPanels.Values)
+            {
+                panel.Controls.Clear();
+            }
             
             // 清空字典
             deviceStatusCards.Clear();
@@ -228,9 +316,9 @@ namespace ControlEntradaSalida
         private void OnDeviceStatusChanged(object sender, DeviceStatusChangedEventArgs e)
         {
             // 确保在UI线程上更新控件
-            if (deviceStatusPanel.InvokeRequired)
+            if (mainDevicePanel.InvokeRequired)
             {
-                deviceStatusPanel.Invoke(new Action(() => UpdateDeviceStatus(e.Device)));
+                mainDevicePanel.Invoke(new Action(() => UpdateDeviceStatus(e.Device)));
             }
             else
             {
@@ -460,8 +548,20 @@ namespace ControlEntradaSalida
                                $"点击查看详细信息";
             deviceToolTip.SetToolTip(cardPanel, tooltipText);
 
-            // 将卡片面板添加到主面板和字典中
-            deviceStatusPanel.Controls.Add(cardPanel);
+            // 获取设备类别并添加到对应的类别面板
+            string deviceCategory = GetDeviceCategory(device.Id);
+            
+            // 如果类别不存在于预定义类别中，使用默认类别
+            if (!categoryPanels.ContainsKey(deviceCategory))
+            {
+                deviceCategory = "类别1";
+            }
+            
+            // 将卡片面板添加到对应的类别面板和字典中
+            if (categoryPanels.ContainsKey(deviceCategory))
+            {
+                categoryPanels[deviceCategory].Controls.Add(cardPanel);
+            }
             deviceStatusCards.Add(device.Id, cardPanel);
         }
 

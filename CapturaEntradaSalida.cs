@@ -18,14 +18,9 @@ namespace ControlEntradaSalida
     public partial class CapturaEntradaSalida : Form
     {
         private HCNetSDK.MSGCallBack m_falarmData = null;
-        private string path = null;
         private int m_lLogNum = 0;
         private Dictionary<int, int> lAlarmHandles = new Dictionary<int, int>(); // 设备ID到报警句柄的映射
         private string cardnumber = null;
-        private DeviceConnectionInfo selectedDevice = null; // 当前选中的设备
-
-        
-        BaseDatosMySQL bd;
 
         //初始化窗体
         public CapturaEntradaSalida()

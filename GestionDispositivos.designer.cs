@@ -1,4 +1,4 @@
-﻿
+
 namespace ControlEntradaSalida
 {
     partial class GestionDispositivos
@@ -95,7 +95,7 @@ namespace ControlEntradaSalida
             // 
             // descripcion
             // 
-            this.descripcion.Text = "描述";
+            this.descripcion.Text = "类别";
             this.descripcion.Width = 104;
             // 
             // direccionip

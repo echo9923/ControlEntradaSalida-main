@@ -19,7 +19,6 @@ namespace ControlEntradaSalida
      */
     public partial class ParamInformeEventos : Form, IRefreshableForm
     {
-        private string comboboxplanid = null;
         private DataChangeNotifier _notifier;
         
         public bool IsFormVisible => this.Visible;
