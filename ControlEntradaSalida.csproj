@@ -294,6 +294,12 @@
     <Compile Include="SafeUIUpdater.cs" />
     <Compile Include="DeviceStatusEngine.cs" />
     <Compile Include="ReconnectManager.cs" />
+    <!-- 异步数据库处理组件 - 海康威视SDK编程指南优化 -->
+    <Compile Include="AsyncEventQueue.cs" />
+    <Compile Include="EventDeduplicator.cs" />
+    <Compile Include="DatabaseBatchProcessor.cs" />
+    <Compile Include="AsyncDatabaseWriter.cs" />
+    <Compile Include="AsyncProcessingValidator.cs" />
     <EmbeddedResource Include="CapturaEntradaSalida.resx">
       <DependentUpon>CapturaEntradaSalida.cs</DependentUpon>
     </EmbeddedResource>
