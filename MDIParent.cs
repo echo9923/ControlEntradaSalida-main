@@ -674,22 +674,19 @@ namespace ControlEntradaSalida
         private void gestiónDeDispositivosToolStripMenuItem_Click(object sender, EventArgs e)
         {
             GestionDispositivos frmGestionDispositivos = new GestionDispositivos();
-            frmGestionDispositivos.MdiParent = this;
-            frmGestionDispositivos.Show();
+            ShowOwnedTopMost(frmGestionDispositivos);
         }
         //员工管理窗口
         private void gestionDeEmpleadosToolStripMenuItem_Click(object sender, EventArgs e)
         {
             GestionEmpleados frmGestionEmpleados = new GestionEmpleados();
-            frmGestionEmpleados.MdiParent = this;
-            frmGestionEmpleados.Show();
+            ShowOwnedTopMost(frmGestionEmpleados);
         }
         //进出记录采集窗口
         private void CapturarEntradaSalidaToolStripMenuItem_Click(object sender, EventArgs e)
         {
             CapturaEntradaSalida frmCapturaEntradaSalida = new CapturaEntradaSalida();
-            frmCapturaEntradaSalida.MdiParent = this;
-            frmCapturaEntradaSalida.Show();
+            ShowOwnedTopMost(frmCapturaEntradaSalida);
         }
         //程序退出
         private void salirToolStripMenuItem_Click(object sender, EventArgs e)
@@ -701,8 +698,7 @@ namespace ControlEntradaSalida
         private void eventosToolStripMenuItem_Click(object sender, EventArgs e)
         {
             ParamInformeEventos frmParamInformeEventos = new ParamInformeEventos();
-            frmParamInformeEventos.MdiParent = this;
-            frmParamInformeEventos.Show();
+            ShowOwnedTopMost(frmParamInformeEventos);
         }
         //窗体加载时的初始化
         private void MDIParent_Load(object sender, EventArgs e)
@@ -783,16 +779,14 @@ namespace ControlEntradaSalida
         private void consultarDatosDispositivoToolStripMenuItem_Click(object sender, EventArgs e)
         {
             GestionUsuariosDispositivo frmGestionUsuariosDispositivo = new GestionUsuariosDispositivo();
-            frmGestionUsuariosDispositivo.MdiParent = this;
-            frmGestionUsuariosDispositivo.Show();
+            ShowOwnedTopMost(frmGestionUsuariosDispositivo);
 
         }
         //进出记录报表窗口
         private void entradasYSalidasToolStripMenuItem_Click(object sender, EventArgs e)
         {
             ParamInformeEntradaSalida frmParamInformeEntradaSalida = new ParamInformeEntradaSalida();
-            frmParamInformeEntradaSalida.MdiParent = this;
-            frmParamInformeEntradaSalida.Show();
+            ShowOwnedTopMost(frmParamInformeEntradaSalida);
         }
 
         private void menuStrip1_ItemClicked(object sender, ToolStripItemClickedEventArgs e)
@@ -803,15 +797,13 @@ namespace ControlEntradaSalida
         private void controldoor_Click(object sender, EventArgs e)
         {
             controldoor frmGestionUsuariosDispositivo = new controldoor();
-            frmGestionUsuariosDispositivo.MdiParent = this;
-            frmGestionUsuariosDispositivo.Show();
+            ShowOwnedTopMost(frmGestionUsuariosDispositivo);
         }
 
         private void Plantemplate_Click(object sender, EventArgs e)
         {
             Plantemplate frmGestionUsuariosDispositivo = new Plantemplate();
-            frmGestionUsuariosDispositivo.MdiParent = this;
-            frmGestionUsuariosDispositivo.Show();
+            ShowOwnedTopMost(frmGestionUsuariosDispositivo);
         }
         
         #region IRefreshableForm 实现
@@ -1001,5 +993,27 @@ namespace ControlEntradaSalida
         }
         
         #endregion
+
+        /// <summary>
+        /// 以置顶的拥有窗体方式显示子窗体，确保始终位于主界面之上
+        /// </summary>
+        /// <param name="form">要显示的窗体</param>
+        private void ShowOwnedTopMost(Form form)
+        {
+            if (form == null) return;
+
+            // 作为拥有窗体显示，避免被主界面上方卡片遮挡
+            form.StartPosition = FormStartPosition.CenterParent;
+            form.ShowInTaskbar = false;
+            form.TopMost = true;
+            form.FormClosed += (s, e) =>
+            {
+                // 关闭时回收资源
+                form.Dispose();
+            };
+
+            form.Show(this);
+            form.Activate();
+        }
     }
 }
