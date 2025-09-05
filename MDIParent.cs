@@ -1006,14 +1006,25 @@ namespace ControlEntradaSalida
             form.StartPosition = FormStartPosition.CenterParent;
             form.ShowInTaskbar = false;
             form.TopMost = true;
-            form.FormClosed += (s, e) =>
-            {
-                // 关闭时回收资源
-                form.Dispose();
-            };
+            // 不要在 FormClosed 中手动 Dispose，避免在显示阶段被过早释放
+            // 子窗体应在自身 OnFormClosed 中清理资源
 
-            form.Show(this);
-            form.Activate();
+            try
+            {
+                form.Show(this);
+                if (!form.IsDisposed)
+                {
+                    form.Activate();
+                }
+            }
+            catch (ObjectDisposedException)
+            {
+                // 子窗体在 Load/Shown 中触发了关闭/释放，忽略
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"显示子窗体异常: {ex.Message}");
+            }
         }
     }
 }

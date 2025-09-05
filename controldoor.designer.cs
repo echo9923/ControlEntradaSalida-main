@@ -1,4 +1,4 @@
-﻿
+
 namespace ControlEntradaSalida
 {
     partial class controldoor
@@ -33,11 +33,32 @@ namespace ControlEntradaSalida
             this.btnClose = new System.Windows.Forms.Button();
             this.btnStayOpen = new System.Windows.Forms.Button();
             this.btnStayClose = new System.Windows.Forms.Button();
+            this.lblDevice = new System.Windows.Forms.Label();
+            this.cmbDevices = new System.Windows.Forms.ComboBox();
             this.SuspendLayout();
+            // 
+            // lblDevice
+            // 
+            this.lblDevice.AutoSize = true;
+            this.lblDevice.Location = new System.Drawing.Point(30, 15);
+            this.lblDevice.Name = "lblDevice";
+            this.lblDevice.Size = new System.Drawing.Size(65, 12);
+            this.lblDevice.TabIndex = 68;
+            this.lblDevice.Text = "选择设备:";
+            // 
+            // cmbDevices
+            // 
+            this.cmbDevices.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.cmbDevices.FormattingEnabled = true;
+            this.cmbDevices.Location = new System.Drawing.Point(101, 12);
+            this.cmbDevices.Name = "cmbDevices";
+            this.cmbDevices.Size = new System.Drawing.Size(300, 20);
+            this.cmbDevices.TabIndex = 69;
+            this.cmbDevices.SelectedIndexChanged += new System.EventHandler(this.cmbDevices_SelectedIndexChanged);
             // 
             // btnOpen
             // 
-            this.btnOpen.Location = new System.Drawing.Point(148, 31);
+            this.btnOpen.Location = new System.Drawing.Point(148, 51);
             this.btnOpen.Name = "btnOpen";
             this.btnOpen.Size = new System.Drawing.Size(103, 24);
             this.btnOpen.TabIndex = 61;
@@ -47,7 +68,7 @@ namespace ControlEntradaSalida
             // 
             // btnClose
             // 
-            this.btnClose.Location = new System.Drawing.Point(148, 71);
+            this.btnClose.Location = new System.Drawing.Point(148, 91);
             this.btnClose.Name = "btnClose";
             this.btnClose.Size = new System.Drawing.Size(103, 24);
             this.btnClose.TabIndex = 63;
@@ -57,7 +78,7 @@ namespace ControlEntradaSalida
             // 
             // btnStayOpen
             // 
-            this.btnStayOpen.Location = new System.Drawing.Point(148, 111);
+            this.btnStayOpen.Location = new System.Drawing.Point(148, 131);
             this.btnStayOpen.Name = "btnStayOpen";
             this.btnStayOpen.Size = new System.Drawing.Size(103, 24);
             this.btnStayOpen.TabIndex = 65;
@@ -67,7 +88,7 @@ namespace ControlEntradaSalida
             // 
             // btnStayClose
             // 
-            this.btnStayClose.Location = new System.Drawing.Point(148, 152);
+            this.btnStayClose.Location = new System.Drawing.Point(148, 172);
             this.btnStayClose.Name = "btnStayClose";
             this.btnStayClose.Size = new System.Drawing.Size(103, 24);
             this.btnStayClose.TabIndex = 67;
@@ -79,11 +100,13 @@ namespace ControlEntradaSalida
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 12F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(433, 239);
+            this.ClientSize = new System.Drawing.Size(433, 259);
             this.Controls.Add(this.btnStayClose);
             this.Controls.Add(this.btnStayOpen);
             this.Controls.Add(this.btnClose);
             this.Controls.Add(this.btnOpen);
+            this.Controls.Add(this.cmbDevices);
+            this.Controls.Add(this.lblDevice);
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedDialog;
             this.MaximizeBox = false;
             this.MinimizeBox = false;
@@ -102,5 +125,7 @@ namespace ControlEntradaSalida
         private System.Windows.Forms.Button btnClose;
         private System.Windows.Forms.Button btnStayOpen;
         private System.Windows.Forms.Button btnStayClose;
+        private System.Windows.Forms.Label lblDevice;
+        private System.Windows.Forms.ComboBox cmbDevices;
     }
 }
