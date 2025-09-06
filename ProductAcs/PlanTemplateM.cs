@@ -28,6 +28,9 @@ namespace ControlEntradaSalida
             m_struTemplateCfg.Init();
             m_struTemplateCond.Init();
             
+            // 设置窗口置顶显示属性，确保始终位于父窗口之上
+            ConfigureWindowDisplay();
+            
             // 获取当前连接的设备
             var connectedDevices = DeviceConnectionManager.Instance.GetAllDevices()
                 .Where(d => d.IsConnected).ToList();
@@ -35,6 +38,32 @@ namespace ControlEntradaSalida
             {
                 m_lUserID = connectedDevices[0].UserID;
             }
+        }
+        
+        /// <summary>
+        /// 配置窗口显示属性，确保正确的层级关系
+        /// </summary>
+        private void ConfigureWindowDisplay()
+        {
+            // 确保窗口能够获得焦点并保持在最前
+            this.TopMost = true;
+            this.ShowInTaskbar = false;
+            this.StartPosition = FormStartPosition.CenterParent;
+            
+            // 窗口激活时确保置顶
+            this.Activated += (sender, e) => 
+            {
+                this.TopMost = true;
+                this.BringToFront();
+                this.Focus();
+            };
+            
+            // 窗口显示时确保获得焦点
+            this.Shown += (sender, e) =>
+            {
+                this.Activate();
+                this.BringToFront();
+            };
         }
 
         private void listViewTemplate_ItemSelectionChanged(object sender, ListViewItemSelectionChangedEventArgs e)

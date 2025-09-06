@@ -27,7 +27,11 @@ namespace ControlEntradaSalida
         //初始化窗体
         public LoginDevice()
         {
-            InitializeComponent();   
+            InitializeComponent();
+            
+            // 确保子窗口始终显示在最上层
+            this.TopMost = true;
+            this.ShowInTaskbar = false; // 不在任务栏显示
         }
         //取消按钮事件，关闭窗口
         private void buttonCancelar_Click(object sender, EventArgs e)
@@ -37,6 +41,11 @@ namespace ControlEntradaSalida
         //窗体加载时，如果已有设备信息（不是新增），则填充表单字段；根据状态字段显示“是否默认设备”和“是否启用”
         private void LoginDevice_Load(object sender, EventArgs e)
         {
+            // 确保窗口获得焦点并显示在最前面
+            this.Activate();
+            this.BringToFront();
+            this.Focus();
+            
             if (this.id != null && this.nombre != null && this.ip != null && this.puerto != null && this.usuario != null && this.password != null )
             {
                 this.textBoxID.Text = this.id.ToString();

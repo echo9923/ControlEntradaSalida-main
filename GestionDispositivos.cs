@@ -189,7 +189,7 @@ namespace ControlEntradaSalida
                     frmLoginDevice.activo = activo;
                     frmLoginDevice.predeterminado = predeterminado;
                     frmLoginDevice.ultimavez = ultimavez;
-                    frmLoginDevice.ShowDialog();
+                    frmLoginDevice.ShowDialog(this);
                     // 设备连接状态已在 LoadDevices 中正确处理
                     LoadDevices();
                     
@@ -208,7 +208,7 @@ namespace ControlEntradaSalida
         {
             LoginDevice frmLoginDevice = new LoginDevice();// LoginDevice窗口登录设备
             frmLoginDevice.nuevo = true;
-            frmLoginDevice.ShowDialog();
+            frmLoginDevice.ShowDialog(this);
             LoadDevices();
             // 新设备连接状态已在 LoadDevices 中正确处理
             

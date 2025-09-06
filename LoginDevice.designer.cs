@@ -293,8 +293,11 @@ namespace ControlEntradaSalida
             this.MaximizeBox = false;
             this.MinimizeBox = false;
             this.Name = "LoginDevice";
-            this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
+            this.ShowIcon = false;
+            this.ShowInTaskbar = false;
+            this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
             this.Text = "设备登录";
+            this.TopMost = true;
             this.Load += new System.EventHandler(this.LoginDevice_Load);
             this.groupBox1.ResumeLayout(false);
             this.groupBox1.PerformLayout();
