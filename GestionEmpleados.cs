@@ -18,11 +18,8 @@ namespace ControlEntradaSalida
     public partial class GestionEmpleados : Form, IRefreshableForm
     {
         private int m_lCapFaceCfgHandle = -1;
-        private int m_lGetCardCfgHandle = -1;
-        private int m_lSetCardCfgHandle = -1;
         private int m_lGetFaceCfgHandle = -1;
         private int m_lSetFaceCfgHandle = -1;
-        private int m_lDelCardCfgHandle = -1; // 添加删除卡片配置句柄
         private string url_imagen = null;
         private bool nuevo = true; // 是否为新增员工
         private DataChangeNotifier _notifier;
@@ -49,6 +46,16 @@ namespace ControlEntradaSalida
 
             // 窗体显示后，避免自动聚焦到“员工编号”输入框
             this.Shown += GestionEmpleados_Shown;
+
+            // 运行时隐藏卡号相关控件
+            try
+            {
+                if (this.textBoxTarjeta != null)
+                {
+                    this.textBoxTarjeta.Visible = false;
+                }
+            }
+            catch { }
         }
 
         // 窗体显示后将焦点放到一个非输入控件，避免默认聚焦到员工编号
@@ -251,6 +258,8 @@ namespace ControlEntradaSalida
         //初始化卡片配置,启动下发流程
         public bool CrearUsuarioSDK(string numtarjeta, string permisostarjeta, string numerousuario, string nombreusuario)
         {
+            return false;
+#if false
             bool retval = false;
             if (m_lSetCardCfgHandle != -1)
             {
@@ -283,10 +292,13 @@ namespace ControlEntradaSalida
                 Marshal.FreeHGlobal(ptrStruCond);
             }
             return retval;
+ #endif
         }
         //构建卡片数据，设置有效期、门权限，并调用SDK下发至设备
         private bool EnviarDatosTarjeta(string numtarjeta, string permisostarjeta, string numerousuario, string nombreusuario)
         {
+            return false;
+#if false
             bool retval = false;
             HCNetSDK_Tarjeta.NET_DVR_CARD_RECORD struData = new HCNetSDK_Tarjeta.NET_DVR_CARD_RECORD();
             struData.Init();
@@ -380,6 +392,7 @@ namespace ControlEntradaSalida
             Marshal.FreeHGlobal(ptrStruData);
             Marshal.FreeHGlobal(ptrdwState);
             return retval;
+#endif
         }
         //构建人脸结构并下发设备
         private bool EnviarImagen(string numlectora, string numtarjeta)
@@ -575,89 +588,7 @@ namespace ControlEntradaSalida
         //删除设备上的用户卡信息，构造删除数据结构，调用 SDK 循环删除，判断状态
         public bool EliminarUsuarioDispositivo(string _numero_lectora, string _numero_tarjeta)
         {
-            bool retval = false;
-            if (m_lDelCardCfgHandle != -1)
-            {
-                if (HCNetSDK_Tarjeta.NET_DVR_StopRemoteConfig(m_lDelCardCfgHandle))
-                {
-                    m_lDelCardCfgHandle = -1;
-                }
-            }
-            HCNetSDK_Tarjeta.NET_DVR_CARD_COND struCond = new HCNetSDK_Tarjeta.NET_DVR_CARD_COND();
-            struCond.Init();
-            struCond.dwSize = (uint)Marshal.SizeOf(struCond);
-            struCond.dwCardNum = 1;
-            IntPtr ptrStruCond = Marshal.AllocHGlobal((int)struCond.dwSize);
-            Marshal.StructureToPtr(struCond, ptrStruCond, false);
-
-            HCNetSDK_Tarjeta.NET_DVR_CARD_SEND_DATA struSendData = new HCNetSDK_Tarjeta.NET_DVR_CARD_SEND_DATA();
-            struSendData.Init();
-            struSendData.dwSize = (uint)Marshal.SizeOf(struSendData);
-            byte[] byTempCardNo = new byte[HCNetSDK_Tarjeta.ACS_CARD_NO_LEN];
-            byTempCardNo = System.Text.Encoding.UTF8.GetBytes(_numero_tarjeta);
-            for (int i = 0; i < byTempCardNo.Length; i++)
-            {
-                struSendData.byCardNo[i] = byTempCardNo[i];
-            }
-            IntPtr ptrStruSendData = Marshal.AllocHGlobal((int)struSendData.dwSize);
-            Marshal.StructureToPtr(struSendData, ptrStruSendData, false);
-
-            HCNetSDK_Tarjeta.NET_DVR_CARD_STATUS struStatus = new HCNetSDK_Tarjeta.NET_DVR_CARD_STATUS();
-            struStatus.Init();
-            struStatus.dwSize = (uint)Marshal.SizeOf(struStatus);
-            IntPtr ptrdwState = Marshal.AllocHGlobal((int)struStatus.dwSize);
-            Marshal.StructureToPtr(struStatus, ptrdwState, false);
-
-            m_lGetCardCfgHandle = HCNetSDK_Tarjeta.NET_DVR_StartRemoteConfig(GetConnectedDeviceUserID(), HCNetSDK_Tarjeta.NET_DVR_DEL_CARD, ptrStruCond, (int)struCond.dwSize, null, this.Handle);
-            if (m_lGetCardCfgHandle < 0)
-            {
-                MessageBox.Show("NET_DVR_DEL_CARD error:" + HCNetSDK_Tarjeta.NET_DVR_GetLastError());
-                Marshal.FreeHGlobal(ptrStruCond);
-                return retval;
-            }
-            else
-            {
-                int dwState = (int)HCNetSDK_Tarjeta.NET_SDK_SENDWITHRECV_STATUS.NET_SDK_CONFIG_STATUS_SUCCESS;
-                uint dwReturned = 0;
-                while (true)
-                {
-                    dwState = HCNetSDK_Tarjeta.NET_DVR_SendWithRecvRemoteConfig(m_lGetCardCfgHandle, ptrStruSendData, struSendData.dwSize, ptrdwState, struStatus.dwSize, ref dwReturned);
-                    if (dwState == (int)HCNetSDK_Tarjeta.NET_SDK_SENDWITHRECV_STATUS.NET_SDK_CONFIG_STATUS_NEEDWAIT)
-                    {
-                        Thread.Sleep(10);
-                        continue;
-                    }
-                    else if (dwState == (int)HCNetSDK_Tarjeta.NET_SDK_SENDWITHRECV_STATUS.NET_SDK_CONFIG_STATUS_FAILED)
-                    {
-                        MessageBox.Show("NET_DVR_DEL_CARD fail error: " + HCNetSDK_Tarjeta.NET_DVR_GetLastError());
-                    }
-                    else if (dwState == (int)HCNetSDK_Tarjeta.NET_SDK_SENDWITHRECV_STATUS.NET_SDK_CONFIG_STATUS_SUCCESS)
-                    {
-                        //MessageBox.Show("NET_DVR_DEL_CARD success");
-                        retval = true;
-                    }
-                    else if (dwState == (int)HCNetSDK_Tarjeta.NET_SDK_SENDWITHRECV_STATUS.NET_SDK_CONFIG_STATUS_FINISH)
-                    {
-                        //MessageBox.Show("NET_DVR_DEL_CARD finish");
-                        break;
-                    }
-                    else if (dwState == (int)HCNetSDK_Tarjeta.NET_SDK_SENDWITHRECV_STATUS.NET_SDK_CONFIG_STATUS_EXCEPTION)
-                    {
-                        MessageBox.Show("NET_DVR_DEL_CARD exception error: " + HCNetSDK_Tarjeta.NET_DVR_GetLastError());
-                        break;
-                    }
-                    else
-                    {
-                        MessageBox.Show("Unknown status error: " + HCNetSDK_Tarjeta.NET_DVR_GetLastError());
-                        break;
-                    }
-                }
-            }
-            HCNetSDK_Tarjeta.NET_DVR_StopRemoteConfig(m_lDelCardCfgHandle);
-            m_lDelCardCfgHandle = -1;
-            Marshal.FreeHGlobal(ptrStruSendData);
-            Marshal.FreeHGlobal(ptrdwState);
-            return retval;
+            return false;
         }
         //从数据库中查询 employees 表中最大 ID 值
         private int ConsultarUltimoID()
@@ -744,7 +675,7 @@ namespace ControlEntradaSalida
                         {
                             ListViewItem lvi = new ListViewItem(rdr["employee_id"].ToString());//员工编号
                             lvi.SubItems.Add(rdr["status"].ToString()); //状态              
-                            lvi.SubItems.Add(rdr["card_number"].ToString());//NO.卡号
+                            // 不再显示卡号列
                             // 合并显示完整姓名
                             string nombreCompleto = (rdr["first_name"].ToString() + " " + rdr["last_name"].ToString()).Trim();
                             lvi.SubItems.Add(nombreCompleto);//完整姓名
@@ -1129,7 +1060,8 @@ namespace ControlEntradaSalida
 
                 if (nuevo)//如果是新增员工
                 {
-                    resultcrear = CrearUsuarioSDK(this.textBoxDocumento.Text, "1", this.textBoxDocumento.Text, nombrecompleto);//创建卡用户
+                    // 刷卡下发已移除：不再创建卡片用户
+                    resultcrear = false;
 
                     if (this.pictureBoxUsuario.Image != null)
                         resultenviar = EnviarImagen("1", this.textBoxDocumento.Text);//上传人脸图片
@@ -1298,7 +1230,8 @@ namespace ControlEntradaSalida
                     {
                         string documento = item.Text;
                         bool result = false;
-                        result = EliminarUsuarioDispositivo("1", documento);//删除设备上用户
+                        // 刷卡删除已移除：不再删除设备上卡信息
+                        result = false;
                         if (result)
                         {
                             result = EliminarUsuario(documento);//从数据库中删除
@@ -1471,7 +1404,7 @@ namespace ControlEntradaSalida
                 ListViewItem item = listView.SelectedItems[0];
                 this.textBoxDocumento.Text = item.SubItems[0].Text;
                 this.cmbEstado.Text = item.SubItems[1].Text;
-                this.textBoxTarjeta.Text = item.SubItems[2].Text;
+                // 刷卡功能移除：不再处理卡号字段
                 this.textBoxNombreCompleto.Text = item.SubItems[3].Text;
                 this.cmbCategoria.Text = item.SubItems[6].Text;
                 this.textBoxDocumento.Enabled = false;
@@ -1523,7 +1456,7 @@ namespace ControlEntradaSalida
                             
                             ListViewItem lvi = new ListViewItem(rdr["employee_id"].ToString());
                             lvi.SubItems.Add(rdr["status"].ToString());
-                            lvi.SubItems.Add(rdr["card_number"].ToString());
+                            // 不再显示卡号列
                             // 合并显示完整姓名
                             string nombreCompleto = (rdr["first_name"].ToString() + " " + rdr["last_name"].ToString()).Trim();
                             lvi.SubItems.Add(nombreCompleto);

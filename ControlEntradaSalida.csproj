@@ -229,7 +229,6 @@
     </Compile>
     <Compile Include="HCNetSDK.cs" />
     <Compile Include="HCNetSDK_Facial.cs" />
-    <Compile Include="HCNetSDK_Tarjeta.cs" />
     <Compile Include="InformeEntradaSalida.cs" />
     <Compile Include="InformeEventos.cs" />
     <Compile Include="LoginDevice.cs">

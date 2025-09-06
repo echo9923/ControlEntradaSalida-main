@@ -38,6 +38,14 @@ namespace ControlEntradaSalida
             {
                 m_lUserID = connectedDevices[0].UserID;
             }
+
+            // 运行时移除刷卡相关验证模式选项
+            try
+            {
+                // 本窗体没有 cbDeviceType 控件暴露于此文件，主要移除验证模式项
+                // 若后续增加验证模式选择控件，可在此按需过滤
+            }
+            catch { }
         }
         
         /// <summary>

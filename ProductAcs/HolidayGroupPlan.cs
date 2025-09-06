@@ -37,6 +37,27 @@ namespace ControlEntradaSalida
             {
                 m_lUserID = connectedDevices[0].UserID;
             }
+
+            // 运行时移除刷卡相关选项
+            try
+            {
+                if (cbDeviceType != null)
+                {
+                    for (int i = cbDeviceType.Items.Count - 1; i >= 0; i--)
+                    {
+                        var txt = cbDeviceType.Items[i]?.ToString() ?? string.Empty;
+                        if (txt.IndexOf("Card", StringComparison.OrdinalIgnoreCase) >= 0)
+                        {
+                            cbDeviceType.Items.RemoveAt(i);
+                        }
+                    }
+                    if (cbDeviceType.Items.Count > 0)
+                    {
+                        cbDeviceType.SelectedIndex = Math.Min(1, cbDeviceType.Items.Count - 1);
+                    }
+                }
+            }
+            catch { }
         }
         
         /// <summary>

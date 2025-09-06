@@ -1,4 +1,4 @@
-ï»¿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -12,38 +12,38 @@ using MySql.Data.MySqlClient;
 using Newtonsoft.Json;
 
 namespace ControlEntradaSalida
-{   /*é€šè¿‡ ISAPI æ¥å£æ“ä½œè®¾å¤‡ä¸Šçš„ç”¨æˆ·ä¿¡æ¯ã€‚
-     * ä»è®¾å¤‡ä¸­è¯»å–ç”¨æˆ·åˆ—è¡¨ï¼ˆå‘˜å·¥ï¼‰å¹¶æ˜¾ç¤ºï¼›
-     * æŸ¥è¯¢å•ä¸ªç”¨æˆ·è¯¦ç»†ä¿¡æ¯ï¼›
-     * æ·»åŠ ç”¨æˆ·å¡ç‰‡ï¼ˆè™šæ‹Ÿå‘å¡ï¼‰
-     * åˆ é™¤è®¾å¤‡ä¸Šçš„ç”¨æˆ·
-     * å¤‡ä»½ç”¨æˆ·ä¿¡æ¯åˆ°æœ¬åœ° MySQL æ•°æ®åº“
-     * åŒæ­¥ç”¨æˆ·åˆ—è¡¨å¹¶è¿›è¡Œå¢åˆ æŸ¥æ“ä½œ
+{   /*Í¨¹ı ISAPI ½Ó¿Ú²Ù×÷Éè±¸ÉÏµÄÓÃ»§ĞÅÏ¢¡£
+     * ´ÓÉè±¸ÖĞ¶ÁÈ¡ÓÃ»§ÁĞ±í£¨Ô±¹¤£©²¢ÏÔÊ¾£»
+     * ²éÑ¯µ¥¸öÓÃ»§ÏêÏ¸ĞÅÏ¢£»
+     * Ìí¼ÓÓÃ»§¿¨Æ¬£¨ĞéÄâ·¢¿¨£©
+     * É¾³ıÉè±¸ÉÏµÄÓÃ»§
+     * ±¸·İÓÃ»§ĞÅÏ¢µ½±¾µØ MySQL Êı¾İ¿â
+     * Í¬²½ÓÃ»§ÁĞ±í²¢½øĞĞÔöÉ¾²é²Ù×÷
      */
     public partial class GestionUsuariosDispositivo : Form
     {
         private uint iLastErr = 0;
         
-        //åˆå§‹åŒ–çª—ä½“
+        
         public GestionUsuariosDispositivo()
         {
             InitializeComponent();
         }
         
-        // è·å–å½“å‰è¿æ¥è®¾å¤‡çš„UserID
+        
         private int GetConnectedDeviceUserID()
         {
             var connectedDevices = DeviceConnectionManager.Instance.GetAllDevices()
                 .Where(d => d.IsConnected).ToList();
             if (connectedDevices.Count > 0)
             {
-                // ä½¿ç”¨ç¬¬ä¸€ä¸ªè¿æ¥çš„è®¾å¤‡
+                
                 return connectedDevices[0].UserID;
             }
             return -1;
         }
 
-        //å‘è®¾å¤‡å‘é€ JSON è¯·æ±‚ï¼Œå¹¶è·å–ç»“æœ
+        
         private bool ISAPIQuery(string requestURL, string inputParam, out string outputResult, out string outputStatus)
         {
             bool retval = true;
@@ -69,12 +69,12 @@ namespace ControlEntradaSalida
             pOutputXml.lpStatusBuffer = Marshal.AllocHGlobal(4096 * 4);
             pOutputXml.dwStatusSize = 4096 * 4;
 
-            if (!HCNetSDK.NET_DVR_STDXMLConfig(GetConnectedDeviceUserID(), ref pInputXml, ref pOutputXml))//å‘é€ XML/JSON,è¿”å›æ˜¯å¦æˆåŠŸï¼Œå¹¶è¾“å‡º outputResult å’Œ outputStatus
+            if (!HCNetSDK.NET_DVR_STDXMLConfig(GetConnectedDeviceUserID(), ref pInputXml, ref pOutputXml))
             {
                 iLastErr = HCNetSDK.NET_DVR_GetLastError();
-                outputResult = "NET_DVR_STDXMLConfig å¤±è´¥ï¼Œé”™è¯¯ä»£ç = " + iLastErr;
-                // Failed to send XML data and output the error code
-                // MessageBox.Show(strErr);
+                outputResult = "NET_DVR_STDXMLConfig Ê§°Ü£¬´íÎó´úÂë= " + iLastErr;
+                
+                
                 retval = false;
             }
 
@@ -89,11 +89,9 @@ namespace ControlEntradaSalida
             return retval;
         }
 
-        //å‘è®¾å¤‡æ·»åŠ ç”¨æˆ·å¡ç‰‡ï¼ˆå¡å·ä¸å‘˜å·¥ç¼–å·ç›¸åŒï¼‰
+        
         private bool AgregarTarjetaUsuario(string id)
         {
-            return false;
-#if false
             bool retval = false;            
             string url = "POST /ISAPI/AccessControl/CardInfo/Record?format=json";
             string CardInfo = "{{\"CardInfo\" : {{\"employeeNo\": \"{0}\",\"cardNo\": \"{0}\",\"cardType\": \"normalCard\",\"checkCardNo\": true }}}}";
@@ -104,7 +102,7 @@ namespace ControlEntradaSalida
             Common cmn = new Common();
             string jsonresult = "";
 
-            bool result = cmn.ISAPIQuery(GetConnectedDeviceUserID(), url, CardInfoValues, out outputString, out outputStatus);//å‘è®¾å¤‡å‘é€ JSON è¯·æ±‚ï¼Œå¹¶è·å–ç»“æœ
+            bool result = cmn.ISAPIQuery(GetConnectedDeviceUserID(), url, CardInfoValues, out outputString, out outputStatus);
             bool flag = true;
             if (result)
             {
@@ -134,19 +132,18 @@ namespace ControlEntradaSalida
                 }
             } catch
             {
-                MessageBox.Show("å¤„ç†åœ¨ AgregarTarjetaUsuario() ä¸­æŸ¥è¯¢ ISAPI çš„ JSON å“åº”æ—¶å‘ç”Ÿé”™è¯¯", "JSONè§£æé”™è¯¯", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show("´¦ÀíÔÚ AgregarTarjetaUsuario() ÖĞ²éÑ¯ ISAPI µÄ JSON ÏìÓ¦Ê±·¢Éú´íÎó", "JSON½âÎö´íÎó", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return false;
             }
 
             if (!flag)
-                MessageBox.Show("åœ¨æ·»åŠ ç”¨æˆ·å¡æ—¶å°è¯• ISAPI æŸ¥è¯¢æ—¶å‘ç”Ÿé”™è¯¯ã€‚çŠ¶æ€ä»£ç ï¼š " + statusCode + " å­çŠ¶æ€ä»£ç : " + subStatusCode + " çŠ¶æ€å­—ç¬¦ä¸²ï¼š" + statusString, "ISAPIæŸ¥è¯¢é”™è¯¯", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show("ÔÚÌí¼ÓÓÃ»§¿¨Ê±³¢ÊÔ ISAPI ²éÑ¯Ê±·¢Éú´íÎó¡£×´Ì¬´úÂë£º " + statusCode + " ×Ó×´Ì¬´úÂë: " + subStatusCode + " ×´Ì¬×Ö·û´®£º" + statusString, "ISAPI²éÑ¯´íÎó", MessageBoxButtons.OK, MessageBoxIcon.Error);
 
             return retval;
 
-#endif
         }
 
-        //æŸ¥è¯¢æ‰€æœ‰è®¾å¤‡ä¸Šæ³¨å†Œçš„ç”¨æˆ·ï¼ˆåˆ†é¡µæ‰¹é‡ï¼‰,æ¯æ¬¡æœ€å¤šè¿”å› 5000 ä¸ªå‘˜å·¥ä¿¡æ¯åˆ—è¡¨
+        
         private List<EmpleadoData> CargarInfoUsuariosDispositivo(out string responseStatusStrg, out int totalMatches, out int numOfMatches, int searchResultPosition)
         {
             bool flag = true;
@@ -157,7 +154,7 @@ namespace ControlEntradaSalida
             
 
             List<EmpleadoData> listauserdata = new List<EmpleadoData>();
-            string url = "POST /ISAPI/AccessControl/UserInfo/Search?format=json";//æŸ¥è¯¢å‘½ä»¤
+            string url = "POST /ISAPI/AccessControl/UserInfo/Search?format=json";
 
             string UserInfoSearchCond = "{ \"UserInfoSearchCond\": { \"searchID\": \"100\", \"searchResultPosition\": " + searchResultPosition.ToString() + ", \"maxResults\": 5000 } }";
 
@@ -177,10 +174,10 @@ namespace ControlEntradaSalida
                     string statusCode = DynamicData.statusCode;
                     string subStatusCode = DynamicData.subStatusCode;
                     string statusString = DynamicData.statusString;
-                    MessageBox.Show("åœ¨CargarInfoUsuariosDispositivo()ä¸­å°è¯•ISAPIæŸ¥è¯¢æ—¶å‘ç”Ÿé”™è¯¯ã€‚çŠ¶æ€ä»£ç ï¼š " + statusCode + "å­çŠ¶æ€ä»£ç : " + subStatusCode + " çŠ¶æ€å­—ç¬¦ä¸²ï¼š " + statusString, "ISAPIæŸ¥è¯¢é”™è¯¯", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    MessageBox.Show("ÔÚCargarInfoUsuariosDispositivo()ÖĞ³¢ÊÔISAPI²éÑ¯Ê±·¢Éú´íÎó¡£×´Ì¬´úÂë£º " + statusCode + "×Ó×´Ì¬´úÂë: " + subStatusCode + " ×´Ì¬×Ö·û´®£º " + statusString, "ISAPI²éÑ¯´íÎó", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 } catch
                 {
-                    MessageBox.Show("åœ¨CargarInfoUsuariosDispositivo()ä¸­å¤„ç†ISAPIæŸ¥è¯¢çš„JSONå“åº”æ—¶å‘ç”Ÿé”™è¯¯ï¼Œresult = false", "JSONè§£æé”™è¯¯", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    MessageBox.Show("ÔÚCargarInfoUsuariosDispositivo()ÖĞ´¦ÀíISAPI²éÑ¯µÄJSONÏìÓ¦Ê±·¢Éú´íÎó£¬result = false", "JSON½âÎö´íÎó", MessageBoxButtons.OK, MessageBoxIcon.Error);
                     return null;
                 }
                 return null;                
@@ -218,7 +215,7 @@ namespace ControlEntradaSalida
                             }
                             catch
                             {
-                                MessageBox.Show("åœ¨CargarInfoUsuariosDispositivo()ä¸­å¤„ç†ISAPIæŸ¥è¯¢çš„JSONå“åº”æ—¶å‘ç”Ÿé”™è¯¯ï¼Œresult = trueã€‚å°è¯•è§£æUserInfoSearch.UserInfo[i]æ—¶å‡ºé”™", "JSONè§£æé”™è¯¯", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                                MessageBox.Show("ÔÚCargarInfoUsuariosDispositivo()ÖĞ´¦ÀíISAPI²éÑ¯µÄJSONÏìÓ¦Ê±·¢Éú´íÎó£¬result = true¡£³¢ÊÔ½âÎöUserInfoSearch.UserInfo[i]Ê±³ö´í", "JSON½âÎö´íÎó", MessageBoxButtons.OK, MessageBoxIcon.Error);
                                 flag = false;
                                 break;
                             }
@@ -228,7 +225,7 @@ namespace ControlEntradaSalida
                     }
                 } catch
                 {
-                    MessageBox.Show("ISAPIè¯·æ±‚æ­£ç¡®ï¼Œä½†åœ¨CargarInfoUsuariosDispositivo()ä¸­è§£æISAPIå“åº”çš„JSONå“åº”æ—¶å‘ç”Ÿé”™è¯¯ï¼Œresult = true", "JSONè§£æé”™è¯¯", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    MessageBox.Show("ISAPIÇëÇóÕıÈ·£¬µ«ÔÚCargarInfoUsuariosDispositivo()ÖĞ½âÎöISAPIÏìÓ¦µÄJSONÏìÓ¦Ê±·¢Éú´íÎó£¬result = true", "JSON½âÎö´íÎó", MessageBoxButtons.OK, MessageBoxIcon.Error);
                     return null;
                 }
                 
@@ -238,11 +235,9 @@ namespace ControlEntradaSalida
             else
                 return null;
         }
-        //æŸ¥è¯¢è®¾å¤‡ä¸Šæ‰€æœ‰å¡ç‰‡ç»‘å®šçš„ç”¨æˆ·ç¼–å·ï¼ˆemployeeNoï¼‰,ç”¨äºå¿«é€Ÿç»Ÿè®¡æˆ–éªŒè¯å¡ç‰‡æ•°æ®
+        
         private String[] ConsultarTarjetas()
         {
-            return Array.Empty<string>();
-#if false
             String[] retval = null;
             bool result = false;
 
@@ -256,7 +251,7 @@ namespace ControlEntradaSalida
             result = ISAPIQuery(url, CardInfoSearchCond, out resultJSON, out outputStatus);
             if (!result)
             {
-                MessageBox.Show("ISAPI æŸ¥è¯¢é”™è¯¯ï¼š" + resultJSON, "JSON æŸ¥è¯¢é”™è¯¯", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show("ISAPI ²éÑ¯´íÎó£º" + resultJSON, "JSON ²éÑ¯´íÎó", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return retval;
             }
 
@@ -275,11 +270,10 @@ namespace ControlEntradaSalida
                 retval = listanumtarjetas.ToArray();
             }
             return retval;
-#endif
         }
 
 
-        //æŸ¥è¯¢å•ä¸ªç”¨æˆ·ä¿¡æ¯,æŸ¥è¯¢æŒ‡å®šå‘˜å·¥ç¼–å·çš„è¯¦ç»†ä¿¡æ¯ï¼›åŒæ—¶è¿”å›å®Œæ•´ JSON åŸæ–‡ï¼ˆç”¨äºæœ¬åœ°å¤‡ä»½ï¼‰
+        
         private EmpleadoData ConsultarDatosEmpleado(string id, out string jsondata)
         {
             EmpleadoData ed = null;
@@ -292,7 +286,7 @@ namespace ControlEntradaSalida
             result = ISAPIQuery(url, UserInfoSearchCond, out resultJSON, out outputStatus);
             if (!result)
             {
-                MessageBox.Show("ISAPI æŸ¥è¯¢é”™è¯¯ï¼š" + resultJSON, "JSON æŸ¥è¯¢é”™è¯¯", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show("ISAPI ²éÑ¯´íÎó£º" + resultJSON, "JSON ²éÑ¯´íÎó", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return ed;
             }
 
@@ -313,22 +307,22 @@ namespace ControlEntradaSalida
             return ed;
         }
 
-        //å°†è®¾å¤‡ç”¨æˆ·æ•°æ®æ˜¾ç¤ºåˆ° ListView æ§ä»¶ä¸­,æ˜¾ç¤ºå­—æ®µåŒ…æ‹¬å·¥å·ã€å§“åã€ç±»å‹ã€æœ‰æ•ˆæœŸã€å¡ã€äººè„¸ç­‰ã€‚
+        
         private void AgregarDatosListView(EmpleadoData ed)
         {
-            ListViewItem lvi = new ListViewItem(ed.employeeNum);//å·¥å·
-            lvi.SubItems.Add(ed.name);//å§“å
-            lvi.SubItems.Add(ed.userType);//ç±»å‹
-            lvi.SubItems.Add(ed.validEnable);//æœ‰æ•ˆæœŸ
+            ListViewItem lvi = new ListViewItem(ed.employeeNum);
+            lvi.SubItems.Add(ed.name);
+            lvi.SubItems.Add(ed.userType);
+            lvi.SubItems.Add(ed.validEnable);
             lvi.SubItems.Add(ed.beginTime);
             lvi.SubItems.Add(ed.endTime);
-            lvi.SubItems.Add(ed.numOfCard);//å¡
-            lvi.SubItems.Add(ed.numOfFace);//äººè„¸
+            lvi.SubItems.Add(ed.numOfCard);
+            lvi.SubItems.Add(ed.numOfFace);
             lvi.SubItems.Add("");
             listView.Items.Add(lvi);
             lvi = null;
         }
-        //åˆ é™¤æŒ‡å®šå‘˜å·¥ç¼–å·è®¾å¤‡ç”¨æˆ·
+        
         private bool EliminarEmpleadoDispositivo(string id)
         {
             bool retval = false;
@@ -340,7 +334,7 @@ namespace ControlEntradaSalida
             result = ISAPIQuery(url, UserInfoDelCond, out resultJSON, out outputStatus);
             if (!result)
             {
-                MessageBox.Show("ISAPI æŸ¥è¯¢é”™è¯¯ï¼š" + resultJSON, "JSON æŸ¥è¯¢é”™è¯¯", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show("ISAPI ²éÑ¯´íÎó£º" + resultJSON, "JSON ²éÑ¯´íÎó", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return retval;
             }
             if (resultJSON != null && resultJSON.Length > 0)
@@ -353,31 +347,31 @@ namespace ControlEntradaSalida
             return retval;
 
         }
-        //æŸ¥è¯¢æŒ‰é’®äº‹ä»¶,ç‚¹å‡»â€œæŸ¥è¯¢ç”¨æˆ·â€æ—¶æ‰§è¡Œ
+        
         private void buttonConsultar_Click(object sender, EventArgs e)
         {
             if (GetConnectedDeviceUserID() < 0)
             {
-                MessageBox.Show("é¦–å…ˆåœ¨è®¾å¤‡ä¸Šç™»å½•", "éœ€è¦ç™»å½•", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                MessageBox.Show("Ê×ÏÈÔÚÉè±¸ÉÏµÇÂ¼", "ĞèÒªµÇÂ¼", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 return;
             }
 
             bool retval;
             string msg;
             Common cmn = new Common();
-            // è·å–å½“å‰è¿æ¥çš„è®¾å¤‡ä¿¡æ¯
+            
             var connectedDevices = DeviceConnectionManager.Instance.GetAllDevices()
                 .Where(d => d.IsConnected).ToList();
             if (connectedDevices.Count > 0)
             {
-                // ä½¿ç”¨ç¬¬ä¸€ä¸ªè¿æ¥çš„è®¾å¤‡
+                
                 var device = connectedDevices[0];
                 retval = cmn.Login(device.IpAddress, device.Port, device.Username, device.Password, out int userID, out msg);
             }
             else
             {
                 retval = false;
-                msg = "æ²¡æœ‰å·²è¿æ¥çš„è®¾å¤‡";
+                msg = "Ã»ÓĞÒÑÁ¬½ÓµÄÉè±¸";
             }
             if (retval)
             {
@@ -409,16 +403,16 @@ namespace ControlEntradaSalida
 
             }
         }
-        //åˆ é™¤æŒ‰é’®äº‹ä»¶
+        
         private void buttonEliminar_Click(object sender, EventArgs e)
         {
             if (this.listView.CheckedItems.Count == 0)
             {
-                MessageBox.Show("æ‚¨å¿…é¡»è‡³å°‘é€‰æ‹©åˆ—è¡¨ä¸­çš„ä¸€ä¸ªç”¨æˆ·", "åˆ é™¤ç”¨æˆ·", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                MessageBox.Show("Äú±ØĞëÖÁÉÙÑ¡ÔñÁĞ±íÖĞµÄÒ»¸öÓÃ»§", "É¾³ıÓÃ»§", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 return;
             }
 
-            DialogResult dialogResult = MessageBox.Show("é€‰å®šçš„ç”¨æˆ·å°†è¢«åˆ é™¤ï¼Œä¸å¯æ¢å¤ã€‚æ‚¨æ˜¯å¦è¦ç»§ç»­å—ï¼Ÿ", "ç¡®è®¤åˆ é™¤æ“ä½œ", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+            DialogResult dialogResult = MessageBox.Show("Ñ¡¶¨µÄÓÃ»§½«±»É¾³ı£¬²»¿É»Ö¸´¡£ÄúÊÇ·ñÒª¼ÌĞøÂğ£¿", "È·ÈÏÉ¾³ı²Ù×÷", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
             if (dialogResult == DialogResult.Yes)
             {
                 this.listView.BeginInvoke(new Action(() =>
@@ -441,7 +435,7 @@ namespace ControlEntradaSalida
             }
         }
 
-        //æ¸…ç©ºæœ¬åœ° MySQL è¡¨ device_users_backup
+        
         private bool EliminarUsuariosTablaUsuariosDispositivo()
         {
             bool retval = false;
@@ -466,22 +460,22 @@ namespace ControlEntradaSalida
                 catch (MySqlException ex)
                 {
                     string errstr = ex.Number.ToString() + " " + ex.Message;
-                    MessageBox.Show(errstr, "åœ¨InsertarUsuarioTablaUsuariosDispositivo()ä¸­å‡ºé”™", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    MessageBox.Show(errstr, "ÔÚInsertarUsuarioTablaUsuariosDispositivo()ÖĞ³ö´í", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
 
             }
             else
             {
                 string errstr = bd.errornum + " " + bd.errormsg + "bd = null";
-                MessageBox.Show(errstr, "åœ¨InsertarUsuarioTablaUsuariosDispositivo()ä¸­å‡ºé”™", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                MessageBox.Show(errstr, "ÔÚInsertarUsuarioTablaUsuariosDispositivo()ÖĞ³ö´í", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
             return retval;
         }
-        /*å‘ MySQL ä¸­æ’å…¥å¤‡ä»½æ•°æ®ï¼š
-        JSON æ•°æ®ï¼›
-        äººè„¸å›¾åƒæ•°æ®ï¼ˆå¯é€‰ï¼‰ï¼›
-        è¡¨ç»“æ„ï¼š(userdata, image)ï¼›
-        ç”¨äºæ•°æ®åŒæ­¥ã€å¤‡ä»½æ¢å¤ã€‚
+        /*Ïò MySQL ÖĞ²åÈë±¸·İÊı¾İ£º
+        JSON Êı¾İ£»
+        ÈËÁ³Í¼ÏñÊı¾İ£¨¿ÉÑ¡£©£»
+        ±í½á¹¹£º(userdata, image)£»
+        ÓÃÓÚÊı¾İÍ¬²½¡¢±¸·İ»Ö¸´¡£
          */
         private bool InsertarUsuarioTablaUsuariosDispositivo(string jsondata, byte[] img = null)            
         {
@@ -514,24 +508,24 @@ namespace ControlEntradaSalida
                 catch (MySqlException ex)
                 {
                     string errstr = ex.Number.ToString() + " " + ex.Message;
-                    MessageBox.Show(errstr, "åœ¨InsertarUsuarioTablaUsuariosDispositivo()ä¸­å‡ºé”™", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    MessageBox.Show(errstr, "ÔÚInsertarUsuarioTablaUsuariosDispositivo()ÖĞ³ö´í", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
 
             }
             else
             {
                 string errstr = bd.errornum + " " + bd.errormsg + "bd = null";
-                MessageBox.Show(errstr, "åœ¨InsertarUsuarioTablaUsuariosDispositivo()ä¸­å‡ºé”™", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                MessageBox.Show(errstr, "ÔÚInsertarUsuarioTablaUsuariosDispositivo()ÖĞ³ö´í", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
             return retval;
         }
 
-        //å¤‡ä»½åŠŸèƒ½ç›®å‰è¢«æ³¨é‡Šæ‰
-        /*è·å–æ‰€æœ‰è®¾å¤‡ç”¨æˆ·ï¼›
-        è°ƒç”¨ ConsultarDatosEmpleado() è·å–æ•°æ®ï¼›
-        è·å–ç”¨æˆ·äººè„¸å›¾ç‰‡ï¼›
-        æ’å…¥æ•°æ®åº“ï¼›
-        æ˜¾ç¤ºçŠ¶æ€ OK/å¤±è´¥
+        
+        /*»ñÈ¡ËùÓĞÉè±¸ÓÃ»§£»
+        µ÷ÓÃ ConsultarDatosEmpleado() »ñÈ¡Êı¾İ£»
+        »ñÈ¡ÓÃ»§ÈËÁ³Í¼Æ¬£»
+        ²åÈëÊı¾İ¿â£»
+        ÏÔÊ¾×´Ì¬ OK/Ê§°Ü
          */
         private void buttonBackup_Click(object sender, EventArgs e)
         {
@@ -550,24 +544,24 @@ namespace ControlEntradaSalida
                     ConsultarDatosEmpleado(item.Text, out jsondata);
                     if (InsertarUsuarioTablaUsuariosDispositivo(jsondata, bytesimagen))
                     {
-                        item.SubItems[8].Text = "æˆåŠŸ: ç”¨æˆ·å·²å¤‡ä»½";
+                        item.SubItems[8].Text = "³É¹¦: ÓÃ»§ÒÑ±¸·İ";
                         item.ForeColor = Color.Green;
                     }
                     else 
                     {
-                        item.SubItems[8].Text = "å¤±è´¥: å¤‡ä»½è¿‡ç¨‹ä¸­å‘ç”Ÿé”™è¯¯";
+                        item.SubItems[8].Text = "Ê§°Ü: ±¸·İ¹ı³ÌÖĞ·¢Éú´íÎó";
                         item.ForeColor = Color.Red;
                     }
                 }
             }*/
         }
-        //ç»™è®¾å¤‡ä¸­æ²¡æœ‰å¡ç‰‡çš„ç”¨æˆ·è‡ªåŠ¨æ·»åŠ å¡
+        
         private void buttonAgregarTarjeta_Click(object sender, EventArgs e)
         {
-            // åˆ·å¡ç›¸å…³æ“ä½œå·²ç§»é™¤
-            MessageBox.Show("å·²ç§»é™¤å‘å¡åŠŸèƒ½ï¼Œç³»ç»Ÿä»…æ”¯æŒäººè„¸è¯†åˆ«ã€‚", "åŠŸèƒ½å·²ç§»é™¤", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            
+            MessageBox.Show("ÒÑÒÆ³ı·¢¿¨¹¦ÄÜ£¬ÏµÍ³½öÖ§³ÖÈËÁ³Ê¶±ğ¡£", "¹¦ÄÜÒÑÒÆ³ı", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
-        //UI å‹¾é€‰æ¡†é€»è¾‘ï¼›å…¨é€‰æˆ–å–æ¶ˆ ListView é¡¹çš„ Checked çŠ¶æ€
+        
         private void checkBoxSeleccionarTodos_CheckedChanged(object sender, EventArgs e)
         {
             if (this.listView.Items.Count > 0)
@@ -600,7 +594,7 @@ namespace ControlEntradaSalida
 
         }
     }
-    //ç»“æ„ä½“å®šä¹‰ï¼Œå°è£…ä»è®¾å¤‡è¯»å–çš„ç”¨æˆ·ä¿¡æ¯:å·¥å·ï¼ˆemployeeNumï¼‰ã€å§“åã€ç±»å‹ã€æ˜¯å¦å¯ç”¨ã€èµ·æ­¢æ—¶é—´ã€å¡æ•°ã€äººè„¸æ•°ç­‰
+    
     class EmpleadoData
     {
         public string employeeNum { get; set; }

@@ -310,11 +310,16 @@ namespace ControlEntradaSalida
                     (int)struAcsAlarmInfo.struTime.dwMinute,
                     (int)struAcsAlarmInfo.struTime.dwSecond);
                 
-                string cardNumber = null;
-                if (struAcsAlarmInfo.struAcsEventInfo.byCardNo[0] != 0)
+                // 仅使用人脸识别的工号/员工编号，不再解析卡号
+                string employeeNo = null;
+                try
                 {
-                    cardNumber = System.Text.Encoding.UTF8.GetString(struAcsAlarmInfo.struAcsEventInfo.byCardNo).TrimEnd('\0');
+                    if (struAcsAlarmInfo.struAcsEventInfo.dwEmployeeNo != 0)
+                    {
+                        employeeNo = struAcsAlarmInfo.struAcsEventInfo.dwEmployeeNo.ToString();
+                    }
                 }
+                catch { /* 结构体兼容性保护 */ }
                 
                 // 获取设备ID（轻量级）
                 int deviceId = 0;
@@ -333,7 +338,7 @@ namespace ControlEntradaSalida
                     LogNumber = currentLogNum.ToString(),
                     EventTime = eventTime,
                     EventType = eventType,
-                    EmployeeId = cardNumber,
+                    EmployeeId = employeeNo,
                     DeviceId = deviceId,
                     EmployeeName = null // 员工姓名将在后台异步查询
                 };
