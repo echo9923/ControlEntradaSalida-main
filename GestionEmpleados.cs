@@ -26,6 +26,7 @@ namespace ControlEntradaSalida
         private string url_imagen = null;
         private bool nuevo = true; // 是否为新增员工
         private DataChangeNotifier _notifier;
+        private bool hasAttemptedSubmit = false; // 是否发生过用户提交，用于控制错误提示时机
         
         public bool IsFormVisible => this.Visible;
 
@@ -33,6 +34,101 @@ namespace ControlEntradaSalida
         public GestionEmpleados()
         {
             InitializeComponent();
+
+            // 减少干扰性的闪烁
+            if (this.errorProvider != null)
+            {
+                this.errorProvider.BlinkStyle = ErrorBlinkStyle.NeverBlink;
+            }
+
+            // 用户编辑后清除该控件的错误提示（不做即时必填校验）
+            this.textBoxDocumento.TextChanged += InputControl_Changed;
+            this.textBoxNombreCompleto.TextChanged += InputControl_Changed;
+            this.cmbEstado.SelectedIndexChanged += InputControl_Changed;
+            this.cmbCategoria.SelectedIndexChanged += InputControl_Changed;
+
+            // 窗体显示后，避免自动聚焦到“员工编号”输入框
+            this.Shown += GestionEmpleados_Shown;
+        }
+
+        // 窗体显示后将焦点放到一个非输入控件，避免默认聚焦到员工编号
+        private void GestionEmpleados_Shown(object sender, EventArgs e)
+        {
+            try
+            {
+                // 使用 BeginInvoke 确保在布局完成后设置焦点
+                this.BeginInvoke((Action)(() =>
+                {
+                    if (this.buttonNuevo != null && this.buttonNuevo.CanSelect)
+                    {
+                        this.ActiveControl = this.buttonNuevo;
+                    }
+                    else
+                    {
+                        this.ActiveControl = this; // 退化处理
+                    }
+                }));
+            }
+            catch { }
+        }
+
+        // 任一输入发生变化时，清除该控件上的错误提示
+        private void InputControl_Changed(object sender, EventArgs e)
+        {
+            if (sender is Control c && this.errorProvider != null)
+            {
+                this.errorProvider.SetError(c, string.Empty);
+            }
+        }
+
+        // 统一的提交时必填项校验逻辑
+        private bool ValidateFormOnSubmit(out List<string> errors)
+        {
+            errors = new List<string>();
+            if (this.errorProvider != null)
+            {
+                this.errorProvider.Clear();
+            }
+
+            bool valid = true;
+
+            // 员工编号（文档号）
+            if (string.IsNullOrWhiteSpace(textBoxDocumento.Text))
+            {
+                valid = false;
+                errors.Add("员工编号");
+                if (this.errorProvider != null)
+                    this.errorProvider.SetError(textBoxDocumento, "必填");
+            }
+
+            // 姓名（完整姓名）
+            if (string.IsNullOrWhiteSpace(textBoxNombreCompleto.Text))
+            {
+                valid = false;
+                errors.Add("姓名");
+                if (this.errorProvider != null)
+                    this.errorProvider.SetError(textBoxNombreCompleto, "必填");
+            }
+
+            // 状态
+            if (cmbEstado.SelectedItem == null || string.IsNullOrWhiteSpace(cmbEstado.SelectedItem.ToString()))
+            {
+                valid = false;
+                errors.Add("状态");
+                if (this.errorProvider != null)
+                    this.errorProvider.SetError(cmbEstado, "必选");
+            }
+
+            // 类别
+            if (cmbCategoria.SelectedItem == null || string.IsNullOrWhiteSpace(cmbCategoria.SelectedItem.ToString()))
+            {
+                valid = false;
+                errors.Add("类别");
+                if (this.errorProvider != null)
+                    this.errorProvider.SetError(cmbCategoria, "必选");
+            }
+
+            return valid;
         }
         
         // 获取当前连接设备的UserID
@@ -928,6 +1024,8 @@ namespace ControlEntradaSalida
         // 文档号验证事件
         private void textBoxDocumento_Validating(object sender, System.ComponentModel.CancelEventArgs e)
         {
+            e.Cancel = false;
+            return;
             if (string.IsNullOrWhiteSpace(textBoxDocumento.Text))
             {
                 e.Cancel = true;
@@ -938,6 +1036,8 @@ namespace ControlEntradaSalida
         // 姓名验证事件
         private void textBoxNombreCompleto_Validating(object sender, System.ComponentModel.CancelEventArgs e)
         {
+            e.Cancel = false;
+            return;
             if (string.IsNullOrWhiteSpace(textBoxNombreCompleto.Text))
             {
                 e.Cancel = true;
@@ -948,12 +1048,16 @@ namespace ControlEntradaSalida
         // 状态选择事件
         private void cmbEstado_SelectedIndexChanged(object sender, EventArgs e)
         {
+            if (this.errorProvider != null)
+                this.errorProvider.SetError(cmbEstado, string.Empty);
             // 状态选择改变时的处理逻辑
         }
 
         // 状态验证事件
         private void cmbEstado_Validating(object sender, System.ComponentModel.CancelEventArgs e)
         {
+            e.Cancel = false;
+            return;
             if (cmbEstado.SelectedItem == null || string.IsNullOrWhiteSpace(cmbEstado.SelectedItem.ToString()))
             {
                 e.Cancel = true;
@@ -964,12 +1068,16 @@ namespace ControlEntradaSalida
         // 类别选择事件
         private void cmbCategoria_SelectedIndexChanged(object sender, EventArgs e)
         {
+            if (this.errorProvider != null)
+                this.errorProvider.SetError(cmbCategoria, string.Empty);
             // 类别选择改变时的处理逻辑
         }
 
         // 类别验证事件
         private void cmbCategoria_Validating(object sender, System.ComponentModel.CancelEventArgs e)
         {
+            e.Cancel = false;
+            return;
             if (cmbCategoria.SelectedItem == null || string.IsNullOrWhiteSpace(cmbCategoria.SelectedItem.ToString()))
             {
                 e.Cancel = true;
@@ -980,9 +1088,17 @@ namespace ControlEntradaSalida
         //"保存"按钮相应，同时在设备和数据库中更新
         private void buttonAgregar_Click(object sender, EventArgs e)
         {
-
-            if (!ValidarDocumento() || !ValidarEstado() || !ValidarNombreCompleto() || !ValidarCategoria())
+            hasAttemptedSubmit = true;
+            List<string> errors;
+            if (!ValidateFormOnSubmit(out errors))
+            {
+                if (errors != null && errors.Count > 0)
+                {
+                    string summary = "请完善以下必填项：\n - " + string.Join("\n - ", errors);
+                    MessageBox.Show(summary, "验证错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
                 return;
+            }
 
             string msg;
             bool retval;
