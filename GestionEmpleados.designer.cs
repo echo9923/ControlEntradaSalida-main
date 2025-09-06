@@ -34,14 +34,11 @@ namespace ControlEntradaSalida
             this.label4 = new System.Windows.Forms.Label();
             this.cmbCategoria = new System.Windows.Forms.ComboBox();
             this.buttonFiltrar = new System.Windows.Forms.Button();
-            this.label6 = new System.Windows.Forms.Label();
-            this.textBoxTarjeta = new System.Windows.Forms.TextBox();
             this.cmbEstado = new System.Windows.Forms.ComboBox();
             this.label10 = new System.Windows.Forms.Label();
             this.listView = new System.Windows.Forms.ListView();
             this.documento = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.estado = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
-            this.tarjeta = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.nombres = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.apellidos = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.foto = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
@@ -66,8 +63,6 @@ namespace ControlEntradaSalida
             this.groupBox.Controls.Add(this.label4);
             this.groupBox.Controls.Add(this.cmbCategoria);
             this.groupBox.Controls.Add(this.buttonFiltrar);
-            this.groupBox.Controls.Add(this.label6);
-            this.groupBox.Controls.Add(this.textBoxTarjeta);
             this.groupBox.Controls.Add(this.cmbEstado);
             this.groupBox.Controls.Add(this.label10);
             this.groupBox.Controls.Add(this.listView);
@@ -126,25 +121,6 @@ namespace ControlEntradaSalida
             this.buttonFiltrar.UseVisualStyleBackColor = true;
             this.buttonFiltrar.Click += new System.EventHandler(this.buttonFiltrar_Click);
             // 
-            // label6
-            // 
-            this.label6.AutoSize = true;
-            this.label6.Location = new System.Drawing.Point(707, 18);
-            this.label6.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
-            this.label6.Name = "label6";
-            this.label6.Size = new System.Drawing.Size(37, 15);
-            this.label6.TabIndex = 28;
-            this.label6.Text = "卡号";
-            // 
-            // textBoxTarjeta
-            // 
-            this.textBoxTarjeta.Location = new System.Drawing.Point(711, 39);
-            this.textBoxTarjeta.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
-            this.textBoxTarjeta.Name = "textBoxTarjeta";
-            this.textBoxTarjeta.ReadOnly = true;
-            this.textBoxTarjeta.Size = new System.Drawing.Size(259, 25);
-            this.textBoxTarjeta.TabIndex = 3;
-            // 
             // cmbEstado
             // 
             this.cmbEstado.Enabled = true;
@@ -177,7 +153,6 @@ namespace ControlEntradaSalida
             this.listView.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
             this.documento,
             this.estado,
-            this.tarjeta,
             this.nombres,
             this.apellidos,
             this.foto,
@@ -202,11 +177,6 @@ namespace ControlEntradaSalida
             // estado
             // 
             this.estado.Text = "状态";
-            // 
-            // tarjeta
-            // 
-            this.tarjeta.Text = "卡号";
-            this.tarjeta.Width = 74;
             // 
             // nombres
             // 
@@ -371,7 +341,6 @@ namespace ControlEntradaSalida
         private System.Windows.Forms.PictureBox pictureBoxUsuario;
         private System.Windows.Forms.ListView listView;
         private System.Windows.Forms.ColumnHeader documento;
-        private System.Windows.Forms.ColumnHeader tarjeta;
         private System.Windows.Forms.ColumnHeader nombres;
         private System.Windows.Forms.ColumnHeader apellidos;
         private System.Windows.Forms.Button buttonNuevo;
@@ -383,8 +352,6 @@ namespace ControlEntradaSalida
         private System.Windows.Forms.Label label10;
         private System.Windows.Forms.ColumnHeader estado;
         private System.Windows.Forms.ComboBox cmbEstado;
-        private System.Windows.Forms.Label label6;
-        private System.Windows.Forms.TextBox textBoxTarjeta;
         private System.Windows.Forms.Button buttonFiltrar;
         private System.Windows.Forms.ErrorProvider errorProvider;
         private System.Windows.Forms.Label label4;

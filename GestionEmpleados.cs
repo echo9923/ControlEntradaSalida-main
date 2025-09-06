@@ -23,7 +23,6 @@ namespace ControlEntradaSalida
         private string url_imagen = null;
         private bool nuevo = true; // 是否为新增员工
         private DataChangeNotifier _notifier;
-        private bool hasAttemptedSubmit = false; // 是否发生过用户提交，用于控制错误提示时机
         
         public bool IsFormVisible => this.Visible;
 
@@ -47,15 +46,7 @@ namespace ControlEntradaSalida
             // 窗体显示后，避免自动聚焦到“员工编号”输入框
             this.Shown += GestionEmpleados_Shown;
 
-            // 运行时隐藏卡号相关控件
-            try
-            {
-                if (this.textBoxTarjeta != null)
-                {
-                    this.textBoxTarjeta.Visible = false;
-                }
-            }
-            catch { }
+            // 运行时移除卡号相关功能后，不再需要隐藏卡号控件
         }
 
         // 窗体显示后将焦点放到一个非输入控件，避免默认聚焦到员工编号
@@ -255,145 +246,6 @@ namespace ControlEntradaSalida
             Marshal.FreeHGlobal(ptrStruCond);
         }
 
-        //初始化卡片配置,启动下发流程
-        public bool CrearUsuarioSDK(string numtarjeta, string permisostarjeta, string numerousuario, string nombreusuario)
-        {
-            return false;
-#if false
-            bool retval = false;
-            if (m_lSetCardCfgHandle != -1)
-            {
-                if (HCNetSDK_Tarjeta.NET_DVR_StopRemoteConfig(m_lSetCardCfgHandle))
-                {
-                    m_lSetCardCfgHandle = -1;
-                }
-            }
-
-            HCNetSDK_Tarjeta.NET_DVR_CARD_COND struCond = new HCNetSDK_Tarjeta.NET_DVR_CARD_COND();
-            struCond.Init();
-            struCond.dwSize = (uint)Marshal.SizeOf(struCond);
-            struCond.dwCardNum = 1;
-            IntPtr ptrStruCond = Marshal.AllocHGlobal((int)struCond.dwSize);
-            Marshal.StructureToPtr(struCond, ptrStruCond, false);
-
-            m_lSetCardCfgHandle = HCNetSDK_Tarjeta.NET_DVR_StartRemoteConfig(GetConnectedDeviceUserID(), HCNetSDK_Tarjeta.NET_DVR_SET_CARD, ptrStruCond, (int)struCond.dwSize, null, IntPtr.Zero);
-            if (m_lSetCardCfgHandle < 0)
-            {
-                MessageBox.Show("NET_DVR_SET_CARD error:" + HCNetSDK_Tarjeta.NET_DVR_GetLastError());
-                Marshal.FreeHGlobal(ptrStruCond);                
-                return retval;
-            }
-            else
-            {
-                bool result;
-                result = EnviarDatosTarjeta(numtarjeta, permisostarjeta, numerousuario, nombreusuario);
-                if (result)
-                    retval = true;
-                Marshal.FreeHGlobal(ptrStruCond);
-            }
-            return retval;
- #endif
-        }
-        //构建卡片数据，设置有效期、门权限，并调用SDK下发至设备
-        private bool EnviarDatosTarjeta(string numtarjeta, string permisostarjeta, string numerousuario, string nombreusuario)
-        {
-            return false;
-#if false
-            bool retval = false;
-            HCNetSDK_Tarjeta.NET_DVR_CARD_RECORD struData = new HCNetSDK_Tarjeta.NET_DVR_CARD_RECORD();
-            struData.Init();
-            struData.dwSize = (uint)Marshal.SizeOf(struData);
-            struData.byCardType = 1;
-            byte[] byTempCardNo = new byte[HCNetSDK_Tarjeta.ACS_CARD_NO_LEN];
-            byTempCardNo = System.Text.Encoding.UTF8.GetBytes(numtarjeta);
-            for (int i = 0; i < byTempCardNo.Length; i++)
-            {
-                struData.byCardNo[i] = byTempCardNo[i];
-            }
-            ushort.TryParse(permisostarjeta, out struData.wCardRightPlan[0]);
-            uint.TryParse(numerousuario, out struData.dwEmployeeNo);
-            byte[] byTempName = new byte[HCNetSDK_Tarjeta.NAME_LEN];
-            byTempName = System.Text.Encoding.Default.GetBytes(nombreusuario);
-            for (int i = 0; i < byTempName.Length; i++)
-            {
-                struData.byName[i] = byTempName[i];
-            }
-            //用户有效期
-            struData.struValid.byEnable = 1;
-            struData.struValid.struBeginTime.wYear = 2000;
-            struData.struValid.struBeginTime.byMonth = 1;
-            struData.struValid.struBeginTime.byDay = 1;
-            struData.struValid.struBeginTime.byHour = 11;
-            struData.struValid.struBeginTime.byMinute = 11;
-            struData.struValid.struBeginTime.bySecond = 11;
-            struData.struValid.struEndTime.wYear = 2030;
-            struData.struValid.struEndTime.byMonth = 1;
-            struData.struValid.struEndTime.byDay = 1;
-            struData.struValid.struEndTime.byHour = 11;
-            struData.struValid.struEndTime.byMinute = 11;
-            struData.struValid.struEndTime.bySecond = 11;
-            //门禁的许可证
-            struData.byDoorRight[0] = 1;
-            struData.wCardRightPlan[0] = 1;
-            IntPtr ptrStruData = Marshal.AllocHGlobal((int)struData.dwSize);
-            Marshal.StructureToPtr(struData, ptrStruData, false);
-
-            HCNetSDK_Tarjeta.NET_DVR_CARD_STATUS struStatus = new HCNetSDK_Tarjeta.NET_DVR_CARD_STATUS();
-            struStatus.Init();
-            struStatus.dwSize = (uint)Marshal.SizeOf(struStatus);
-            IntPtr ptrdwState = Marshal.AllocHGlobal((int)struStatus.dwSize);
-            Marshal.StructureToPtr(struStatus, ptrdwState, false);
-
-            int dwState = (int)HCNetSDK_Tarjeta.NET_SDK_SENDWITHRECV_STATUS.NET_SDK_CONFIG_STATUS_SUCCESS;
-            uint dwReturned = 0;
-            while (true)
-            {
-                dwState = HCNetSDK_Tarjeta.NET_DVR_SendWithRecvRemoteConfig(m_lSetCardCfgHandle, ptrStruData, struData.dwSize, ptrdwState, struStatus.dwSize, ref dwReturned);
-                struStatus = (HCNetSDK_Tarjeta.NET_DVR_CARD_STATUS)Marshal.PtrToStructure(ptrdwState, typeof(HCNetSDK_Tarjeta.NET_DVR_CARD_STATUS));
-                if (dwState == (int)HCNetSDK_Tarjeta.NET_SDK_SENDWITHRECV_STATUS.NET_SDK_CONFIG_STATUS_NEEDWAIT)
-                {
-                    Thread.Sleep(10);
-                    continue;
-                }
-                else if (dwState == (int)HCNetSDK_Tarjeta.NET_SDK_SENDWITHRECV_STATUS.NET_SDK_CONFIG_STATUS_FAILED)
-                {
-                    MessageBox.Show("NET_DVR_SET_CARD fail error: " + HCNetSDK_Tarjeta.NET_DVR_GetLastError());
-                }
-                else if (dwState == (int)HCNetSDK_Tarjeta.NET_SDK_SENDWITHRECV_STATUS.NET_SDK_CONFIG_STATUS_SUCCESS)
-                {
-                    if (struStatus.dwErrorCode != 0)
-                    {
-                        MessageBox.Show("NET_DVR_SET_CARD success but errorCode:" + struStatus.dwErrorCode);
-                    }
-                    else
-                    {
-                        //MessageBox.Show("NET_DVR_SET_CARD success");
-                        retval = true;
-                    }
-                }
-                else if (dwState == (int)HCNetSDK_Tarjeta.NET_SDK_SENDWITHRECV_STATUS.NET_SDK_CONFIG_STATUS_FINISH)
-                {
-                    //MessageBox.Show("NET_DVR_SET_CARD finish"); 
-                    break;
-                }
-                else if (dwState == (int)HCNetSDK_Tarjeta.NET_SDK_SENDWITHRECV_STATUS.NET_SDK_CONFIG_STATUS_EXCEPTION)
-                {
-                    MessageBox.Show("NET_DVR_SET_CARD exception error: " + HCNetSDK_Tarjeta.NET_DVR_GetLastError());
-                    break;
-                }
-                else
-                {
-                    MessageBox.Show("unknown status error: " + HCNetSDK_Tarjeta.NET_DVR_GetLastError());
-                    break;
-                }
-            }
-            HCNetSDK_Tarjeta.NET_DVR_StopRemoteConfig(m_lSetCardCfgHandle);
-            m_lSetCardCfgHandle = -1;
-            Marshal.FreeHGlobal(ptrStruData);
-            Marshal.FreeHGlobal(ptrdwState);
-            return retval;
-#endif
-        }
         //构建人脸结构并下发设备
         private bool EnviarImagen(string numlectora, string numtarjeta)
         {
@@ -585,11 +437,6 @@ namespace ControlEntradaSalida
             cmn = null;
             
         }
-        //删除设备上的用户卡信息，构造删除数据结构，调用 SDK 循环删除，判断状态
-        public bool EliminarUsuarioDispositivo(string _numero_lectora, string _numero_tarjeta)
-        {
-            return false;
-        }
         //从数据库中查询 employees 表中最大 ID 值
         private int ConsultarUltimoID()
         {
@@ -675,12 +522,12 @@ namespace ControlEntradaSalida
                         {
                             ListViewItem lvi = new ListViewItem(rdr["employee_id"].ToString());//员工编号
                             lvi.SubItems.Add(rdr["status"].ToString()); //状态              
-                            // 不再显示卡号列
                             // 合并显示完整姓名
                             string nombreCompleto = (rdr["first_name"].ToString() + " " + rdr["last_name"].ToString()).Trim();
                             lvi.SubItems.Add(nombreCompleto);//完整姓名
                             lvi.SubItems.Add("");//姓氏字段留空
-                            lvi.SubItems.Add(rdr["photo_path"].ToString());    //照片              
+                            lvi.SubItems.Add(rdr["photo_path"].ToString());    //照片  
+                            lvi.SubItems.Add("normal"); // 默认类别              
                             listView.Items.Add(lvi);
                             lvi = null;
                         }
@@ -726,7 +573,7 @@ namespace ControlEntradaSalida
                     
                     MySqlCommand cmd = new MySqlCommand(sql, bd.conn);
                     cmd.Parameters.AddWithValue("@employee_id", this.textBoxDocumento.Text);//员工编号
-                    cmd.Parameters.AddWithValue("@card_number", this.textBoxDocumento.Text);//卡号
+                    cmd.Parameters.AddWithValue("@card_number", this.textBoxDocumento.Text);//卡号设置为与员工编号相同，但不再用于刷卡认证
                     cmd.Parameters.AddWithValue("@first_name", nombre);//名字
                     cmd.Parameters.AddWithValue("@last_name", apellido);//姓氏
                     cmd.Parameters.AddWithValue("@photo_path", this.url_imagen);//照片路径
@@ -783,10 +630,10 @@ namespace ControlEntradaSalida
             {
                 ListViewItem item = this.listView.SelectedItems[0];
                 item.SubItems[1].Text = cmbEstado.Text;
-                item.SubItems[3].Text = this.textBoxNombreCompleto.Text; // 显示完整姓名
-                item.SubItems[4].Text = ""; // 姓氏字段留空
-                item.SubItems[5].Text = "";
-                item.SubItems[6].Text = cmbCategoria.Text;
+                item.SubItems[2].Text = this.textBoxNombreCompleto.Text; // 显示完整姓名
+                item.SubItems[3].Text = ""; // 姓氏字段留空
+                item.SubItems[4].Text = "";
+                item.SubItems[5].Text = cmbCategoria.Text;
             }
         }
         //更新数据库中员工信息（姓名、状态、修改时间）
@@ -956,24 +803,14 @@ namespace ControlEntradaSalida
         private void textBoxDocumento_Validating(object sender, System.ComponentModel.CancelEventArgs e)
         {
             e.Cancel = false;
-            return;
-            if (string.IsNullOrWhiteSpace(textBoxDocumento.Text))
-            {
-                e.Cancel = true;
-                MessageBox.Show("请输入文档号", "验证错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
+            // 验证逻辑已禁用，避免干扰用户输入体验
         }
 
         // 姓名验证事件
         private void textBoxNombreCompleto_Validating(object sender, System.ComponentModel.CancelEventArgs e)
         {
             e.Cancel = false;
-            return;
-            if (string.IsNullOrWhiteSpace(textBoxNombreCompleto.Text))
-            {
-                e.Cancel = true;
-                MessageBox.Show("请输入姓名", "验证错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
+            // 验证逻辑已禁用，避免干扰用户输入体验
         }
 
         // 状态选择事件
@@ -988,12 +825,7 @@ namespace ControlEntradaSalida
         private void cmbEstado_Validating(object sender, System.ComponentModel.CancelEventArgs e)
         {
             e.Cancel = false;
-            return;
-            if (cmbEstado.SelectedItem == null || string.IsNullOrWhiteSpace(cmbEstado.SelectedItem.ToString()))
-            {
-                e.Cancel = true;
-                MessageBox.Show("请选择状态", "验证错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
+            // 验证逻辑已禁用，避免干扰用户输入体验
         }
 
         // 类别选择事件
@@ -1008,18 +840,12 @@ namespace ControlEntradaSalida
         private void cmbCategoria_Validating(object sender, System.ComponentModel.CancelEventArgs e)
         {
             e.Cancel = false;
-            return;
-            if (cmbCategoria.SelectedItem == null || string.IsNullOrWhiteSpace(cmbCategoria.SelectedItem.ToString()))
-            {
-                e.Cancel = true;
-                MessageBox.Show("请选择类别", "验证错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
+            // 验证逻辑已禁用，避免干扰用户输入体验
         }
 
         //"保存"按钮相应，同时在设备和数据库中更新
         private void buttonAgregar_Click(object sender, EventArgs e)
         {
-            hasAttemptedSubmit = true;
             List<string> errors;
             if (!ValidateFormOnSubmit(out errors))
             {
@@ -1050,7 +876,6 @@ namespace ControlEntradaSalida
             }
             if (retval)
             {
-                bool resultcrear = false;
                 bool resultenviar = false;
                 string nombrecompleto = this.textBoxNombreCompleto.Text;
                 if (nombrecompleto.Length > 30)
@@ -1060,15 +885,13 @@ namespace ControlEntradaSalida
 
                 if (nuevo)//如果是新增员工
                 {
-                    // 刷卡下发已移除：不再创建卡片用户
-                    resultcrear = false;
 
                     if (this.pictureBoxUsuario.Image != null)
                         resultenviar = EnviarImagen("1", this.textBoxDocumento.Text);//上传人脸图片
                     else
                         resultenviar = true;
 
-                    if (resultcrear && resultenviar)
+                    if (resultenviar)
                     {
                         InsertarUsuario();// 插入数据库
                         AddUserToListView();//更新 UI界面列表
@@ -1229,31 +1052,20 @@ namespace ControlEntradaSalida
                     foreach (ListViewItem item in itemColl) 
                     {
                         string documento = item.Text;
-                        bool result = false;
-                        // 刷卡删除已移除：不再删除设备上卡信息
-                        result = false;
+                        bool result = EliminarUsuario(documento);//从数据库中删除
                         if (result)
                         {
-                            result = EliminarUsuario(documento);//从数据库中删除
-                            if (result)
-                            {
-                                // 通知其他界面员工数据已变更
-                                string nombreCompleto = item.SubItems.Count > 3 ? item.SubItems[3].Text : "未知";
-                                _notifier?.NotifyEmployeeDataChanged(
-                                    documento,
-                                    nombreCompleto,
-                                    EmployeeChangeType.Deleted,
-                                    this.GetType().Name);
-                                /*result = EliminarImagen(item.SubItems[5].Text);
-                                if (!result)
-                                {
-                                    MessageBox.Show("No se pudo eliminar la imagen del usuario: " + url_imagen + " por favor revise.", "Eliminar usuario", MessageBoxButtons.OK);
-                                }*/
-                            }
-                            else
-                            {
-                                MessageBox.Show("设备上的用户已被删除，但未能从MySQL数据库中删除，请检查", "删除用户", MessageBoxButtons.OK);
-                            }
+                            // 通知其他界面员工数据已变更
+                            string nombreCompleto = item.SubItems.Count > 3 ? item.SubItems[3].Text : "未知";
+                            _notifier?.NotifyEmployeeDataChanged(
+                                documento,
+                                nombreCompleto,
+                                EmployeeChangeType.Deleted,
+                                this.GetType().Name);
+                        }
+                        else
+                        {
+                            MessageBox.Show("未能从数据库中删除员工信息，请检查", "删除用户", MessageBoxButtons.OK);
                         }                  
                     }
                     LimpiarControles(true);//重置界面状态
@@ -1404,9 +1216,8 @@ namespace ControlEntradaSalida
                 ListViewItem item = listView.SelectedItems[0];
                 this.textBoxDocumento.Text = item.SubItems[0].Text;
                 this.cmbEstado.Text = item.SubItems[1].Text;
-                // 刷卡功能移除：不再处理卡号字段
-                this.textBoxNombreCompleto.Text = item.SubItems[3].Text;
-                this.cmbCategoria.Text = item.SubItems[6].Text;
+                this.textBoxNombreCompleto.Text = item.SubItems[2].Text;
+                this.cmbCategoria.Text = item.SubItems[5].Text;
                 this.textBoxDocumento.Enabled = false;
                 //this.pictureBoxUsuario.ImageLocation = item.SubItems[5].Text;
                 //this.url_imagen = item.SubItems[5].Text;
@@ -1453,15 +1264,14 @@ namespace ControlEntradaSalida
 
                         while (rdr.Read())
                         {
-                            
                             ListViewItem lvi = new ListViewItem(rdr["employee_id"].ToString());
                             lvi.SubItems.Add(rdr["status"].ToString());
-                            // 不再显示卡号列
                             // 合并显示完整姓名
                             string nombreCompleto = (rdr["first_name"].ToString() + " " + rdr["last_name"].ToString()).Trim();
                             lvi.SubItems.Add(nombreCompleto);
                             lvi.SubItems.Add(""); // 姓氏字段留空
                             lvi.SubItems.Add(rdr["photo_path"].ToString());
+                            lvi.SubItems.Add("normal"); // 默认类别
                             listView.Items.Add(lvi);
                             lvi = null;
                         }

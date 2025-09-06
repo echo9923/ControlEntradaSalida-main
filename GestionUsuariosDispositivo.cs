@@ -89,61 +89,10 @@ namespace ControlEntradaSalida
             return retval;
         }
 
-        //向设备添加用户卡片（卡号与员工编号相同）
+        //该功能已移除：不再在设备上创建虚拟卡片
         private bool AgregarTarjetaUsuario(string id)
         {
             return false;
-#if false
-            bool retval = false;            
-            string url = "POST /ISAPI/AccessControl/CardInfo/Record?format=json";
-            string CardInfo = "{{\"CardInfo\" : {{\"employeeNo\": \"{0}\",\"cardNo\": \"{0}\",\"cardType\": \"normalCard\",\"checkCardNo\": true }}}}";
-            string CardInfoValues = String.Format(CardInfo, id);
-
-            string outputString = null;
-            string outputStatus = null;
-            Common cmn = new Common();
-            string jsonresult = "";
-
-            bool result = cmn.ISAPIQuery(GetConnectedDeviceUserID(), url, CardInfoValues, out outputString, out outputStatus);//向设备发送 JSON 请求，并获取结果
-            bool flag = true;
-            if (result)
-            {
-                jsonresult = outputString;
-                
-            }
-            else
-            {
-                jsonresult = outputStatus;
-                flag = false;
-
-            }
-
-            string statusCode = "";
-            string subStatusCode = "";
-            string statusString = "";
-            try
-            {
-                dynamic DynamicData = JsonConvert.DeserializeObject(jsonresult);
-                statusCode = DynamicData.statusCode;
-                subStatusCode = DynamicData.subStatusCode;
-                statusString = DynamicData.statusString;
-
-                if (statusCode == "1" && statusString == "OK" && subStatusCode == "ok")
-                {
-                    retval = true;
-                }
-            } catch
-            {
-                MessageBox.Show("处理在 AgregarTarjetaUsuario() 中查询 ISAPI 的 JSON 响应时发生错误", "JSON解析错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                return false;
-            }
-
-            if (!flag)
-                MessageBox.Show("在添加用户卡时尝试 ISAPI 查询时发生错误。状态代码： " + statusCode + " 子状态代码: " + subStatusCode + " 状态字符串：" + statusString, "ISAPI查询错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
-
-            return retval;
-
-#endif
         }
 
         //查询所有设备上注册的用户（分页批量）,每次最多返回 5000 个员工信息列表
@@ -561,10 +510,10 @@ namespace ControlEntradaSalida
                 }
             }*/
         }
-        //给设备中没有卡片的用户自动添加卡
+        //功能已移除：原用于给设备中的用户添加卡片，现仅显示提示信息
         private void buttonAgregarTarjeta_Click(object sender, EventArgs e)
         {
-            // 刷卡相关操作已移除
+            // 系统已转为仅支持人脸识别认证，不再支持刷卡操作
             MessageBox.Show("已移除发卡功能，系统仅支持人脸识别。", "功能已移除", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
         //UI 勾选框逻辑；全选或取消 ListView 项的 Checked 状态
@@ -609,7 +558,7 @@ namespace ControlEntradaSalida
         public string validEnable { get; set; }
         public string beginTime { get; set; }
         public string endTime { get; set; }
-        public string numOfCard {get; set;}
+        public string numOfCard { get; set; }  // 保留字段但不再用于刷卡功能
         public string numOfFace { get; set; }
 
         public EmpleadoData()
@@ -620,7 +569,7 @@ namespace ControlEntradaSalida
             this.validEnable = null;
             this.beginTime = null;
             this.endTime = null;
-            this.numOfCard = null;
+            this.numOfCard = null;  // 不再使用卡号信息
             this.numOfFace = null;
         }
     }

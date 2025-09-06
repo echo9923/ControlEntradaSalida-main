@@ -42,39 +42,25 @@ namespace ControlEntradaSalida
     }
 
     /// <summary>
-    /// 读卡器验证方式枚举 - 基于海康威视SDK NET_DVR_ACS_WORK_STATUS_V50.byCardReaderVerifyMode
+    /// 读卡器验证方式枚举 - 已移除所有刷卡相关模式，仅保留人脸和指纹认证
     /// 参考：设备网络SDK编程指南（明眸-以人为中心）
     /// </summary>
     public enum CardReaderVerifyMode : byte
     {
         Invalid = 0,            // 无效
         Sleep = 1,              // 休眠
-        CardAndPassword = 2,    // 刷卡+密码
-        Card = 3,               // 刷卡
-        CardOrPassword = 4,     // 刷卡或密码
         Fingerprint = 5,        // 指纹
         FingerprintAndPassword = 6,  // 指纹+密码
-        FingerprintOrCard = 7,  // 指纹或刷卡
-        FingerprintAndCard = 8, // 指纹+刷卡
-        FingerprintAndCardAndPassword = 9, // 指纹+刷卡+密码
-        FaceOrFingerprintOrCardOrPassword = 10, // 人脸或指纹或刷卡或密码
         FaceAndFingerprint = 11, // 人脸+指纹
         FaceAndPassword = 12,   // 人脸+密码
-        FaceAndCard = 13,       // 人脸+刷卡
         Face = 14,              // 人脸
         EmployeeNoAndPassword = 15, // 工号+密码
         FingerprintOrPassword = 16, // 指纹或密码
         EmployeeNoAndFingerprint = 17, // 工号+指纹
         EmployeeNoAndFingerprintAndPassword = 18, // 工号+指纹+密码
-        FaceAndFingerprintAndCard = 19, // 人脸+指纹+刷卡
         FaceAndPasswordAndFingerprint = 20, // 人脸+密码+指纹
         EmployeeNoAndFace = 21, // 工号+人脸
-        FaceOrFaceAndCard = 22, // 人脸或人脸+刷卡
-        FingerprintOrFace = 23, // 指纹或人脸
-        CardOrFaceOrPassword = 24, // 刷卡或人脸或密码
-        CardOrFace = 25,        // 刷卡或人脸
-        CardOrFaceOrFingerprint = 26, // 刷卡或人脸或指纹
-        CardOrFingerprintOrPassword = 27 // 刷卡或指纹或密码
+        FingerprintOrFace = 23  // 指纹或人脸
     }
 
     /// <summary>

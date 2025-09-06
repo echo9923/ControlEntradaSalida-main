@@ -49,39 +49,25 @@ namespace ControlEntradaSalida
             };
 
         /// <summary>
-        /// 读卡器验证模式描述映射表
+        /// 读卡器验证模式描述映射表 - 已移除所有刷卡相关模式
         /// </summary>
         private static readonly Dictionary<CardReaderVerifyMode, string> CardReaderVerifyModeDescriptions = 
             new Dictionary<CardReaderVerifyMode, string>
             {
                 { CardReaderVerifyMode.Invalid, "无效" },
                 { CardReaderVerifyMode.Sleep, "休眠" },
-                { CardReaderVerifyMode.CardAndPassword, "刷卡+密码" },
-                { CardReaderVerifyMode.Card, "刷卡" },
-                { CardReaderVerifyMode.CardOrPassword, "刷卡或密码" },
                 { CardReaderVerifyMode.Fingerprint, "指纹" },
                 { CardReaderVerifyMode.FingerprintAndPassword, "指纹+密码" },
-                { CardReaderVerifyMode.FingerprintOrCard, "指纹或刷卡" },
-                { CardReaderVerifyMode.FingerprintAndCard, "指纹+刷卡" },
-                { CardReaderVerifyMode.FingerprintAndCardAndPassword, "指纹+刷卡+密码" },
-                { CardReaderVerifyMode.FaceOrFingerprintOrCardOrPassword, "人脸或指纹或刷卡或密码" },
                 { CardReaderVerifyMode.FaceAndFingerprint, "人脸+指纹" },
                 { CardReaderVerifyMode.FaceAndPassword, "人脸+密码" },
-                { CardReaderVerifyMode.FaceAndCard, "人脸+刷卡" },
                 { CardReaderVerifyMode.Face, "人脸" },
                 { CardReaderVerifyMode.EmployeeNoAndPassword, "工号+密码" },
                 { CardReaderVerifyMode.FingerprintOrPassword, "指纹或密码" },
                 { CardReaderVerifyMode.EmployeeNoAndFingerprint, "工号+指纹" },
                 { CardReaderVerifyMode.EmployeeNoAndFingerprintAndPassword, "工号+指纹+密码" },
-                { CardReaderVerifyMode.FaceAndFingerprintAndCard, "人脸+指纹+刷卡" },
                 { CardReaderVerifyMode.FaceAndPasswordAndFingerprint, "人脸+密码+指纹" },
                 { CardReaderVerifyMode.EmployeeNoAndFace, "工号+人脸" },
-                { CardReaderVerifyMode.FaceOrFaceAndCard, "人脸或人脸+刷卡" },
-                { CardReaderVerifyMode.FingerprintOrFace, "指纹或人脸" },
-                { CardReaderVerifyMode.CardOrFaceOrPassword, "刷卡或人脸或密码" },
-                { CardReaderVerifyMode.CardOrFace, "刷卡或人脸" },
-                { CardReaderVerifyMode.CardOrFaceOrFingerprint, "刷卡或人脸或指纹" },
-                { CardReaderVerifyMode.CardOrFingerprintOrPassword, "刷卡或指纹或密码" }
+                { CardReaderVerifyMode.FingerprintOrFace, "指纹或人脸" }
             };
 
         /// <summary>
