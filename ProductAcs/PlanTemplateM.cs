@@ -39,13 +39,6 @@ namespace ControlEntradaSalida
                 m_lUserID = connectedDevices[0].UserID;
             }
 
-            // 运行时移除刷卡相关验证模式选项
-            try
-            {
-                // 本窗体没有 cbDeviceType 控件暴露于此文件，主要移除验证模式项
-                // 若后续增加验证模式选择控件，可在此按需过滤
-            }
-            catch { }
         }
         
         /// <summary>
@@ -99,80 +92,28 @@ namespace ControlEntradaSalida
 
         private void btnGetPT_Click(object sender, EventArgs e)
         {
-            uint dwCommand = 0;
-            string[] strCommand = { "NET_DVR_GET_CARD_RIGHT_PLAN_TEMPLATE_V50", "NET_DVR_GET_VERIFY_PLAN_TEMPLATE", "NET_DVR_GET_DOOR_STATUS_PLAN_TEMPLATE" };
-
+            // 仅支持门状态模式
+            uint dwCommand = (uint)HCNetSDK.NET_DVR_GET_DOOR_STATUS_PLAN_TEMPLATE;
             uint dwReturned = 0;
             string strTemp = null;
             uint dwSize = (uint)Marshal.SizeOf(m_struTemplateCfg);
             IntPtr ptrPlanCfg = Marshal.AllocHGlobal((int)dwSize);
             Marshal.StructureToPtr(m_struTemplateCfg, ptrPlanCfg, false);
 
-            switch (cbDeviceType.SelectedIndex)
+            int templateNumberIndex;
+            int.TryParse(textBoxPTNumber.Text, out templateNumberIndex);
+
+            if (!HCNetSDK.NET_DVR_GetDVRConfig(m_lUserID, dwCommand, templateNumberIndex, ptrPlanCfg, dwSize, ref dwReturned))
             {
-                case 1:
-                case 2:
-                    if (cbDeviceType.SelectedIndex == 2)
-                    {
-                        dwCommand = (uint)HCNetSDK.NET_DVR_GET_DOOR_STATUS_PLAN_TEMPLATE;
-                    }
-                    else
-                    {
-                        dwCommand = (uint)HCNetSDK.NET_DVR_GET_VERIFY_PLAN_TEMPLATE;
-                    }
-
-                    int templateNumberIndex;
-                    int.TryParse(textBoxPTNumber.Text, out templateNumberIndex);
-
-                    if (!HCNetSDK.NET_DVR_GetDVRConfig(m_lUserID, dwCommand, templateNumberIndex, ptrPlanCfg, dwSize, ref dwReturned))
-                    {
-                        Marshal.FreeHGlobal(ptrPlanCfg);
-                        strTemp = string.Format("{0} FAIL, ERROR CODE {1}", strCommand[cbDeviceType.SelectedIndex], HCNetSDK.NET_DVR_GetLastError());
-                        MessageBox.Show(strTemp);
-                        return;
-                    }
-                    else
-                    {
-                        strTemp = string.Format("{0} Succ", strCommand[cbDeviceType.SelectedIndex]);
-                        MessageBox.Show(strTemp);
-                    }
-                    break;
-                case 0:
-                    dwCommand = (uint)HCNetSDK.NET_DVR_GET_CARD_RIGHT_PLAN_TEMPLATE_V50;
-                    uint dwConSize = (uint)Marshal.SizeOf(m_struTemplateCond);
-                    m_struTemplateCond.dwSize = dwConSize;
-
-                    // limited input data guarantee parse success
-                    uint.TryParse(textBoxPTNumber.Text, out m_struTemplateCond.dwPlanTemplateNumber);
-                    ushort.TryParse(textBoxLCID.Text, out m_struTemplateCond.wLocalControllerID);
-
-                    IntPtr ptrPlanCon = Marshal.AllocHGlobal((int)dwConSize);
-                    Marshal.StructureToPtr(m_struTemplateCond, ptrPlanCon, false);
-                    IntPtr ptrDwReturned = Marshal.AllocHGlobal(4);
-
-                    if (!HCNetSDK.NET_DVR_GetDeviceConfig(m_lUserID, dwCommand, 1, ptrPlanCon, dwConSize, ptrDwReturned, ptrPlanCfg, dwSize))
-                    {
-                        Marshal.FreeHGlobal(ptrPlanCfg);
-                        Marshal.FreeHGlobal(ptrPlanCon);
-                        Marshal.FreeHGlobal(ptrDwReturned);
-                        strTemp = string.Format("{0} FAIL, ERROR CODE {1}", strCommand[cbDeviceType.SelectedIndex], HCNetSDK.NET_DVR_GetLastError());
-                        MessageBox.Show(strTemp);
-                        return;
-                    }
-                    else
-                    {
-                        dwReturned = (uint)Marshal.ReadInt32(ptrDwReturned);
-                        Marshal.FreeHGlobal(ptrDwReturned);
-                        Marshal.FreeHGlobal(ptrPlanCon);
-                        strTemp = string.Format("{0} Succ", strCommand[cbDeviceType.SelectedIndex]);
-                        MessageBox.Show(strTemp);
-                    }
-
-                    break;
-                default:
-                    Marshal.FreeHGlobal(ptrPlanCfg);
-                    MessageBox.Show("unknown command");
-                    return;
+                Marshal.FreeHGlobal(ptrPlanCfg);
+                strTemp = string.Format("{0} 失败, 错误码 {1}", "NET_DVR_GET_DOOR_STATUS_PLAN_TEMPLATE", HCNetSDK.NET_DVR_GetLastError());
+                MessageBox.Show(strTemp);
+                return;
+            }
+            else
+            {
+                strTemp = string.Format("{0} 成功", "NET_DVR_GET_DOOR_STATUS_PLAN_TEMPLATE");
+                MessageBox.Show(strTemp);
             }
 
             m_struTemplateCfg = (HCNetSDK.NET_DVR_PLAN_TEMPLATE)Marshal.PtrToStructure(ptrPlanCfg, typeof(HCNetSDK.NET_DVR_PLAN_TEMPLATE));
@@ -196,9 +137,8 @@ namespace ControlEntradaSalida
 
         private void btnSetPT_Click(object sender, EventArgs e)
         {
-            uint dwCommand = 0;
-            string[] strCommand = { "NET_DVR_SET_CARD_RIGHT_PLAN_TEMPLATE_V50", "NET_DVR_SET_VERIFY_PLAN_TEMPLATE", "NET_DVR_SET_DOOR_STATUS_PLAN_TEMPLATE" };
-
+            // 仅支持门状态模式
+            uint dwCommand = (uint)HCNetSDK.NET_DVR_SET_DOOR_STATUS_PLAN_TEMPLATE;
             uint dwReturned = 0;
             string strTemp = null;
 
@@ -239,72 +179,23 @@ namespace ControlEntradaSalida
             IntPtr ptrPlanCfg = Marshal.AllocHGlobal((int)dwSize);
             Marshal.StructureToPtr(m_struTemplateCfg, ptrPlanCfg, false);
 
-            switch (cbDeviceType.SelectedIndex)
+
+            int templateNumberIndex;
+            int.TryParse(textBoxPTNumber.Text, out templateNumberIndex);
+
+            if (!HCNetSDK.NET_DVR_SetDVRConfig(m_lUserID, dwCommand, templateNumberIndex, ptrPlanCfg, dwSize))
             {
-                case 1:
-                case 2:
-                    if (cbDeviceType.SelectedIndex == 2)
-                    {
-                        dwCommand = (uint)HCNetSDK.NET_DVR_SET_DOOR_STATUS_PLAN_TEMPLATE;
-                    }
-                    else
-                    {
-                        dwCommand = (uint)HCNetSDK.NET_DVR_SET_VERIFY_PLAN_TEMPLATE;
-                    }
-
-                    int templateNumberIndex;
-                    int.TryParse(textBoxPTNumber.Text, out templateNumberIndex);
-
-                    if (!HCNetSDK.NET_DVR_SetDVRConfig(m_lUserID, dwCommand, templateNumberIndex, ptrPlanCfg, dwSize))
-                    {
-                        Marshal.FreeHGlobal(ptrPlanCfg);
-                        strTemp = string.Format("{0} FAIL, ERROR CODE {1}", strCommand[cbDeviceType.SelectedIndex], HCNetSDK.NET_DVR_GetLastError());
-                        MessageBox.Show(strTemp);
-                        return;
-                    }
-                    else
-                    {
-                        strTemp = string.Format("{0} Succ", strCommand[cbDeviceType.SelectedIndex]);
-                        MessageBox.Show(strTemp);
-                    }
-                    break;
-                case 0:
-                    dwCommand = (uint)HCNetSDK.NET_DVR_SET_CARD_RIGHT_PLAN_TEMPLATE_V50;
-                    uint dwConSize = (uint)Marshal.SizeOf(m_struTemplateCond);
-                    m_struTemplateCond.dwSize = dwConSize;
-
-                    // limited input data guarantee parse success
-                    uint.TryParse(textBoxPTNumber.Text, out m_struTemplateCond.dwPlanTemplateNumber);
-                    ushort.TryParse(textBoxLCID.Text, out m_struTemplateCond.wLocalControllerID);
-
-                    IntPtr ptrPlanCon = Marshal.AllocHGlobal((int)dwConSize);
-                    Marshal.StructureToPtr(m_struTemplateCond, ptrPlanCon, false);
-                    IntPtr ptrDwReturned = Marshal.AllocHGlobal(4);
-
-                    if (!HCNetSDK.NET_DVR_SetDeviceConfig(m_lUserID, dwCommand, 1, ptrPlanCon, dwConSize, ptrDwReturned, ptrPlanCfg, dwSize))
-                    {
-                        Marshal.FreeHGlobal(ptrPlanCfg);
-                        Marshal.FreeHGlobal(ptrPlanCon);
-                        Marshal.FreeHGlobal(ptrDwReturned);
-                        strTemp = string.Format("{0} FAIL, ERROR CODE {1}", strCommand[cbDeviceType.SelectedIndex], HCNetSDK.NET_DVR_GetLastError());
-                        MessageBox.Show(strTemp);
-                        return;
-                    }
-                    else
-                    {
-                        dwReturned = (uint)Marshal.ReadInt32(ptrDwReturned);
-                        Marshal.FreeHGlobal(ptrDwReturned);
-                        Marshal.FreeHGlobal(ptrPlanCon);
-                        strTemp = string.Format("{0} Succ", strCommand[cbDeviceType.SelectedIndex]);
-                        MessageBox.Show(strTemp);
-                    }
-
-                    break;
-                default:
-                    Marshal.FreeHGlobal(ptrPlanCfg);
-                    MessageBox.Show("unknown command");
-                    return;
+                Marshal.FreeHGlobal(ptrPlanCfg);
+                strTemp = string.Format("{0} 失败, 错误码 {1}", "NET_DVR_SET_DOOR_STATUS_PLAN_TEMPLATE", HCNetSDK.NET_DVR_GetLastError());
+                MessageBox.Show(strTemp);
+                return;
             }
+            else
+            {
+                strTemp = string.Format("{0} 成功", "NET_DVR_SET_DOOR_STATUS_PLAN_TEMPLATE");
+                MessageBox.Show(strTemp);
+            }
+            
             Marshal.FreeHGlobal(ptrPlanCfg);
         }
 

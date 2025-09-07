@@ -30,8 +30,6 @@ namespace ControlEntradaSalida
         private void InitializeComponent()
         {
             this.groupBox1 = new System.Windows.Forms.GroupBox();
-            this.label8 = new System.Windows.Forms.Label();
-            this.textBoxUltimaVez = new System.Windows.Forms.TextBox();
             this.checkBoxPredeterminado = new System.Windows.Forms.CheckBox();
             this.checkBoxEstado = new System.Windows.Forms.CheckBox();
             this.textBoxID = new System.Windows.Forms.TextBox();
@@ -55,8 +53,6 @@ namespace ControlEntradaSalida
             // 
             // groupBox1
             // 
-            this.groupBox1.Controls.Add(this.label8);
-            this.groupBox1.Controls.Add(this.textBoxUltimaVez);
             this.groupBox1.Controls.Add(this.checkBoxPredeterminado);
             this.groupBox1.Controls.Add(this.checkBoxEstado);
             this.groupBox1.Controls.Add(this.textBoxID);
@@ -79,33 +75,14 @@ namespace ControlEntradaSalida
             this.groupBox1.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.groupBox1.Name = "groupBox1";
             this.groupBox1.Padding = new System.Windows.Forms.Padding(3, 2, 3, 2);
-            this.groupBox1.Size = new System.Drawing.Size(264, 324);
+            this.groupBox1.Size = new System.Drawing.Size(264, 294);
             this.groupBox1.TabIndex = 0;
             this.groupBox1.TabStop = false;
-            // 
-            // label8
-            // 
-            this.label8.AutoSize = true;
-            this.label8.Location = new System.Drawing.Point(5, 242);
-            this.label8.Name = "label8";
-            this.label8.Size = new System.Drawing.Size(53, 12);
-            this.label8.TabIndex = 17;
-            this.label8.Text = "最后登录";
-            // 
-            // textBoxUltimaVez
-            // 
-            this.textBoxUltimaVez.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
-            this.textBoxUltimaVez.Location = new System.Drawing.Point(77, 240);
-            this.textBoxUltimaVez.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
-            this.textBoxUltimaVez.Name = "textBoxUltimaVez";
-            this.textBoxUltimaVez.ReadOnly = true;
-            this.textBoxUltimaVez.Size = new System.Drawing.Size(181, 21);
-            this.textBoxUltimaVez.TabIndex = 18;
             // 
             // checkBoxPredeterminado
             // 
             this.checkBoxPredeterminado.AutoSize = true;
-            this.checkBoxPredeterminado.Location = new System.Drawing.Point(158, 275);
+            this.checkBoxPredeterminado.Location = new System.Drawing.Point(158, 245);
             this.checkBoxPredeterminado.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.checkBoxPredeterminado.Name = "checkBoxPredeterminado";
             this.checkBoxPredeterminado.Size = new System.Drawing.Size(108, 16);
@@ -116,7 +93,7 @@ namespace ControlEntradaSalida
             // checkBoxEstado
             // 
             this.checkBoxEstado.AutoSize = true;
-            this.checkBoxEstado.Location = new System.Drawing.Point(77, 275);
+            this.checkBoxEstado.Location = new System.Drawing.Point(77, 245);
             this.checkBoxEstado.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.checkBoxEstado.Name = "checkBoxEstado";
             this.checkBoxEstado.Size = new System.Drawing.Size(60, 16);
@@ -187,7 +164,7 @@ namespace ControlEntradaSalida
             // 
             this.buttonCancelar.Image = global::ControlEntradaSalida.Properties.Resources.Cancel_grey_16x;
             this.buttonCancelar.ImageAlign = System.Drawing.ContentAlignment.MiddleLeft;
-            this.buttonCancelar.Location = new System.Drawing.Point(169, 296);
+            this.buttonCancelar.Location = new System.Drawing.Point(169, 266);
             this.buttonCancelar.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.buttonCancelar.Name = "buttonCancelar";
             this.buttonCancelar.Size = new System.Drawing.Size(89, 22);
@@ -200,7 +177,7 @@ namespace ControlEntradaSalida
             // 
             this.buttonLogin.Image = global::ControlEntradaSalida.Properties.Resources.Login_16x;
             this.buttonLogin.ImageAlign = System.Drawing.ContentAlignment.MiddleLeft;
-            this.buttonLogin.Location = new System.Drawing.Point(8, 296);
+            this.buttonLogin.Location = new System.Drawing.Point(8, 266);
             this.buttonLogin.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.buttonLogin.Name = "buttonLogin";
             this.buttonLogin.Size = new System.Drawing.Size(89, 22);
@@ -286,7 +263,7 @@ namespace ControlEntradaSalida
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 12F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(286, 340);
+            this.ClientSize = new System.Drawing.Size(286, 310);
             this.Controls.Add(this.groupBox1);
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedDialog;
             this.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
@@ -325,8 +302,6 @@ namespace ControlEntradaSalida
         private System.Windows.Forms.TextBox textBoxID;
         private System.Windows.Forms.Label label7;
         private System.Windows.Forms.CheckBox checkBoxEstado;
-        private System.Windows.Forms.Label label8;
-        private System.Windows.Forms.TextBox textBoxUltimaVez;
         private System.Windows.Forms.CheckBox checkBoxPredeterminado;
     }
 }

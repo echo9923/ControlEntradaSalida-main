@@ -143,14 +143,12 @@ namespace ControlEntradaSalida
             // 
             this.cbDeviceType.FormattingEnabled = true;
             this.cbDeviceType.Items.AddRange(new object[] {
-            "Card",
-            "CardReader",
-            "Door"});
+            "门"});
             this.cbDeviceType.Location = new System.Drawing.Point(108, 13);
             this.cbDeviceType.Name = "cbDeviceType";
             this.cbDeviceType.Size = new System.Drawing.Size(121, 26);
             this.cbDeviceType.TabIndex = 4;
-            this.cbDeviceType.Text = "Card";
+            this.cbDeviceType.Text = "门";
             this.cbDeviceType.SelectedIndexChanged += new System.EventHandler(this.cbDeviceType_SelectedIndexChanged);
             // 
             // gBoxTime
@@ -227,11 +225,11 @@ namespace ControlEntradaSalida
             // 
             this.cbDoorStateMode.FormattingEnabled = true;
             this.cbDoorStateMode.Items.AddRange(new object[] {
-            "Invalid",
-            "Sleep",
-            "Normally Open",
-            "Normally Close",
-            "normalState"});
+            "无效",
+            "睡眠",
+            "常开",
+            "常闭",
+            "正常状态"});
             this.cbDoorStateMode.Location = new System.Drawing.Point(486, 63);
             this.cbDoorStateMode.Name = "cbDoorStateMode";
             this.cbDoorStateMode.Size = new System.Drawing.Size(121, 26);
@@ -241,34 +239,19 @@ namespace ControlEntradaSalida
             // 
             this.cbVerifyMode.FormattingEnabled = true;
             this.cbVerifyMode.Items.AddRange(new object[] {
-            "0-Invalid",
-            "1-card",
-            "2-cardAndPw",
-            "3-card",
-            "4-cardOrPw",
-            "5-Fp",
-            "6-FpAndPw",
-            "7-FpOrCard",
-            "8-FpAndCard",
-            "9-FpAndCardAndPw",
-            "10-faceOrFpOrCardOrPw",
-            "11-faceAndFp",
-            "12-faceAndPw",
-            "13-faceAndCard",
-            "14-face",
-            "15-employeeNoAndPw",
-            "16-FpOrPw",
-            "17-employeeNoAndFp",
-            "18-employeeAndFpAndPw",
-            "19-faceAndFpAndCard",
-            "20-faceAndPwAndFp",
-            "21-empolyeeNoAndFace",
-            "22-faceOrFaceAndCard",
-            "23-FpOrFace",
-            "24-cardOrFaceOrPw",
-            "25-cardOrFace",
-            "26-cardOrFaceOrFp",
-            "27-cardOrFpOrPw"});
+            "0-无效",
+            "5-指纹",
+            "6-指纹+密码",
+            "11-人脸+指纹",
+            "12-人脸+密码",
+            "14-人脸",
+            "15-工号+密码",
+            "16-指纹或密码",
+            "17-工号+指纹",
+            "18-工号+指纹+密码",
+            "20-人脸+密码+指纹",
+            "21-工号+人脸",
+            "23-指纹或人脸"});
             this.cbVerifyMode.Location = new System.Drawing.Point(486, 63);
             this.cbVerifyMode.Name = "cbVerifyMode";
             this.cbVerifyMode.Size = new System.Drawing.Size(121, 26);
@@ -290,7 +273,7 @@ namespace ControlEntradaSalida
             this.label8.Name = "label8";
             this.label8.Size = new System.Drawing.Size(96, 18);
             this.label8.TabIndex = 9;
-            this.label8.Text = "VerifyMode:";
+            this.label8.Text = "验证模式:";
             // 
             // btnAdd
             // 
@@ -372,33 +355,33 @@ namespace ControlEntradaSalida
             // 
             // columnHeader1
             // 
-            this.columnHeader1.Text = "Time Segment";
+            this.columnHeader1.Text = "时间段";
             this.columnHeader1.Width = 123;
             // 
             // columnHeader2
             // 
-            this.columnHeader2.Text = "Enable";
+            this.columnHeader2.Text = "启用";
             this.columnHeader2.Width = 101;
             // 
             // columnHeader3
             // 
-            this.columnHeader3.Text = "Start Time";
+            this.columnHeader3.Text = "开始时间";
             this.columnHeader3.Width = 132;
             // 
             // columnHeader4
             // 
-            this.columnHeader4.Text = "End Time";
+            this.columnHeader4.Text = "结束时间";
             this.columnHeader4.Width = 132;
             // 
             // columnHeader5
             // 
-            this.columnHeader5.Text = "VerifyMode";
+            this.columnHeader5.Text = "验证模式";
             this.columnHeader5.Width = 112;
             // 
             // columnHeader6
             // 
-            this.columnHeader6.Text = "DoorStateMode";
-            this.columnHeader6.Width = 112;
+            this.columnHeader6.Text = "门状态模式";
+            this.columnHeader6.Width = 130;
             // 
             // btnGet
             // 
@@ -433,7 +416,7 @@ namespace ControlEntradaSalida
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedToolWindow;
             this.Name = "HolidayPlan";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
-            this.Text = "HolidayPlan";
+            this.Text = "假日计划";
             this.Load += new System.EventHandler(this.HolidayPlan_Load);
             this.gBox.ResumeLayout(false);
             this.gBox.PerformLayout();

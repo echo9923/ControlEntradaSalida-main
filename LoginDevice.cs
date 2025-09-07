@@ -21,7 +21,7 @@ namespace ControlEntradaSalida
         public string puerto = null;//端口
         public string usuario = null;//用户名
         public string password = null;//密码
-        public string ultimavez = null;//最后登录时间
+        public string ultimavez = null;
         public string predeterminado = null;//是否默认
         public string activo = null;//是否启用
         //初始化窗体
@@ -75,7 +75,6 @@ namespace ControlEntradaSalida
                 this.txtPuerto.Text = this.puerto.ToString();
                 this.txtUsuario.Text = this.usuario.ToString();
                 this.txtContrasena.Text = this.password.ToString();
-                this.textBoxUltimaVez.Text = this.ultimavez.ToString();
 
             } 
        

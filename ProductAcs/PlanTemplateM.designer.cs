@@ -150,14 +150,12 @@ namespace ControlEntradaSalida
             // 
             this.cbDeviceType.FormattingEnabled = true;
             this.cbDeviceType.Items.AddRange(new object[] {
-            "Card",
-            "CardReader",
-            "Door"});
+            "门"});
             this.cbDeviceType.Location = new System.Drawing.Point(103, 15);
             this.cbDeviceType.Name = "cbDeviceType";
             this.cbDeviceType.Size = new System.Drawing.Size(78, 26);
             this.cbDeviceType.TabIndex = 1;
-            this.cbDeviceType.Text = "Card";
+            this.cbDeviceType.Text = "门";
             // 
             // listViewTemplate
             // 
@@ -177,12 +175,12 @@ namespace ControlEntradaSalida
             // 
             // columnHeader1
             // 
-            this.columnHeader1.Text = "No.";
+            this.columnHeader1.Text = "序号";
             // 
             // columnHeader2
             // 
-            this.columnHeader2.Text = "假日计划组编号No";
-            this.columnHeader2.Width = 150;
+            this.columnHeader2.Text = "假日计划组编号";
+            this.columnHeader2.Width = 160;
             // 
             // groupBox2
             // 
@@ -278,7 +276,7 @@ namespace ControlEntradaSalida
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedToolWindow;
             this.Name = "PlanTemplateM";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
-            this.Text = "PlanTemplateM";
+            this.Text = "计划模板管理";
             this.Load += new System.EventHandler(this.PlanTemplateM_Load);
             this.groupBox1.ResumeLayout(false);
             this.groupBox1.PerformLayout();

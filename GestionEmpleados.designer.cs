@@ -94,7 +94,6 @@ namespace ControlEntradaSalida
             // 
             // cmbCategoria
             // 
-            this.cmbCategoria.Enabled = true;
             this.cmbCategoria.FormattingEnabled = true;
             this.cmbCategoria.Items.AddRange(new object[] {
             "normal",
@@ -109,7 +108,6 @@ namespace ControlEntradaSalida
             // 
             // buttonFiltrar
             // 
-            this.buttonFiltrar.Enabled = true;
             this.buttonFiltrar.Image = global::ControlEntradaSalida.Properties.Resources.Filter_16x;
             this.buttonFiltrar.ImageAlign = System.Drawing.ContentAlignment.MiddleLeft;
             this.buttonFiltrar.Location = new System.Drawing.Point(711, 204);
@@ -123,7 +121,6 @@ namespace ControlEntradaSalida
             // 
             // cmbEstado
             // 
-            this.cmbEstado.Enabled = true;
             this.cmbEstado.FormattingEnabled = true;
             this.cmbEstado.Items.AddRange(new object[] {
             "启用",
@@ -200,7 +197,6 @@ namespace ControlEntradaSalida
             // 
             // buttonNuevo
             // 
-            this.buttonNuevo.Enabled = true;
             this.buttonNuevo.Image = global::ControlEntradaSalida.Properties.Resources.NewItem_16x;
             this.buttonNuevo.ImageAlign = System.Drawing.ContentAlignment.MiddleLeft;
             this.buttonNuevo.Location = new System.Drawing.Point(235, 204);
@@ -214,7 +210,6 @@ namespace ControlEntradaSalida
             // 
             // buttonEliminar
             // 
-            this.buttonEliminar.Enabled = true;
             this.buttonEliminar.Image = global::ControlEntradaSalida.Properties.Resources.DeleteAllRows_16x;
             this.buttonEliminar.ImageAlign = System.Drawing.ContentAlignment.MiddleLeft;
             this.buttonEliminar.Location = new System.Drawing.Point(552, 204);
@@ -228,7 +223,6 @@ namespace ControlEntradaSalida
             // 
             // buttonAgregar
             // 
-            this.buttonAgregar.Enabled = true;
             this.buttonAgregar.Image = global::ControlEntradaSalida.Properties.Resources.Save_grey_16x;
             this.buttonAgregar.ImageAlign = System.Drawing.ContentAlignment.MiddleLeft;
             this.buttonAgregar.Location = new System.Drawing.Point(393, 204);
@@ -242,7 +236,6 @@ namespace ControlEntradaSalida
             // 
             // buttonCapturarFoto
             // 
-            this.buttonCapturarFoto.Enabled = true;
             this.buttonCapturarFoto.Image = global::ControlEntradaSalida.Properties.Resources.CaptureFrame_16x;
             this.buttonCapturarFoto.ImageAlign = System.Drawing.ContentAlignment.MiddleLeft;
             this.buttonCapturarFoto.Location = new System.Drawing.Point(8, 204);
@@ -257,11 +250,10 @@ namespace ControlEntradaSalida
             // textBoxNombreCompleto
             // 
             this.textBoxNombreCompleto.CharacterCasing = System.Windows.Forms.CharacterCasing.Upper;
-            this.textBoxNombreCompleto.Enabled = true;
             this.textBoxNombreCompleto.Location = new System.Drawing.Point(167, 99);
             this.textBoxNombreCompleto.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
             this.textBoxNombreCompleto.Name = "textBoxNombreCompleto";
-            this.textBoxNombreCompleto.Size = new System.Drawing.Size(377, 25);
+            this.textBoxNombreCompleto.Size = new System.Drawing.Size(200, 25);
             this.textBoxNombreCompleto.TabIndex = 4;
             this.textBoxNombreCompleto.Validating += new System.ComponentModel.CancelEventHandler(this.textBoxNombreCompleto_Validating);
             // 
@@ -281,14 +273,13 @@ namespace ControlEntradaSalida
             this.label1.Location = new System.Drawing.Point(163, 22);
             this.label1.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.label1.Name = "label1";
-            this.label1.Size = new System.Drawing.Size(60, 15);
+            this.label1.Size = new System.Drawing.Size(75, 15);
             this.label1.TabIndex = 2;
             this.label1.Text = "员工编号*";
             // 
             // textBoxDocumento
             // 
             this.textBoxDocumento.CharacterCasing = System.Windows.Forms.CharacterCasing.Upper;
-            this.textBoxDocumento.Enabled = true;
             this.textBoxDocumento.Location = new System.Drawing.Point(167, 40);
             this.textBoxDocumento.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
             this.textBoxDocumento.Name = "textBoxDocumento";

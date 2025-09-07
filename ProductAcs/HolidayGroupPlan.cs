@@ -38,26 +38,6 @@ namespace ControlEntradaSalida
                 m_lUserID = connectedDevices[0].UserID;
             }
 
-            // 运行时移除刷卡相关选项
-            try
-            {
-                if (cbDeviceType != null)
-                {
-                    for (int i = cbDeviceType.Items.Count - 1; i >= 0; i--)
-                    {
-                        var txt = cbDeviceType.Items[i]?.ToString() ?? string.Empty;
-                        if (txt.IndexOf("Card", StringComparison.OrdinalIgnoreCase) >= 0)
-                        {
-                            cbDeviceType.Items.RemoveAt(i);
-                        }
-                    }
-                    if (cbDeviceType.Items.Count > 0)
-                    {
-                        cbDeviceType.SelectedIndex = Math.Min(1, cbDeviceType.Items.Count - 1);
-                    }
-                }
-            }
-            catch { }
         }
         
         /// <summary>
@@ -101,79 +81,28 @@ namespace ControlEntradaSalida
 
         private void btnGetTemplate_Click(object sender, EventArgs e)
         {
-            uint dwCommand = 0;
-            string[] strCommand = { "NET_DVR_GET_CARD_RIGHT_HOLIDAY_GROUP_V50", "NET_DVR_GET_VERIFY_HOLIDAY_GROUP", "NET_DVR_GET_DOOR_STATUS_HOLIDAY_GROUP" };
-
-            uint dwReturned = 0;
+            // 仅支持门状态模式
+            uint dwCommand = (uint)HCNetSDK.NET_DVR_GET_DOOR_STATUS_HOLIDAY_GROUP;
             string strTemp = null;
+            uint dwReturned = 0;
             uint dwSize = (uint)Marshal.SizeOf(m_struGroupCfg);
             IntPtr ptrPlanCfg = Marshal.AllocHGlobal((int)dwSize);
             Marshal.StructureToPtr(m_struGroupCfg, ptrPlanCfg, false);
 
-            switch (cbDeviceType.SelectedIndex)
+            int holidayGroupNumberHGIndex;
+            int.TryParse(textBoxHGNumber.Text, out holidayGroupNumberHGIndex);
+
+            if (!HCNetSDK.NET_DVR_GetDVRConfig(m_lUserID, dwCommand, holidayGroupNumberHGIndex, ptrPlanCfg, dwSize, ref dwReturned))
             {
-                case 1:
-                case 2:
-                    if (cbDeviceType.SelectedIndex == 2)
-                    {
-                        dwCommand = (uint)HCNetSDK.NET_DVR_GET_DOOR_STATUS_HOLIDAY_GROUP;
-                    }
-                    else
-                    {
-                        dwCommand = (uint)HCNetSDK.NET_DVR_GET_VERIFY_HOLIDAY_GROUP;
-                    }
-
-                    int holidayGroupNumberHGIndex;
-                    int.TryParse(textBoxHGNumber.Text, out holidayGroupNumberHGIndex);
-
-                    if (!HCNetSDK.NET_DVR_GetDVRConfig(m_lUserID, dwCommand, holidayGroupNumberHGIndex, ptrPlanCfg, dwSize, ref dwReturned))
-                    {
-                        Marshal.FreeHGlobal(ptrPlanCfg);
-                        strTemp = string.Format("{0} FAIL, ERROR CODE {1}", strCommand[cbDeviceType.SelectedIndex], HCNetSDK.NET_DVR_GetLastError());
-                        MessageBox.Show(strTemp);
-                        return;
-                    }
-                    else
-                    {
-                        strTemp = string.Format("{0} Succ", strCommand[cbDeviceType.SelectedIndex]);
-                        MessageBox.Show(strTemp);
-                    }
-                    break;
-                case 0:
-                    dwCommand = (uint)HCNetSDK.NET_DVR_GET_CARD_RIGHT_HOLIDAY_GROUP_V50;
-                    uint dwConSize = (uint)Marshal.SizeOf(m_struGroupCond);
-                    m_struGroupCond.dwSize = dwConSize;
-                    // limited input data guarantee parse success
-                    uint.TryParse(textBoxHGNumber.Text, out m_struGroupCond.dwHolidayGroupNumber);
-                    ushort.TryParse(textBoxLocalControllerID.Text, out m_struGroupCond.wLocalControllerID);
-
-                    IntPtr ptrPlanCon = Marshal.AllocHGlobal((int)dwConSize);
-                    Marshal.StructureToPtr(m_struGroupCond, ptrPlanCon, false);
-                    IntPtr ptrDwReturned = Marshal.AllocHGlobal(4);
-
-                    if (!HCNetSDK.NET_DVR_GetDeviceConfig(m_lUserID, dwCommand, 1, ptrPlanCon, dwConSize, ptrDwReturned, ptrPlanCfg, dwSize))
-                    {
-                        Marshal.FreeHGlobal(ptrPlanCfg);
-                        Marshal.FreeHGlobal(ptrPlanCon);
-                        Marshal.FreeHGlobal(ptrDwReturned);
-                        strTemp = string.Format("{0} FAIL, ERROR CODE {1}", strCommand[cbDeviceType.SelectedIndex], HCNetSDK.NET_DVR_GetLastError());
-                        MessageBox.Show(strTemp);
-                        return;
-                    }
-                    else
-                    {
-                        dwReturned = (uint)Marshal.ReadInt32(ptrDwReturned);
-                        Marshal.FreeHGlobal(ptrDwReturned);
-                        Marshal.FreeHGlobal(ptrPlanCon);
-                        strTemp = string.Format("{0} Succ", strCommand[cbDeviceType.SelectedIndex]);
-                        MessageBox.Show(strTemp);
-                    }
-
-                    break;
-                default:
-                    Marshal.FreeHGlobal(ptrPlanCfg);
-                    MessageBox.Show("unknown command");
-                    return;
+                Marshal.FreeHGlobal(ptrPlanCfg);
+                strTemp = string.Format("{0} 失败, 错误码 {1}", "NET_DVR_GET_DOOR_STATUS_HOLIDAY_GROUP", HCNetSDK.NET_DVR_GetLastError());
+                MessageBox.Show(strTemp);
+                return;
+            }
+            else
+            {
+                strTemp = string.Format("{0} 成功", "NET_DVR_GET_DOOR_STATUS_HOLIDAY_GROUP");
+                MessageBox.Show(strTemp);
             }
 
             m_struGroupCfg = (HCNetSDK.NET_DVR_HOLIDAY_GROUP_CFG)Marshal.PtrToStructure(ptrPlanCfg, typeof(HCNetSDK.NET_DVR_HOLIDAY_GROUP_CFG));
@@ -188,10 +117,7 @@ namespace ControlEntradaSalida
             }
 
             Encoding ec = System.Text.Encoding.GetEncoding("gb2312");
-            //textBoxHolidayGroupNameHG.Text
-            //var byteToString4 = System.Text.Encoding.ASCII.GetString(m_struGroupCfg.byGroupName);
             textBoxHGName.Text = ec.GetString(m_struGroupCfg.byGroupName);
-            // Console.WriteLine(byteToString4);
 
             UpdateListGroupNo();
 
@@ -200,9 +126,8 @@ namespace ControlEntradaSalida
 
         private void btnSetTemplate_Click(object sender, EventArgs e)
         {
-            uint dwCommand = 0;
-            string[] strCommand = { "NET_DVR_SET_CARD_RIGHT_HOLIDAY_GROUP_V50", "NET_DVR_SET_VERIFY_HOLIDAY_GROUP", "NET_DVR_SET_DOOR_STATUS_HOLIDAY_GROUP" };
-
+            // 仅支持门状态模式
+            uint dwCommand = (uint)HCNetSDK.NET_DVR_SET_DOOR_STATUS_HOLIDAY_GROUP;
             uint dwReturned = 0;
             string strTemp = null;
 
@@ -219,7 +144,6 @@ namespace ControlEntradaSalida
             {
                 m_struGroupCfg.byGroupName[i] = 0;
             }
-            //m_struGroupCfg.byGroupName = System.Text.Encoding.UTF8.GetBytes(textBoxHolidayGroupNameHG.Text);
             Encoding ec = System.Text.Encoding.GetEncoding("gb2312");
             byte[] byTempName = ec.GetBytes(textBoxHGName.Text);
             for (int i = 0; i < byTempName.Length; i++)
@@ -236,72 +160,23 @@ namespace ControlEntradaSalida
             IntPtr ptrPlanCfg = Marshal.AllocHGlobal((int)dwSize);
             Marshal.StructureToPtr(m_struGroupCfg, ptrPlanCfg, false);
 
-            switch (cbDeviceType.SelectedIndex)
+
+            int holidayGroupNumberHGIndex;
+            int.TryParse(textBoxHGNumber.Text, out holidayGroupNumberHGIndex);
+
+            if (!HCNetSDK.NET_DVR_SetDVRConfig(m_lUserID, dwCommand, holidayGroupNumberHGIndex, ptrPlanCfg, dwSize))
             {
-                case 1:
-                case 2:
-                    if (cbDeviceType.SelectedIndex == 2)
-                    {
-                        dwCommand = (uint)HCNetSDK.NET_DVR_SET_DOOR_STATUS_HOLIDAY_GROUP;
-                    }
-                    else
-                    {
-                        dwCommand = (uint)HCNetSDK.NET_DVR_SET_VERIFY_HOLIDAY_GROUP;
-                    }
-
-                    int holidayGroupNumberHGIndex;
-                    int.TryParse(textBoxHGNumber.Text, out holidayGroupNumberHGIndex);
-
-                    if (!HCNetSDK.NET_DVR_SetDVRConfig(m_lUserID, dwCommand, holidayGroupNumberHGIndex, ptrPlanCfg, dwSize))
-                    {
-                        Marshal.FreeHGlobal(ptrPlanCfg);
-                        strTemp = string.Format("{0} FAIL, ERROR CODE {1}", strCommand[cbDeviceType.SelectedIndex], HCNetSDK.NET_DVR_GetLastError());
-                        MessageBox.Show(strTemp);
-                        return;
-                    }
-                    else
-                    {
-                        strTemp = string.Format("{0} Succ", strCommand[cbDeviceType.SelectedIndex]);
-                        MessageBox.Show(strTemp);
-                    }
-                    break;
-                case 0:
-                    dwCommand = (uint)HCNetSDK.NET_DVR_SET_CARD_RIGHT_HOLIDAY_GROUP_V50;
-                    uint dwConSize = (uint)Marshal.SizeOf(m_struGroupCond);
-                    m_struGroupCond.dwSize = dwConSize;
-
-                    // limited input data guarantee parse success
-                    uint.TryParse(textBoxHGNumber.Text, out m_struGroupCond.dwHolidayGroupNumber);
-                    ushort.TryParse(textBoxLocalControllerID.Text, out m_struGroupCond.wLocalControllerID);
-
-                    IntPtr ptrPlanCon = Marshal.AllocHGlobal((int)dwConSize);
-                    Marshal.StructureToPtr(m_struGroupCond, ptrPlanCon, false);
-                    IntPtr ptrDwReturned = Marshal.AllocHGlobal(4);
-
-                    if (!HCNetSDK.NET_DVR_SetDeviceConfig(m_lUserID, dwCommand, 1, ptrPlanCon, dwConSize, ptrDwReturned, ptrPlanCfg, dwSize))
-                    {
-                        Marshal.FreeHGlobal(ptrPlanCfg);
-                        Marshal.FreeHGlobal(ptrPlanCon);
-                        Marshal.FreeHGlobal(ptrDwReturned);
-                        strTemp = string.Format("{0} FAIL, ERROR CODE {1}", strCommand[cbDeviceType.SelectedIndex], HCNetSDK.NET_DVR_GetLastError());
-                        MessageBox.Show(strTemp);
-                        return;
-                    }
-                    else
-                    {
-                        dwReturned = (uint)Marshal.ReadInt32(ptrDwReturned);
-                        Marshal.FreeHGlobal(ptrDwReturned);
-                        Marshal.FreeHGlobal(ptrPlanCon);
-                        strTemp = string.Format("{0} Succ", strCommand[cbDeviceType.SelectedIndex]);
-                        MessageBox.Show(strTemp);
-                    }
-
-                    break;
-                default:
-                    Marshal.FreeHGlobal(ptrPlanCfg);
-                    MessageBox.Show("unknown command");
-                    return;
+                Marshal.FreeHGlobal(ptrPlanCfg);
+                strTemp = string.Format("{0} 失败, 错误码 {1}", "NET_DVR_SET_DOOR_STATUS_HOLIDAY_GROUP", HCNetSDK.NET_DVR_GetLastError());
+                MessageBox.Show(strTemp);
+                return;
             }
+            else
+            {
+                strTemp = string.Format("{0} 成功", "NET_DVR_SET_DOOR_STATUS_HOLIDAY_GROUP");
+                MessageBox.Show(strTemp);
+            }
+            
             Marshal.FreeHGlobal(ptrPlanCfg);
         }
 

@@ -148,14 +148,12 @@ namespace ControlEntradaSalida
             // 
             this.cbDeviceType.FormattingEnabled = true;
             this.cbDeviceType.Items.AddRange(new object[] {
-            "Card",
-            "CardReader",
-            "Door"});
+            "门"});
             this.cbDeviceType.Location = new System.Drawing.Point(86, 15);
             this.cbDeviceType.Name = "cbDeviceType";
             this.cbDeviceType.Size = new System.Drawing.Size(108, 26);
             this.cbDeviceType.TabIndex = 1;
-            this.cbDeviceType.Text = "Card";
+            this.cbDeviceType.Text = "门";
             // 
             // listViewHG
             // 
@@ -175,13 +173,13 @@ namespace ControlEntradaSalida
             // 
             // columnHeader1
             // 
-            this.columnHeader1.Text = "No.";
+            this.columnHeader1.Text = "序号";
             this.columnHeader1.Width = 61;
             // 
             // columnHeader2
             // 
-            this.columnHeader2.Text = "假日计划 No";
-            this.columnHeader2.Width = 130;
+            this.columnHeader2.Text = "假日计划编号";
+            this.columnHeader2.Width = 140;
             // 
             // groupBox2
             // 
@@ -257,7 +255,7 @@ namespace ControlEntradaSalida
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedToolWindow;
             this.Name = "HolidayGroupPlan";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
-            this.Text = "HolidayGroupPlan";
+            this.Text = "假日组计划";
             this.Load += new System.EventHandler(this.HolidayGroupPlan_Load);
             this.groupBox1.ResumeLayout(false);
             this.groupBox1.PerformLayout();

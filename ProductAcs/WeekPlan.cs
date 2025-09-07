@@ -40,40 +40,6 @@ namespace ControlEntradaSalida
                 m_lUserID = connectedDevices[0].UserID;
             }
 
-            // 运行时移除刷卡相关选项，默认使用门状态/验权计划
-            try
-            {
-                if (cbDeviceType != null)
-                {
-                    // 移除 Card 与 CardReader（若存在）并默认选择非卡项
-                    for (int i = cbDeviceType.Items.Count - 1; i >= 0; i--)
-                    {
-                        var txt = cbDeviceType.Items[i]?.ToString() ?? string.Empty;
-                        if (txt.IndexOf("Card", StringComparison.OrdinalIgnoreCase) >= 0)
-                        {
-                            cbDeviceType.Items.RemoveAt(i);
-                        }
-                    }
-                    if (cbDeviceType.Items.Count > 0)
-                    {
-                        cbDeviceType.SelectedIndex = Math.Min(1, cbDeviceType.Items.Count - 1);
-                    }
-                }
-
-                if (cbVerifyMode != null && cbVerifyMode.Items != null && cbVerifyMode.Items.Count > 0)
-                {
-                    var toRemove = new List<object>();
-                    foreach (var it in cbVerifyMode.Items)
-                    {
-                        string txt = it?.ToString() ?? string.Empty;
-                        if (txt.IndexOf("card", StringComparison.OrdinalIgnoreCase) >= 0)
-                            toRemove.Add(it);
-                    }
-                    foreach (var it in toRemove)
-                        cbVerifyMode.Items.Remove(it);
-                }
-            }
-            catch { }
         }
         
         /// <summary>
@@ -105,7 +71,6 @@ namespace ControlEntradaSalida
         private void btnGet_Click(object sender, EventArgs e)
         {
             uint dwCommand = 0;
-            string[] strCommand = { "NET_DVR_GET_CARD_RIGHT_WEEK_PLAN_V50", "NET_DVR_GET_VERIFY_WEEK_PLAN", "NET_DVR_GET_WEEK_PLAN_CFG" };
             int weekPlanNumberWPIndex = 0;
 
             uint dwReturned = 0;
@@ -114,76 +79,24 @@ namespace ControlEntradaSalida
             m_struPlanCfg.dwSize = dwSize;
             IntPtr ptrPlanCfg = Marshal.AllocHGlobal((int)dwSize);
             Marshal.StructureToPtr(m_struPlanCfg, ptrPlanCfg, false);
-            switch (cbDeviceType.SelectedIndex)
+            
+            // 仅支持门状态模式
+            dwCommand = (uint)HCNetSDK.NET_DVR_GET_WEEK_PLAN_CFG;
+            int.TryParse(textBoxWPNumber.Text, out weekPlanNumberWPIndex);
+
+            if (!HCNetSDK.NET_DVR_GetDVRConfig(m_lUserID, dwCommand, weekPlanNumberWPIndex, ptrPlanCfg, dwSize, ref dwReturned))
             {
-                case 0:
-                    dwCommand = (uint)HCNetSDK.NET_DVR_GET_CARD_RIGHT_WEEK_PLAN_V50;
-                    uint dwConSize = (uint)Marshal.SizeOf(m_struPlanCond);
-                    m_struPlanCond.dwSize = dwConSize;
-                    uint.TryParse(textBoxWPNumber.Text, out m_struPlanCond.dwWeekPlanNumber);
-                    ushort.TryParse(textBoxLCID.Text, out m_struPlanCond.wLocalControllerID);
-
-                    IntPtr ptrPlanCon = Marshal.AllocHGlobal((int)dwConSize);
-                    Marshal.StructureToPtr(m_struPlanCond, ptrPlanCon, false);
-                    IntPtr ptrDwReturned = Marshal.AllocHGlobal(4);
-
-                    if (!HCNetSDK.NET_DVR_GetDeviceConfig(m_lUserID, dwCommand, 1, ptrPlanCon, dwConSize, ptrDwReturned, ptrPlanCfg, dwSize))
-                    {
-                        Marshal.FreeHGlobal(ptrPlanCfg);
-                        Marshal.FreeHGlobal(ptrPlanCon);
-                        Marshal.FreeHGlobal(ptrDwReturned);
-                        strTemp = string.Format("{0} FAIL, ERROR CODE {1}", strCommand[cbDeviceType.SelectedIndex], HCNetSDK.NET_DVR_GetLastError());
-                        MessageBox.Show(strTemp);
-                        return;
-                    }
-                    else
-                    {
-                        dwReturned = (uint)Marshal.ReadInt32(ptrDwReturned);
-                        Marshal.FreeHGlobal(ptrDwReturned);
-                        Marshal.FreeHGlobal(ptrPlanCon);
-                        strTemp = string.Format("{0} Succ", strCommand[cbDeviceType.SelectedIndex]);
-                        MessageBox.Show(strTemp);
-                    }
-                    break;
-                case 1:
-                    dwCommand = (uint)HCNetSDK.NET_DVR_GET_VERIFY_WEEK_PLAN;
-                    int.TryParse(textBoxWPNumber.Text, out weekPlanNumberWPIndex);
-
-                    if (!HCNetSDK.NET_DVR_GetDVRConfig(m_lUserID, dwCommand, weekPlanNumberWPIndex, ptrPlanCfg, dwSize, ref dwReturned))
-                    {
-                        Marshal.FreeHGlobal(ptrPlanCfg);
-                        strTemp = string.Format("{0} FAIL, ERROR CODE {1}", strCommand[cbDeviceType.SelectedIndex], HCNetSDK.NET_DVR_GetLastError());
-                        MessageBox.Show(strTemp);
-                        return;
-                    }
-                    else
-                    {
-                        strTemp = string.Format("{0} Succ", strCommand[cbDeviceType.SelectedIndex]);
-                        MessageBox.Show(strTemp);
-                    }
-                    break;
-                case 2:
-                    dwCommand = (uint)HCNetSDK.NET_DVR_GET_WEEK_PLAN_CFG;
-                    int.TryParse(textBoxWPNumber.Text, out weekPlanNumberWPIndex);
-
-                    if (!HCNetSDK.NET_DVR_GetDVRConfig(m_lUserID, dwCommand, weekPlanNumberWPIndex, ptrPlanCfg, dwSize, ref dwReturned))
-                    {
-                        Marshal.FreeHGlobal(ptrPlanCfg);
-                        strTemp = string.Format("{0} FAIL, ERROR CODE {1}", strCommand[cbDeviceType.SelectedIndex], HCNetSDK.NET_DVR_GetLastError());
-                        MessageBox.Show(strTemp);
-                        return;
-                    }
-                    else
-                    {
-                        strTemp = string.Format("{0} Succ", strCommand[cbDeviceType.SelectedIndex]);
-                        MessageBox.Show(strTemp);
-                    }
-                    break;
-                default:
-                    Marshal.FreeHGlobal(ptrPlanCfg);
-                    MessageBox.Show("unknown command");
-                    return;
+                Marshal.FreeHGlobal(ptrPlanCfg);
+                strTemp = string.Format("{0} 失败, 错误码 {1}", "NET_DVR_GET_WEEK_PLAN_CFG", HCNetSDK.NET_DVR_GetLastError());
+                MessageBox.Show(strTemp);
+                return;
             }
+            else
+            {
+                strTemp = string.Format("{0} 成功", "NET_DVR_GET_WEEK_PLAN_CFG");
+                MessageBox.Show(strTemp);
+            }
+            
             m_struPlanCfg = (HCNetSDK.NET_DVR_WEEK_PLAN_CFG)Marshal.PtrToStructure(ptrPlanCfg, typeof(HCNetSDK.NET_DVR_WEEK_PLAN_CFG));
             cbDate.SelectedIndex = 0;
             UpdateList();
@@ -203,7 +116,6 @@ namespace ControlEntradaSalida
         private void btnSet_Click(object sender, EventArgs e)
         {
             uint dwCommand = 0;
-            string[] strCommand = { "NET_DVR_SET_CARD_RIGHT_WEEK_PLAN_V50", "NET_DVR_SET_VERIFY_WEEK_PLAN", "NET_DVR_SET_WEEK_PLAN_CFG" };
             int weekPlanNumberWPIndex = 0;
             uint dwReturned = 0;
             string strTemp = null;
@@ -222,79 +134,23 @@ namespace ControlEntradaSalida
             IntPtr ptrPlanCfg = Marshal.AllocHGlobal((int)dwSize);
             Marshal.StructureToPtr(m_struPlanCfg, ptrPlanCfg, false);
 
+            // 仅支持门状态模式
+            dwCommand = (uint)HCNetSDK.NET_DVR_SET_WEEK_PLAN_CFG;
+            int.TryParse(textBoxWPNumber.Text, out weekPlanNumberWPIndex);
 
-            switch (cbDeviceType.SelectedIndex)
+            if (!HCNetSDK.NET_DVR_SetDVRConfig(m_lUserID, dwCommand, weekPlanNumberWPIndex, ptrPlanCfg, dwSize))
             {
-                case 0:
-                    dwCommand = (uint)HCNetSDK.NET_DVR_SET_CARD_RIGHT_WEEK_PLAN_V50;
-                    uint dwConSize = (uint)Marshal.SizeOf(m_struPlanCond);
-                    m_struPlanCond.dwSize = dwConSize;
-                    IntPtr ptrPlanCon = Marshal.AllocHGlobal((int)dwConSize);
-                    Marshal.StructureToPtr(m_struPlanCond, ptrPlanCon, false);
-                    IntPtr ptrDwReturned = Marshal.AllocHGlobal(4);
-
-                    uint.TryParse(textBoxWPNumber.Text, out m_struPlanCond.dwWeekPlanNumber);
-                    ushort.TryParse(textBoxLCID.Text, out m_struPlanCond.wLocalControllerID);
-
-                    if (!HCNetSDK.NET_DVR_SetDeviceConfig(m_lUserID, dwCommand, 1, ptrPlanCon, dwConSize, ptrDwReturned, ptrPlanCfg, dwSize))
-                    {
-                        Marshal.FreeHGlobal(ptrPlanCfg);
-                        Marshal.FreeHGlobal(ptrPlanCon);
-                        Marshal.FreeHGlobal(ptrDwReturned);
-                        strTemp = string.Format("{0} FAIL, ERROR CODE {1}", strCommand[cbDeviceType.SelectedIndex], HCNetSDK.NET_DVR_GetLastError());
-                        MessageBox.Show(strTemp);
-                        return;
-                    }
-                    else
-                    {
-                        dwReturned = (uint)Marshal.ReadInt32(ptrDwReturned);
-                        Marshal.FreeHGlobal(ptrDwReturned);
-                        Marshal.FreeHGlobal(ptrPlanCon);
-                        strTemp = string.Format("{0} Succ", strCommand[cbDeviceType.SelectedIndex]);
-                        MessageBox.Show(strTemp);
-                    }
-                    break;
-                case 1:
-                    dwCommand = (uint)HCNetSDK.NET_DVR_SET_VERIFY_WEEK_PLAN;
-                    int.TryParse(textBoxWPNumber.Text, out weekPlanNumberWPIndex);
-
-                    if (!HCNetSDK.NET_DVR_SetDVRConfig(m_lUserID, dwCommand, weekPlanNumberWPIndex, ptrPlanCfg, dwSize))
-                    {
-                        Marshal.FreeHGlobal(ptrPlanCfg);
-                        strTemp = string.Format("{0} FAIL, ERROR CODE {1}", strCommand[cbDeviceType.SelectedIndex], HCNetSDK.NET_DVR_GetLastError());
-                        MessageBox.Show(strTemp);
-                        return;
-                    }
-                    else
-                    {
-                        strTemp = string.Format("{0} Succ", strCommand[cbDeviceType.SelectedIndex]);
-                        MessageBox.Show(strTemp);
-                    }
-
-                    break;
-                case 2:
-                    dwCommand = (uint)HCNetSDK.NET_DVR_SET_WEEK_PLAN_CFG;
-                    int.TryParse(textBoxWPNumber.Text, out weekPlanNumberWPIndex);
-
-                    if (!HCNetSDK.NET_DVR_SetDVRConfig(m_lUserID, dwCommand, weekPlanNumberWPIndex, ptrPlanCfg, dwSize))
-                    {
-                        Marshal.FreeHGlobal(ptrPlanCfg);
-                        strTemp = string.Format("{0} FAIL, ERROR CODE {1}", strCommand[cbDeviceType.SelectedIndex], HCNetSDK.NET_DVR_GetLastError());
-                        MessageBox.Show(strTemp);
-                        return;
-                    }
-                    else
-                    {
-                        strTemp = string.Format("{0} Succ", strCommand[cbDeviceType.SelectedIndex]);
-                        MessageBox.Show(strTemp);
-                    }
-
-                    break;
-                default:
-                    Marshal.FreeHGlobal(ptrPlanCfg);
-                    MessageBox.Show("unknow command");
-                    return;
+                Marshal.FreeHGlobal(ptrPlanCfg);
+                strTemp = string.Format("{0} 失败, 错误码 {1}", "NET_DVR_SET_WEEK_PLAN_CFG", HCNetSDK.NET_DVR_GetLastError());
+                MessageBox.Show(strTemp);
+                return;
             }
+            else
+            {
+                strTemp = string.Format("{0} 成功", "NET_DVR_SET_WEEK_PLAN_CFG");
+                MessageBox.Show(strTemp);
+            }
+            
             Marshal.FreeHGlobal(ptrPlanCfg);
         }
 
@@ -331,15 +187,8 @@ namespace ControlEntradaSalida
                 strTime = struTemp[i].struTimeSegment.struEndTime;
                 strTemp = string.Format("{0,2}:{1,2}:{2,2}", strTime.byHour, strTime.byMinute, strTime.bySecond);
                 listItem.SubItems.Add(strTemp);
-                if (struTemp[i].byVerifyMode > 28)
-                {
-                    strTemp = string.Format("{0}", struTemp[i].byVerifyMode);
-                }
-                else
-                {
-                    int iDoorIndex = (int)struTemp[i].byVerifyMode;
-                    strTemp = AcsDemoPublic.strVerify[iDoorIndex];
-                }
+                // 仅支持门状态模式，不显示验证模式
+                strTemp = "-";
                 listItem.SubItems.Add(strTemp);
                 if (struTemp[i].byDoorStatus > 5)
                 {
@@ -375,7 +224,6 @@ namespace ControlEntradaSalida
                 m_struPlanCfg.struPlanCfg[iDate].byEnable = 0;
             }
 
-            m_struPlanCfg.struPlanCfg[iDate].byVerifyMode = (byte)cbVerifyMode.SelectedIndex;
             m_struPlanCfg.struPlanCfg[iDate].byDoorStatus = (byte)cbDoorStateMode.SelectedIndex;
             m_struPlanCfg.struPlanCfg[iDate].struTimeSegment.struBeginTime.byHour = (byte)dTPStartTime.Value.Hour;
             m_struPlanCfg.struPlanCfg[iDate].struTimeSegment.struBeginTime.byMinute = (byte)dTPStartTime.Value.Minute;
@@ -426,7 +274,6 @@ namespace ControlEntradaSalida
             {
                 checkBoxEnableTime.Checked = false;
             }
-            cbVerifyMode.SelectedIndex = (int)m_struPlanCfg.struPlanCfg[i].byVerifyMode;
             cbDoorStateMode.SelectedIndex = (int)m_struPlanCfg.struPlanCfg[i].byDoorStatus;
             HCNetSDK.NET_DVR_SIMPLE_DAYTIME struTime = new HCNetSDK.NET_DVR_SIMPLE_DAYTIME();
             if (AcsDemoPublic.CheckDate(m_struPlanCfg.struPlanCfg[i].struTimeSegment.struBeginTime))
@@ -485,37 +332,9 @@ namespace ControlEntradaSalida
 
         private void cbDeviceType_SelectedIndexChanged(object sender, EventArgs e)
         {
-            switch (cbDeviceType.SelectedIndex)
-            {
-                case 0:
-                    // 卡周计划
-                    cbVerifyMode.Hide();
-                    label7.Hide();
-                    cbDoorStateMode.Hide();
-                    label8.Hide();
-                    break;
-                case 1:
-                    //读卡器验证方式周计划
-                    cbVerifyMode.Show();
-                    label7.Show(); ;
-                    cbDoorStateMode.Hide();
-                    label8.Hide();
-                    break;
-                case 2:
-                    // 门状态周计划
-                    cbVerifyMode.Hide();
-                    label7.Hide();
-                    cbDoorStateMode.Show();
-                    label8.Show();
-                    break;
-                default:
-                    foreach (Control c in this.Controls)
-                    {
-                        c.Enabled = false;
-                    }
-                    MessageBox.Show("Wrong Device Type!");
-                    break;
-            }
+            // 仅支持门状态周计划
+            cbDoorStateMode.Show();
+            label8.Show();
         }
     }
 }
