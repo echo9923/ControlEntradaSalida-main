@@ -92,7 +92,7 @@ namespace ControlEntradaSalida
 
     public class AcsDemoPublic
     {
-        public static readonly string[] strDoorStatus = { "invalid", "sleep", "Normally open", "Normally close", "Normally State" };
+        public static readonly string[] strDoorStatus = { "无效", "休眠", "常开", "常闭", "正常状态" };
         public static readonly string[] strVerify = {"invalid", "sleep", "card and password", "card", "card or password", "fingerprint", "fingerprint and password", "fingerprint or card",
                                                  "fingerprint and card", "fingerprint and card and password","face or fingerprint or card or password","face and fingerprint",
                                                  "face and password", "face and card", "face", "work number and password", "fingerprint or password", "work number and fingerprint",

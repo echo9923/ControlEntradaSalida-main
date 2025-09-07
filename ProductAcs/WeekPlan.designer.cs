@@ -34,9 +34,9 @@ namespace ControlEntradaSalida
             this.label3 = new System.Windows.Forms.Label();
             this.checkBoxEnableWP = new System.Windows.Forms.CheckBox();
             this.gBox = new System.Windows.Forms.GroupBox();
-            this.textBoxLCID = new System.Windows.Forms.TextBox();
+            this.cbReadDevice = new System.Windows.Forms.ComboBox();
+            this.cbWriteDevice = new System.Windows.Forms.ComboBox();
             this.textBoxWPNumber = new System.Windows.Forms.TextBox();
-            this.cbDeviceType = new System.Windows.Forms.ComboBox();
             this.gBoxTime = new System.Windows.Forms.GroupBox();
             this.gBoxEditTime = new System.Windows.Forms.GroupBox();
             this.cbDoorStateMode = new System.Windows.Forms.ComboBox();
@@ -70,45 +70,45 @@ namespace ControlEntradaSalida
             this.label1.AutoSize = true;
             this.label1.Location = new System.Drawing.Point(17, 16);
             this.label1.Name = "label1";
-            this.label1.Size = new System.Drawing.Size(80, 18);
+            this.label1.Size = new System.Drawing.Size(96, 18);
             this.label1.TabIndex = 0;
-            this.label1.Text = "设备类型:";
+            this.label1.Text = "读取设备:";
             // 
             // label2
             // 
             this.label2.AutoSize = true;
-            this.label2.Location = new System.Drawing.Point(394, 16);
+            this.label2.Location = new System.Drawing.Point(350, 56);
             this.label2.Name = "label2";
             this.label2.Size = new System.Drawing.Size(96, 18);
             this.label2.TabIndex = 1;
-            this.label2.Text = "周计划编号:";
+            this.label2.Text = "计划编号:";
             // 
             // label3
             // 
             this.label3.AutoSize = true;
-            this.label3.Location = new System.Drawing.Point(390, 56);
+            this.label3.Location = new System.Drawing.Point(17, 56);
             this.label3.Name = "label3";
-            this.label3.Size = new System.Drawing.Size(112, 18);
+            this.label3.Size = new System.Drawing.Size(96, 18);
             this.label3.TabIndex = 2;
-            this.label3.Text = "就地控制器ID:";
+            this.label3.Text = "写入设备:";
             // 
             // checkBoxEnableWP
             // 
             this.checkBoxEnableWP.AutoSize = true;
             this.checkBoxEnableWP.Checked = true;
             this.checkBoxEnableWP.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.checkBoxEnableWP.Location = new System.Drawing.Point(20, 56);
+            this.checkBoxEnableWP.Location = new System.Drawing.Point(350, 20);
             this.checkBoxEnableWP.Name = "checkBoxEnableWP";
-            this.checkBoxEnableWP.Size = new System.Drawing.Size(62, 22);
+            this.checkBoxEnableWP.Size = new System.Drawing.Size(94, 22);
             this.checkBoxEnableWP.TabIndex = 3;
-            this.checkBoxEnableWP.Text = "使能";
+            this.checkBoxEnableWP.Text = "启用本计划";
             this.checkBoxEnableWP.UseVisualStyleBackColor = true;
             // 
             // gBox
             // 
-            this.gBox.Controls.Add(this.textBoxLCID);
+            this.gBox.Controls.Add(this.cbWriteDevice);
+            this.gBox.Controls.Add(this.cbReadDevice);
             this.gBox.Controls.Add(this.textBoxWPNumber);
-            this.gBox.Controls.Add(this.cbDeviceType);
             this.gBox.Controls.Add(this.checkBoxEnableWP);
             this.gBox.Controls.Add(this.label3);
             this.gBox.Controls.Add(this.label2);
@@ -119,36 +119,31 @@ namespace ControlEntradaSalida
             this.gBox.TabIndex = 4;
             this.gBox.TabStop = false;
             // 
-            // textBoxLCID
+            // cbReadDevice
             // 
-            this.textBoxLCID.Location = new System.Drawing.Point(527, 53);
-            this.textBoxLCID.Name = "textBoxLCID";
-            this.textBoxLCID.Size = new System.Drawing.Size(100, 25);
-            this.textBoxLCID.TabIndex = 6;
-            this.textBoxLCID.Text = "0";
-            this.textBoxLCID.KeyPress += new System.Windows.Forms.KeyPressEventHandler(this.textBoxLCID_KeyPress);
+            this.cbReadDevice.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.cbReadDevice.FormattingEnabled = true;
+            this.cbReadDevice.Location = new System.Drawing.Point(119, 13);
+            this.cbReadDevice.Name = "cbReadDevice";
+            this.cbReadDevice.Size = new System.Drawing.Size(200, 26);
+            this.cbReadDevice.TabIndex = 8;
             // 
+            // cbWriteDevice
+            // 
+            this.cbWriteDevice.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.cbWriteDevice.FormattingEnabled = true;
+            this.cbWriteDevice.Location = new System.Drawing.Point(119, 53);
+            this.cbWriteDevice.Name = "cbWriteDevice";
+            this.cbWriteDevice.Size = new System.Drawing.Size(200, 26);
+            this.cbWriteDevice.TabIndex = 9;
             // textBoxWPNumber
             // 
-            this.textBoxWPNumber.Location = new System.Drawing.Point(526, 13);
+            this.textBoxWPNumber.Location = new System.Drawing.Point(460, 53);
             this.textBoxWPNumber.Name = "textBoxWPNumber";
-            this.textBoxWPNumber.Size = new System.Drawing.Size(100, 25);
+            this.textBoxWPNumber.Size = new System.Drawing.Size(60, 25);
             this.textBoxWPNumber.TabIndex = 5;
             this.textBoxWPNumber.Text = "1";
             this.textBoxWPNumber.KeyPress += new System.Windows.Forms.KeyPressEventHandler(this.textBoxWPNumber_KeyPress);
-            // 
-            // cbDeviceType
-            // 
-            this.cbDeviceType.FormattingEnabled = true;
-            this.cbDeviceType.Items.AddRange(new object[] {
-            "门"});
-            this.cbDeviceType.Location = new System.Drawing.Point(108, 13);
-            this.cbDeviceType.Name = "cbDeviceType";
-            this.cbDeviceType.Size = new System.Drawing.Size(121, 26);
-            this.cbDeviceType.TabIndex = 4;
-            this.cbDeviceType.Text = "门";
-            this.cbDeviceType.SelectedIndexChanged += new System.EventHandler(this.cbDeviceType_SelectedIndexChanged);
-            // 
             // gBoxTime
             // 
             this.gBoxTime.Controls.Add(this.gBoxEditTime);
@@ -179,14 +174,14 @@ namespace ControlEntradaSalida
             this.gBoxEditTime.Size = new System.Drawing.Size(613, 109);
             this.gBoxEditTime.TabIndex = 8;
             this.gBoxEditTime.TabStop = false;
-            this.gBoxEditTime.Text = "编辑时间";
+            this.gBoxEditTime.Text = "编辑时段";
             // 
             // cbDoorStateMode
             // 
             this.cbDoorStateMode.FormattingEnabled = true;
             this.cbDoorStateMode.Items.AddRange(new object[] {
             "无效",
-            "睡眠",
+            "休眠",
             "常开",
             "常闭",
             "正常状态"});
@@ -199,38 +194,12 @@ namespace ControlEntradaSalida
             // 
             this.cbVerifyMode.FormattingEnabled = true;
             this.cbVerifyMode.Items.AddRange(new object[] {
-            "0-无效",
-            "1-卡片",
-            "2-卡片+密码",
-            "3-卡片",
-            "4-卡片或密码",
-            "5-指纹",
-            "6-指纹+密码",
-            "7-指纹或卡片",
-            "8-指纹+卡片",
-            "9-指纹+卡片+密码",
-            "10-人脸或指纹或卡片或密码",
-            "11-人脸+指纹",
-            "12-人脸+密码",
-            "13-人脸+卡片",
-            "14-人脸",
-            "15-工号+密码",
-            "16-指纹或密码",
-            "17-工号+指纹",
-            "18-工号+指纹+密码",
-            "19-人脸+指纹+卡片",
-            "20-人脸+密码+指纹",
-            "21-工号+人脸",
-            "22-人脸或人脸+卡片",
-            "23-指纹或人脸",
-            "24-卡片或人脸或密码",
-            "25-卡片或人脸",
-            "26-卡片或人脸或指纹",
-            "27-卡片或指纹或密码"});
+            "14-人脸"});
             this.cbVerifyMode.Location = new System.Drawing.Point(391, 69);
             this.cbVerifyMode.Name = "cbVerifyMode";
             this.cbVerifyMode.Size = new System.Drawing.Size(184, 26);
             this.cbVerifyMode.TabIndex = 11;
+            this.cbVerifyMode.Visible = false;
             // 
             // label8
             // 
@@ -239,7 +208,7 @@ namespace ControlEntradaSalida
             this.label8.Name = "label8";
             this.label8.Size = new System.Drawing.Size(96, 18);
             this.label8.TabIndex = 10;
-            this.label8.Text = "门状态模式:";
+            this.label8.Text = "门锁状态:";
             // 
             // label7
             // 
@@ -248,7 +217,8 @@ namespace ControlEntradaSalida
             this.label7.Name = "label7";
             this.label7.Size = new System.Drawing.Size(96, 18);
             this.label7.TabIndex = 9;
-            this.label7.Text = "验证模式:";
+            this.label7.Text = "认证方式:";
+            this.label7.Visible = false;
             // 
             // btnAdd
             // 
@@ -256,7 +226,7 @@ namespace ControlEntradaSalida
             this.btnAdd.Name = "btnAdd";
             this.btnAdd.Size = new System.Drawing.Size(75, 23);
             this.btnAdd.TabIndex = 8;
-            this.btnAdd.Text = "更新";
+            this.btnAdd.Text = "更新本时段";
             this.btnAdd.UseVisualStyleBackColor = true;
             this.btnAdd.Click += new System.EventHandler(this.btnAdd_Click);
             // 
@@ -276,12 +246,13 @@ namespace ControlEntradaSalida
             this.checkBoxEnableTime.Name = "checkBoxEnableTime";
             this.checkBoxEnableTime.Size = new System.Drawing.Size(62, 22);
             this.checkBoxEnableTime.TabIndex = 7;
-            this.checkBoxEnableTime.Text = "使能";
+            this.checkBoxEnableTime.Text = "启用本时段";
             this.checkBoxEnableTime.UseVisualStyleBackColor = true;
             // 
             // dTPStartTime
             // 
-            this.dTPStartTime.Format = System.Windows.Forms.DateTimePickerFormat.Time;
+            this.dTPStartTime.CustomFormat = "HH:mm";
+            this.dTPStartTime.Format = System.Windows.Forms.DateTimePickerFormat.Custom;
             this.dTPStartTime.Location = new System.Drawing.Point(97, 24);
             this.dTPStartTime.Name = "dTPStartTime";
             this.dTPStartTime.ShowUpDown = true;
@@ -290,7 +261,8 @@ namespace ControlEntradaSalida
             // 
             // dTPEndTime
             // 
-            this.dTPEndTime.Format = System.Windows.Forms.DateTimePickerFormat.Time;
+            this.dTPEndTime.CustomFormat = "HH:mm";
+            this.dTPEndTime.Format = System.Windows.Forms.DateTimePickerFormat.Custom;
             this.dTPEndTime.Location = new System.Drawing.Point(356, 24);
             this.dTPEndTime.Name = "dTPEndTime";
             this.dTPEndTime.ShowUpDown = true;
@@ -304,7 +276,7 @@ namespace ControlEntradaSalida
             this.label6.Name = "label6";
             this.label6.Size = new System.Drawing.Size(80, 18);
             this.label6.TabIndex = 4;
-            this.label6.Text = "结束时间:";
+            this.label6.Text = "至 结束时间:";
             // 
             // listViewTimeSegment
             // 
@@ -315,7 +287,6 @@ namespace ControlEntradaSalida
             this.columnHeader2,
             this.columnHeader3,
             this.columnHeader4,
-            this.columnHeader5,
             this.columnHeader6});
             this.listViewTimeSegment.FullRowSelect = true;
             this.listViewTimeSegment.GridLines = true;
@@ -346,34 +317,34 @@ namespace ControlEntradaSalida
             // columnHeader4
             // 
             this.columnHeader4.Text = "结束时间";
-            this.columnHeader4.Width = 132;
+            this.columnHeader4.Width = 150;
             // 
             // columnHeader5
             // 
-            this.columnHeader5.Text = "验证模式";
+            this.columnHeader5.Text = "认证方式";
             this.columnHeader5.Width = 110;
             // 
             // columnHeader6
             // 
-            this.columnHeader6.Text = "门状态模式";
-            this.columnHeader6.Width = 130;
+            this.columnHeader6.Text = "门锁状态";
+            this.columnHeader6.Width = 150;
             // 
             // cbDate
             // 
             this.cbDate.FormattingEnabled = true;
             this.cbDate.Items.AddRange(new object[] {
-            "星期一",
-            "星期二",
-            "星期三",
-            "星期四",
-            "星期五",
-            "星期六",
-            "星期日"});
+            "一",
+            "二",
+            "三",
+            "四",
+            "五",
+            "六",
+            "日"});
             this.cbDate.Location = new System.Drawing.Point(278, 21);
             this.cbDate.Name = "cbDate";
             this.cbDate.Size = new System.Drawing.Size(121, 26);
             this.cbDate.TabIndex = 1;
-            this.cbDate.Text = "星期一";
+            this.cbDate.Text = "一";
             this.cbDate.SelectedIndexChanged += new System.EventHandler(this.cbDate_SelectedIndexChanged);
             // 
             // label4
@@ -391,7 +362,7 @@ namespace ControlEntradaSalida
             this.btnGet.Name = "btnGet";
             this.btnGet.Size = new System.Drawing.Size(75, 23);
             this.btnGet.TabIndex = 6;
-            this.btnGet.Text = "获取";
+            this.btnGet.Text = "读取配置";
             this.btnGet.UseVisualStyleBackColor = true;
             this.btnGet.Click += new System.EventHandler(this.btnGet_Click);
             // 
@@ -401,7 +372,7 @@ namespace ControlEntradaSalida
             this.btnSet.Name = "btnSet";
             this.btnSet.Size = new System.Drawing.Size(75, 23);
             this.btnSet.TabIndex = 7;
-            this.btnSet.Text = "设置";
+            this.btnSet.Text = "写入配置";
             this.btnSet.UseVisualStyleBackColor = true;
             this.btnSet.Click += new System.EventHandler(this.btnSet_Click);
             // 
@@ -439,10 +410,10 @@ namespace ControlEntradaSalida
         private System.Windows.Forms.GroupBox gBox;
         private System.Windows.Forms.GroupBox gBoxTime;
         private System.Windows.Forms.Label label4;
-        private System.Windows.Forms.ComboBox cbDeviceType;
+        private System.Windows.Forms.ComboBox cbReadDevice;
+        private System.Windows.Forms.ComboBox cbWriteDevice;
         private System.Windows.Forms.ComboBox cbDate;
         private System.Windows.Forms.TextBox textBoxWPNumber;
-        private System.Windows.Forms.TextBox textBoxLCID;
         private System.Windows.Forms.ListView listViewTimeSegment;
         private System.Windows.Forms.ColumnHeader columnHeader1;
         private System.Windows.Forms.ColumnHeader columnHeader2;

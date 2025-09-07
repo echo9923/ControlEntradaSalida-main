@@ -17,6 +17,9 @@ namespace ControlEntradaSalida
         public Int32 m_lUserID = -1;
         public Int32 m_iDeviceIndex = -1;
         public int m_iDeviceType = 0;
+        
+        // 设备列表缓存
+        private List<DeviceConnectionInfo> availableDevices = new List<DeviceConnectionInfo>();
 
         public HCNetSDK.NET_DVR_WEEK_PLAN_CFG m_struPlanCfg = new HCNetSDK.NET_DVR_WEEK_PLAN_CFG();
         public HCNetSDK.NET_DVR_WEEK_PLAN_COND m_struPlanCond = new HCNetSDK.NET_DVR_WEEK_PLAN_COND();
@@ -32,14 +35,82 @@ namespace ControlEntradaSalida
             // 设置窗口置顶显示属性，确保始终位于父窗口之上
             ConfigureWindowDisplay();
             
-            // 获取当前连接的设备
-            var connectedDevices = DeviceConnectionManager.Instance.GetAllDevices()
-                .Where(d => d.IsConnected).ToList();
-            if (connectedDevices.Count > 0)
-            {
-                m_lUserID = connectedDevices[0].UserID;
-            }
+            // 初始化设备列表
+            InitializeDeviceComboBoxes();
 
+        }
+        
+        /// <summary>
+        /// 初始化设备下拉框
+        /// </summary>
+        private void InitializeDeviceComboBoxes()
+        {
+            try
+            {
+                // 获取所有可用设备
+                availableDevices = DeviceConnectionManager.Instance.GetAllDevices()
+                    .Where(d => d.IsEnabled).ToList();
+                    
+                // 初始化读取设备下拉框（仅已连接设备）
+                cbReadDevice.Items.Clear();
+                var connectedDevices = availableDevices.Where(d => d.IsConnected).ToList();
+                foreach (var device in connectedDevices)
+                {
+                    cbReadDevice.Items.Add(new DeviceComboBoxItem
+                    {
+                        Device = device,
+                        DisplayText = $"{device.Name} ({device.IpAddress})"
+                    });
+                }
+                
+                // 初始化写入设备下拉框（包含“所有设备”选项）
+                cbWriteDevice.Items.Clear();
+                cbWriteDevice.Items.Add(new DeviceComboBoxItem
+                {
+                    Device = null,
+                    DisplayText = "所有设备"
+                });
+                foreach (var device in connectedDevices)
+                {
+                    cbWriteDevice.Items.Add(new DeviceComboBoxItem
+                    {
+                        Device = device,
+                        DisplayText = $"{device.Name} ({device.IpAddress})"
+                    });
+                }
+                
+                // 设置默认选中第一个设备
+                if (cbReadDevice.Items.Count > 0)
+                {
+                    cbReadDevice.SelectedIndex = 0;
+                    var selectedItem = (DeviceComboBoxItem)cbReadDevice.SelectedItem;
+                    m_lUserID = selectedItem.Device?.UserID ?? -1;
+                }
+                
+                if (cbWriteDevice.Items.Count > 0)
+                {
+                    cbWriteDevice.SelectedIndex = 0;
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"初始化设备列表时发生错误：{ex.Message}", "错误", 
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+        
+        /// <summary>
+        /// 设备下拉框项类
+        /// </summary>
+        private class DeviceComboBoxItem
+        {
+            public DeviceConnectionInfo Device { get; set; }
+            public string DisplayText { get; set; }
+            
+            public override string ToString()
+            {
+                return DisplayText;
+            }
         }
         
         /// <summary>
@@ -70,6 +141,27 @@ namespace ControlEntradaSalida
 
         private void btnGet_Click(object sender, EventArgs e)
         {
+            // 检查是否选中了设备
+            if (cbReadDevice.SelectedItem == null)
+            {
+                MessageBox.Show("请选择要读取配置的设备！", "提示", 
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+            
+            var selectedItem = (DeviceComboBoxItem)cbReadDevice.SelectedItem;
+            var selectedDevice = selectedItem.Device;
+            
+            if (selectedDevice == null || !selectedDevice.IsConnected)
+            {
+                MessageBox.Show("选中的设备未连接，无法读取配置！", "错误", 
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+            
+            // 使用选中设备的UserID
+            m_lUserID = selectedDevice.UserID;
+            
             uint dwCommand = 0;
             int weekPlanNumberWPIndex = 0;
 
@@ -87,14 +179,15 @@ namespace ControlEntradaSalida
             if (!HCNetSDK.NET_DVR_GetDVRConfig(m_lUserID, dwCommand, weekPlanNumberWPIndex, ptrPlanCfg, dwSize, ref dwReturned))
             {
                 Marshal.FreeHGlobal(ptrPlanCfg);
-                strTemp = string.Format("{0} 失败, 错误码 {1}", "NET_DVR_GET_WEEK_PLAN_CFG", HCNetSDK.NET_DVR_GetLastError());
-                MessageBox.Show(strTemp);
+                uint errorCode = HCNetSDK.NET_DVR_GetLastError();
+                strTemp = $"从设备 {selectedDevice.Name} 读取配置失败，错误码：{errorCode}";
+                MessageBox.Show(strTemp, "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
             else
             {
-                strTemp = string.Format("{0} 成功", "NET_DVR_GET_WEEK_PLAN_CFG");
-                MessageBox.Show(strTemp);
+                strTemp = $"从设备 {selectedDevice.Name} 读取配置成功！";
+                MessageBox.Show(strTemp, "成功", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
             
             m_struPlanCfg = (HCNetSDK.NET_DVR_WEEK_PLAN_CFG)Marshal.PtrToStructure(ptrPlanCfg, typeof(HCNetSDK.NET_DVR_WEEK_PLAN_CFG));
@@ -115,11 +208,56 @@ namespace ControlEntradaSalida
 
         private void btnSet_Click(object sender, EventArgs e)
         {
-            uint dwCommand = 0;
-            int weekPlanNumberWPIndex = 0;
-            uint dwReturned = 0;
-            string strTemp = null;
-
+            // 检查是否选中了设备
+            if (cbWriteDevice.SelectedItem == null)
+            {
+                MessageBox.Show("请选择要写入配置的设备！", "提示", 
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+            
+            var selectedItem = (DeviceComboBoxItem)cbWriteDevice.SelectedItem;
+            var selectedDevice = selectedItem.Device;
+            
+            // 判断是否选择了“所有设备”
+            bool writeToAllDevices = (selectedDevice == null);
+            
+            List<DeviceConnectionInfo> targetDevices;
+            if (writeToAllDevices)
+            {
+                // 获取所有已连接的设备
+                targetDevices = availableDevices.Where(d => d.IsConnected).ToList();
+                if (targetDevices.Count == 0)
+                {
+                    MessageBox.Show("没有可用的连接设备！", "错误", 
+                        MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
+                }
+            }
+            else
+            {
+                // 仅选中的单个设备
+                if (!selectedDevice.IsConnected)
+                {
+                    MessageBox.Show("选中的设备未连接，无法写入配置！", "错误", 
+                        MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
+                }
+                targetDevices = new List<DeviceConnectionInfo> { selectedDevice };
+            }
+            
+            // 确认对话框
+            string confirmMessage = writeToAllDevices 
+                ? $"确认要将配置写入所有 {targetDevices.Count} 个设备吗？" 
+                : $"确认要将配置写入设备 {selectedDevice.Name} 吗？";
+                
+            if (MessageBox.Show(confirmMessage, "确认操作", 
+                MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes)
+            {
+                return;
+            }
+            
+            // 准备配置数据
             if (checkBoxEnableWP.Checked)
             {
                 m_struPlanCfg.byEnable = 1;
@@ -134,24 +272,53 @@ namespace ControlEntradaSalida
             IntPtr ptrPlanCfg = Marshal.AllocHGlobal((int)dwSize);
             Marshal.StructureToPtr(m_struPlanCfg, ptrPlanCfg, false);
 
-            // 仅支持门状态模式
-            dwCommand = (uint)HCNetSDK.NET_DVR_SET_WEEK_PLAN_CFG;
-            int.TryParse(textBoxWPNumber.Text, out weekPlanNumberWPIndex);
-
-            if (!HCNetSDK.NET_DVR_SetDVRConfig(m_lUserID, dwCommand, weekPlanNumberWPIndex, ptrPlanCfg, dwSize))
+            uint dwCommand = (uint)HCNetSDK.NET_DVR_SET_WEEK_PLAN_CFG;
+            int.TryParse(textBoxWPNumber.Text, out int weekPlanNumberWPIndex);
+            
+            // 对每个设备进行写入操作
+            int successCount = 0;
+            int failureCount = 0;
+            List<string> errorMessages = new List<string>();
+            
+            foreach (var device in targetDevices)
             {
-                Marshal.FreeHGlobal(ptrPlanCfg);
-                strTemp = string.Format("{0} 失败, 错误码 {1}", "NET_DVR_SET_WEEK_PLAN_CFG", HCNetSDK.NET_DVR_GetLastError());
-                MessageBox.Show(strTemp);
-                return;
-            }
-            else
-            {
-                strTemp = string.Format("{0} 成功", "NET_DVR_SET_WEEK_PLAN_CFG");
-                MessageBox.Show(strTemp);
+                try
+                {
+                    if (!HCNetSDK.NET_DVR_SetDVRConfig(device.UserID, dwCommand, weekPlanNumberWPIndex, ptrPlanCfg, dwSize))
+                    {
+                        uint errorCode = HCNetSDK.NET_DVR_GetLastError();
+                        string errorMsg = $"设备 {device.Name}：错误码 {errorCode}";
+                        errorMessages.Add(errorMsg);
+                        failureCount++;
+                    }
+                    else
+                    {
+                        successCount++;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    errorMessages.Add($"设备 {device.Name}：{ex.Message}");
+                    failureCount++;
+                }
             }
             
             Marshal.FreeHGlobal(ptrPlanCfg);
+            
+            // 显示结果
+            string resultMessage = $"写入结果：\n成功: {successCount} 个设备\n失败: {failureCount} 个设备";
+            if (errorMessages.Count > 0)
+            {
+                resultMessage += "\n\n错误详情：\n" + string.Join("\n", errorMessages.Take(5));
+                if (errorMessages.Count > 5)
+                {
+                    resultMessage += $"\n...(还有 {errorMessages.Count - 5} 个错误)";
+                }
+            }
+            
+            MessageBoxIcon icon = failureCount == 0 ? MessageBoxIcon.Information : 
+                                 (successCount == 0 ? MessageBoxIcon.Error : MessageBoxIcon.Warning);
+            MessageBox.Show(resultMessage, "操作结果", MessageBoxButtons.OK, icon);
         }
 
         private void UpdateList()
@@ -174,18 +341,18 @@ namespace ControlEntradaSalida
                 listItem.Text = strTemp;
                 if (1 == struTemp[i].byEnable)
                 {
-                    strTemp = "yes";
+                    strTemp = "是";
                 }
                 else
                 {
-                    strTemp = "no";
+                    strTemp = "否";
                 }
                 listItem.SubItems.Add(strTemp);
                 HCNetSDK.NET_DVR_SIMPLE_DAYTIME strTime = struTemp[i].struTimeSegment.struBeginTime;
-                strTemp = string.Format("{0,2}:{1,2}:{2,2}", strTime.byHour, strTime.byMinute, strTime.bySecond);
+                strTemp = string.Format("{0:D2}:{1:D2}", strTime.byHour, strTime.byMinute);
                 listItem.SubItems.Add(strTemp);
                 strTime = struTemp[i].struTimeSegment.struEndTime;
-                strTemp = string.Format("{0,2}:{1,2}:{2,2}", strTime.byHour, strTime.byMinute, strTime.bySecond);
+                strTemp = string.Format("{0:D2}:{1:D2}", strTime.byHour, strTime.byMinute);
                 listItem.SubItems.Add(strTemp);
                 // 仅支持门状态模式，不显示验证模式
                 strTemp = "-";
@@ -209,12 +376,37 @@ namespace ControlEntradaSalida
         private void btnAdd_Click(object sender, EventArgs e)
         {
             int iDateIndex = cbDate.SelectedIndex;
-            int iDate = iDateIndex *HCNetSDK.MAX_TIMESEGMENT_V30 + iItemIndex;
-            if (-1 == iDate)
+            int iDate = iDateIndex * HCNetSDK.MAX_TIMESEGMENT_V30 + iItemIndex;
+            if (iItemIndex == -1)
             {
-                MessageBox.Show("Please select the list!!!");
+                MessageBox.Show("请先选中一个时段再进行编辑！");
                 return;
             }
+
+            // 时间校验
+            var startTime = dTPStartTime.Value;
+            var endTime = dTPEndTime.Value;
+
+            if (!TimeSegmentHelper.ValidateTimeSegment(startTime, endTime))
+            {
+                TimeSegmentHelper.ShowInvalidTimeMessage();
+                return;
+            }
+
+            // 冲突检查
+            HCNetSDK.NET_DVR_SINGLE_PLAN_SEGMENT[] currentDaySegments = new HCNetSDK.NET_DVR_SINGLE_PLAN_SEGMENT[HCNetSDK.MAX_TIMESEGMENT_V30];
+            for (int i = 0; i < HCNetSDK.MAX_TIMESEGMENT_V30; i++)
+            {
+                currentDaySegments[i] = m_struPlanCfg.struPlanCfg[iDateIndex * HCNetSDK.MAX_TIMESEGMENT_V30 + i];
+            }
+
+            if (TimeSegmentHelper.CheckTimeConflict(startTime, endTime, currentDaySegments, iItemIndex))
+            {
+                TimeSegmentHelper.ShowTimeConflictMessage(iItemIndex);
+                return;
+            }
+
+            // 应用更改
             if (checkBoxEnableTime.Checked)
             {
                 m_struPlanCfg.struPlanCfg[iDate].byEnable = 1;
@@ -225,30 +417,28 @@ namespace ControlEntradaSalida
             }
 
             m_struPlanCfg.struPlanCfg[iDate].byDoorStatus = (byte)cbDoorStateMode.SelectedIndex;
-            m_struPlanCfg.struPlanCfg[iDate].struTimeSegment.struBeginTime.byHour = (byte)dTPStartTime.Value.Hour;
-            m_struPlanCfg.struPlanCfg[iDate].struTimeSegment.struBeginTime.byMinute = (byte)dTPStartTime.Value.Minute;
-            m_struPlanCfg.struPlanCfg[iDate].struTimeSegment.struBeginTime.bySecond = (byte)dTPStartTime.Value.Second;
-            if (m_struPlanCfg.struPlanCfg[iDate].struTimeSegment.struBeginTime.byHour == 23
-                && m_struPlanCfg.struPlanCfg[iDate].struTimeSegment.struBeginTime.byMinute == 59
-                && m_struPlanCfg.struPlanCfg[iDate].struTimeSegment.struBeginTime.bySecond == 59)
+            m_struPlanCfg.struPlanCfg[iDate].struTimeSegment.struBeginTime.byHour = (byte)startTime.Hour;
+            m_struPlanCfg.struPlanCfg[iDate].struTimeSegment.struBeginTime.byMinute = (byte)startTime.Minute;
+            m_struPlanCfg.struPlanCfg[iDate].struTimeSegment.struBeginTime.bySecond = 0; // 固定为0
+
+            // 处理24:00特殊情况
+            if (endTime.Hour == 23 && endTime.Minute == 59)
             {
-                m_struPlanCfg.struPlanCfg[iDate].struTimeSegment.struBeginTime.byHour = 24;
-                m_struPlanCfg.struPlanCfg[iDate].struTimeSegment.struBeginTime.byMinute = 0;
-                m_struPlanCfg.struPlanCfg[iDate].struTimeSegment.struBeginTime.bySecond = 0;
+                m_struPlanCfg.struPlanCfg[iDate].struTimeSegment.struEndTime.byHour = 24;
+                m_struPlanCfg.struPlanCfg[iDate].struTimeSegment.struEndTime.byMinute = 0;
+                m_struPlanCfg.struPlanCfg[iDate].struTimeSegment.struEndTime.bySecond = 0;
             }
-            m_struPlanCfg.struPlanCfg[iDate].struTimeSegment.struEndTime.byHour = (byte)dTPEndTime.Value.Hour;
-            m_struPlanCfg.struPlanCfg[iDate].struTimeSegment.struEndTime.byMinute = (byte)dTPEndTime.Value.Minute;
-            m_struPlanCfg.struPlanCfg[iDate].struTimeSegment.struEndTime.bySecond = (byte)dTPEndTime.Value.Second;
-            if (m_struPlanCfg.struPlanCfg[iDate].struTimeSegment.struBeginTime.byHour == 23
-                && m_struPlanCfg.struPlanCfg[iDate].struTimeSegment.struBeginTime.byMinute == 59
-                && m_struPlanCfg.struPlanCfg[iDate].struTimeSegment.struBeginTime.bySecond == 59)
+            else
             {
-                m_struPlanCfg.struPlanCfg[iDate].struTimeSegment.struBeginTime.byHour = 24;
-                m_struPlanCfg.struPlanCfg[iDate].struTimeSegment.struBeginTime.byMinute = 0;
-                m_struPlanCfg.struPlanCfg[iDate].struTimeSegment.struBeginTime.bySecond = 0;
+                m_struPlanCfg.struPlanCfg[iDate].struTimeSegment.struEndTime.byHour = (byte)endTime.Hour;
+                m_struPlanCfg.struPlanCfg[iDate].struTimeSegment.struEndTime.byMinute = (byte)endTime.Minute;
+                m_struPlanCfg.struPlanCfg[iDate].struTimeSegment.struEndTime.bySecond = 0; // 固定为0
             }
 
             UpdateList();
+            
+            // 显示成功提示
+            MessageBox.Show("时段更新成功！", "操作成功", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
         private void cbDate_SelectedIndexChanged(object sender, EventArgs e)
@@ -315,27 +505,44 @@ namespace ControlEntradaSalida
             }
         }
 
-        private void textBoxLCID_KeyPress(object sender, KeyPressEventArgs e)
+        private void WeekPlan_Load(object sender, EventArgs e)
         {
-            if (e.KeyChar != '\b')//backspace 
+            try
             {
-                if ((e.KeyChar < '0') || (e.KeyChar > '9'))//0-9 is permitted  
-                {
-                    e.Handled = true;
-                }
+                // 再次刷新，避免窗体构造早于设备加载/连接
+                InitializeDeviceComboBoxes();
+
+                // 订阅设备连接状态变化，动态刷新下拉框
+                DeviceConnectionManager.Instance.DeviceConnectionStateChanged += OnDeviceConnectionStateChanged;
+            }
+            catch
+            {
+                // 忽略加载阶段的非致命异常
             }
         }
 
-        private void WeekPlan_Load(object sender, EventArgs e)
+        private void OnDeviceConnectionStateChanged(object sender, DeviceConnectionEventArgs e)
         {
+            // 跨线程安全刷新
+            SafeUIUpdater.UpdateUI(this, () =>
+            {
+                if (!this.IsDisposed)
+                {
+                    InitializeDeviceComboBoxes();
+                }
+            });
         }
 
-        private void cbDeviceType_SelectedIndexChanged(object sender, EventArgs e)
+        protected override void OnFormClosed(FormClosedEventArgs e)
         {
-            // 仅支持门状态周计划
-            cbDoorStateMode.Show();
-            label8.Show();
+            try
+            {
+                DeviceConnectionManager.Instance.DeviceConnectionStateChanged -= OnDeviceConnectionStateChanged;
+            }
+            catch { }
+            base.OnFormClosed(e);
         }
+
     }
 }
 
