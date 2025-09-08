@@ -71,7 +71,6 @@ namespace ControlEntradaSalida
         private void btnGet_Click(object sender, EventArgs e)
         {
             uint dwCommand = 0;
-
             uint dwReturned = 0;
             string strTemp = null;
             uint dwSize = (uint)Marshal.SizeOf(m_struPlanCfgH);

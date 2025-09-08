@@ -89,11 +89,6 @@ namespace ControlEntradaSalida
             return retval;
         }
 
-        //该功能已移除：不再在设备上创建虚拟卡片
-        private bool AgregarTarjetaUsuario(string id)
-        {
-            return false;
-        }
 
         //查询所有设备上注册的用户（分页批量）,每次最多返回 5000 个员工信息列表
         private List<EmpleadoData> CargarInfoUsuariosDispositivo(out string responseStatusStrg, out int totalMatches, out int numOfMatches, int searchResultPosition)

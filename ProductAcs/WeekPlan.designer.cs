@@ -34,8 +34,8 @@ namespace ControlEntradaSalida
             this.label3 = new System.Windows.Forms.Label();
             this.checkBoxEnableWP = new System.Windows.Forms.CheckBox();
             this.gBox = new System.Windows.Forms.GroupBox();
-            this.cbReadDevice = new System.Windows.Forms.ComboBox();
             this.cbWriteDevice = new System.Windows.Forms.ComboBox();
+            this.cbReadDevice = new System.Windows.Forms.ComboBox();
             this.textBoxWPNumber = new System.Windows.Forms.TextBox();
             this.gBoxTime = new System.Windows.Forms.GroupBox();
             this.gBoxEditTime = new System.Windows.Forms.GroupBox();
@@ -54,10 +54,10 @@ namespace ControlEntradaSalida
             this.columnHeader2 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.columnHeader3 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.columnHeader4 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
-            this.columnHeader5 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.columnHeader6 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.cbDate = new System.Windows.Forms.ComboBox();
             this.label4 = new System.Windows.Forms.Label();
+            this.columnHeader5 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.btnGet = new System.Windows.Forms.Button();
             this.btnSet = new System.Windows.Forms.Button();
             this.gBox.SuspendLayout();
@@ -70,7 +70,7 @@ namespace ControlEntradaSalida
             this.label1.AutoSize = true;
             this.label1.Location = new System.Drawing.Point(17, 16);
             this.label1.Name = "label1";
-            this.label1.Size = new System.Drawing.Size(96, 18);
+            this.label1.Size = new System.Drawing.Size(76, 18);
             this.label1.TabIndex = 0;
             this.label1.Text = "读取设备:";
             // 
@@ -79,7 +79,7 @@ namespace ControlEntradaSalida
             this.label2.AutoSize = true;
             this.label2.Location = new System.Drawing.Point(350, 56);
             this.label2.Name = "label2";
-            this.label2.Size = new System.Drawing.Size(96, 18);
+            this.label2.Size = new System.Drawing.Size(76, 18);
             this.label2.TabIndex = 1;
             this.label2.Text = "计划编号:";
             // 
@@ -88,7 +88,7 @@ namespace ControlEntradaSalida
             this.label3.AutoSize = true;
             this.label3.Location = new System.Drawing.Point(17, 56);
             this.label3.Name = "label3";
-            this.label3.Size = new System.Drawing.Size(96, 18);
+            this.label3.Size = new System.Drawing.Size(76, 18);
             this.label3.TabIndex = 2;
             this.label3.Text = "写入设备:";
             // 
@@ -99,7 +99,7 @@ namespace ControlEntradaSalida
             this.checkBoxEnableWP.CheckState = System.Windows.Forms.CheckState.Checked;
             this.checkBoxEnableWP.Location = new System.Drawing.Point(350, 20);
             this.checkBoxEnableWP.Name = "checkBoxEnableWP";
-            this.checkBoxEnableWP.Size = new System.Drawing.Size(94, 22);
+            this.checkBoxEnableWP.Size = new System.Drawing.Size(105, 22);
             this.checkBoxEnableWP.TabIndex = 3;
             this.checkBoxEnableWP.Text = "启用本计划";
             this.checkBoxEnableWP.UseVisualStyleBackColor = true;
@@ -119,6 +119,15 @@ namespace ControlEntradaSalida
             this.gBox.TabIndex = 4;
             this.gBox.TabStop = false;
             // 
+            // cbWriteDevice
+            // 
+            this.cbWriteDevice.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.cbWriteDevice.FormattingEnabled = true;
+            this.cbWriteDevice.Location = new System.Drawing.Point(119, 53);
+            this.cbWriteDevice.Name = "cbWriteDevice";
+            this.cbWriteDevice.Size = new System.Drawing.Size(200, 26);
+            this.cbWriteDevice.TabIndex = 9;
+            // 
             // cbReadDevice
             // 
             this.cbReadDevice.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
@@ -128,14 +137,6 @@ namespace ControlEntradaSalida
             this.cbReadDevice.Size = new System.Drawing.Size(200, 26);
             this.cbReadDevice.TabIndex = 8;
             // 
-            // cbWriteDevice
-            // 
-            this.cbWriteDevice.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
-            this.cbWriteDevice.FormattingEnabled = true;
-            this.cbWriteDevice.Location = new System.Drawing.Point(119, 53);
-            this.cbWriteDevice.Name = "cbWriteDevice";
-            this.cbWriteDevice.Size = new System.Drawing.Size(200, 26);
-            this.cbWriteDevice.TabIndex = 9;
             // textBoxWPNumber
             // 
             this.textBoxWPNumber.Location = new System.Drawing.Point(460, 53);
@@ -144,6 +145,7 @@ namespace ControlEntradaSalida
             this.textBoxWPNumber.TabIndex = 5;
             this.textBoxWPNumber.Text = "1";
             this.textBoxWPNumber.KeyPress += new System.Windows.Forms.KeyPressEventHandler(this.textBoxWPNumber_KeyPress);
+            // 
             // gBoxTime
             // 
             this.gBoxTime.Controls.Add(this.gBoxEditTime);
@@ -206,7 +208,7 @@ namespace ControlEntradaSalida
             this.label8.AutoSize = true;
             this.label8.Location = new System.Drawing.Point(273, 71);
             this.label8.Name = "label8";
-            this.label8.Size = new System.Drawing.Size(96, 18);
+            this.label8.Size = new System.Drawing.Size(76, 18);
             this.label8.TabIndex = 10;
             this.label8.Text = "门锁状态:";
             // 
@@ -215,7 +217,7 @@ namespace ControlEntradaSalida
             this.label7.AutoSize = true;
             this.label7.Location = new System.Drawing.Point(273, 71);
             this.label7.Name = "label7";
-            this.label7.Size = new System.Drawing.Size(96, 18);
+            this.label7.Size = new System.Drawing.Size(76, 18);
             this.label7.TabIndex = 9;
             this.label7.Text = "认证方式:";
             this.label7.Visible = false;
@@ -235,7 +237,7 @@ namespace ControlEntradaSalida
             this.label5.AutoSize = true;
             this.label5.Location = new System.Drawing.Point(7, 27);
             this.label5.Name = "label5";
-            this.label5.Size = new System.Drawing.Size(80, 18);
+            this.label5.Size = new System.Drawing.Size(76, 18);
             this.label5.TabIndex = 3;
             this.label5.Text = "开始时间:";
             // 
@@ -244,7 +246,7 @@ namespace ControlEntradaSalida
             this.checkBoxEnableTime.AutoSize = true;
             this.checkBoxEnableTime.Location = new System.Drawing.Point(10, 70);
             this.checkBoxEnableTime.Name = "checkBoxEnableTime";
-            this.checkBoxEnableTime.Size = new System.Drawing.Size(62, 22);
+            this.checkBoxEnableTime.Size = new System.Drawing.Size(105, 22);
             this.checkBoxEnableTime.TabIndex = 7;
             this.checkBoxEnableTime.Text = "启用本时段";
             this.checkBoxEnableTime.UseVisualStyleBackColor = true;
@@ -263,7 +265,7 @@ namespace ControlEntradaSalida
             // 
             this.dTPEndTime.CustomFormat = "HH:mm";
             this.dTPEndTime.Format = System.Windows.Forms.DateTimePickerFormat.Custom;
-            this.dTPEndTime.Location = new System.Drawing.Point(356, 24);
+            this.dTPEndTime.Location = new System.Drawing.Point(391, 22);
             this.dTPEndTime.Name = "dTPEndTime";
             this.dTPEndTime.ShowUpDown = true;
             this.dTPEndTime.Size = new System.Drawing.Size(102, 25);
@@ -274,7 +276,7 @@ namespace ControlEntradaSalida
             this.label6.AutoSize = true;
             this.label6.Location = new System.Drawing.Point(273, 27);
             this.label6.Name = "label6";
-            this.label6.Size = new System.Drawing.Size(80, 18);
+            this.label6.Size = new System.Drawing.Size(99, 18);
             this.label6.TabIndex = 4;
             this.label6.Text = "至 结束时间:";
             // 
@@ -319,11 +321,6 @@ namespace ControlEntradaSalida
             this.columnHeader4.Text = "结束时间";
             this.columnHeader4.Width = 150;
             // 
-            // columnHeader5
-            // 
-            this.columnHeader5.Text = "认证方式";
-            this.columnHeader5.Width = 110;
-            // 
             // columnHeader6
             // 
             this.columnHeader6.Text = "门锁状态";
@@ -352,9 +349,14 @@ namespace ControlEntradaSalida
             this.label4.AutoSize = true;
             this.label4.Location = new System.Drawing.Point(231, 24);
             this.label4.Name = "label4";
-            this.label4.Size = new System.Drawing.Size(48, 18);
+            this.label4.Size = new System.Drawing.Size(46, 18);
             this.label4.TabIndex = 0;
             this.label4.Text = "星期:";
+            // 
+            // columnHeader5
+            // 
+            this.columnHeader5.Text = "认证方式";
+            this.columnHeader5.Width = 110;
             // 
             // btnGet
             // 

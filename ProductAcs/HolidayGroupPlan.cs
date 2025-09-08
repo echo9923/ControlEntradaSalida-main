@@ -83,8 +83,8 @@ namespace ControlEntradaSalida
         {
             // 仅支持门状态模式
             uint dwCommand = (uint)HCNetSDK.NET_DVR_GET_DOOR_STATUS_HOLIDAY_GROUP;
-            string strTemp = null;
             uint dwReturned = 0;
+            string strTemp = null;
             uint dwSize = (uint)Marshal.SizeOf(m_struGroupCfg);
             IntPtr ptrPlanCfg = Marshal.AllocHGlobal((int)dwSize);
             Marshal.StructureToPtr(m_struGroupCfg, ptrPlanCfg, false);
