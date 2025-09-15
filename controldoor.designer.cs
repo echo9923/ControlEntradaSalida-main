@@ -37,30 +37,12 @@ namespace ControlEntradaSalida
             this.cmbDevices = new System.Windows.Forms.ComboBox();
             this.SuspendLayout();
             // 
-            // lblDevice
-            // 
-            this.lblDevice.AutoSize = true;
-            this.lblDevice.Location = new System.Drawing.Point(30, 15);
-            this.lblDevice.Name = "lblDevice";
-            this.lblDevice.Size = new System.Drawing.Size(65, 12);
-            this.lblDevice.TabIndex = 68;
-            this.lblDevice.Text = "选择设备:";
-            // 
-            // cmbDevices
-            // 
-            this.cmbDevices.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
-            this.cmbDevices.FormattingEnabled = true;
-            this.cmbDevices.Location = new System.Drawing.Point(101, 12);
-            this.cmbDevices.Name = "cmbDevices";
-            this.cmbDevices.Size = new System.Drawing.Size(300, 20);
-            this.cmbDevices.TabIndex = 69;
-            this.cmbDevices.SelectedIndexChanged += new System.EventHandler(this.cmbDevices_SelectedIndexChanged);
-            // 
             // btnOpen
             // 
-            this.btnOpen.Location = new System.Drawing.Point(148, 51);
+            this.btnOpen.Location = new System.Drawing.Point(197, 64);
+            this.btnOpen.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
             this.btnOpen.Name = "btnOpen";
-            this.btnOpen.Size = new System.Drawing.Size(103, 24);
+            this.btnOpen.Size = new System.Drawing.Size(137, 30);
             this.btnOpen.TabIndex = 61;
             this.btnOpen.Text = "开门";
             this.btnOpen.UseVisualStyleBackColor = true;
@@ -68,9 +50,10 @@ namespace ControlEntradaSalida
             // 
             // btnClose
             // 
-            this.btnClose.Location = new System.Drawing.Point(148, 91);
+            this.btnClose.Location = new System.Drawing.Point(197, 114);
+            this.btnClose.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
             this.btnClose.Name = "btnClose";
-            this.btnClose.Size = new System.Drawing.Size(103, 24);
+            this.btnClose.Size = new System.Drawing.Size(137, 30);
             this.btnClose.TabIndex = 63;
             this.btnClose.Text = "关门";
             this.btnClose.UseVisualStyleBackColor = true;
@@ -78,9 +61,10 @@ namespace ControlEntradaSalida
             // 
             // btnStayOpen
             // 
-            this.btnStayOpen.Location = new System.Drawing.Point(148, 131);
+            this.btnStayOpen.Location = new System.Drawing.Point(197, 164);
+            this.btnStayOpen.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
             this.btnStayOpen.Name = "btnStayOpen";
-            this.btnStayOpen.Size = new System.Drawing.Size(103, 24);
+            this.btnStayOpen.Size = new System.Drawing.Size(137, 30);
             this.btnStayOpen.TabIndex = 65;
             this.btnStayOpen.Text = "常开";
             this.btnStayOpen.UseVisualStyleBackColor = true;
@@ -88,19 +72,41 @@ namespace ControlEntradaSalida
             // 
             // btnStayClose
             // 
-            this.btnStayClose.Location = new System.Drawing.Point(148, 172);
+            this.btnStayClose.Location = new System.Drawing.Point(197, 215);
+            this.btnStayClose.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
             this.btnStayClose.Name = "btnStayClose";
-            this.btnStayClose.Size = new System.Drawing.Size(103, 24);
+            this.btnStayClose.Size = new System.Drawing.Size(137, 30);
             this.btnStayClose.TabIndex = 67;
             this.btnStayClose.Text = "常闭";
             this.btnStayClose.UseVisualStyleBackColor = true;
             this.btnStayClose.Click += new System.EventHandler(this.btnStayClose_Click);
             // 
+            // lblDevice
+            // 
+            this.lblDevice.AutoSize = true;
+            this.lblDevice.Location = new System.Drawing.Point(40, 19);
+            this.lblDevice.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
+            this.lblDevice.Name = "lblDevice";
+            this.lblDevice.Size = new System.Drawing.Size(75, 15);
+            this.lblDevice.TabIndex = 68;
+            this.lblDevice.Text = "选择设备:";
+            // 
+            // cmbDevices
+            // 
+            this.cmbDevices.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.cmbDevices.FormattingEnabled = true;
+            this.cmbDevices.Location = new System.Drawing.Point(135, 15);
+            this.cmbDevices.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.cmbDevices.Name = "cmbDevices";
+            this.cmbDevices.Size = new System.Drawing.Size(199, 23);
+            this.cmbDevices.TabIndex = 69;
+            this.cmbDevices.SelectedIndexChanged += new System.EventHandler(this.cmbDevices_SelectedIndexChanged);
+            // 
             // controldoor
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 12F);
+            this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 15F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(433, 259);
+            this.ClientSize = new System.Drawing.Size(577, 324);
             this.Controls.Add(this.btnStayClose);
             this.Controls.Add(this.btnStayOpen);
             this.Controls.Add(this.btnClose);
@@ -108,6 +114,7 @@ namespace ControlEntradaSalida
             this.Controls.Add(this.cmbDevices);
             this.Controls.Add(this.lblDevice);
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedDialog;
+            this.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
             this.MaximizeBox = false;
             this.MinimizeBox = false;
             this.Name = "controldoor";
@@ -116,6 +123,7 @@ namespace ControlEntradaSalida
             this.Text = "远程控门";
             this.Load += new System.EventHandler(this.controldoor_Load_1);
             this.ResumeLayout(false);
+            this.PerformLayout();
 
         }
 

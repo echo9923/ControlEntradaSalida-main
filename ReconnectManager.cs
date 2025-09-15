@@ -146,16 +146,24 @@ namespace ControlEntradaSalida
             lock (_lockObject)
             {
                 var state = _reconnectStates.GetOrAdd(deviceId, _ => new ReconnectState { DeviceId = deviceId });
-                
-                // 检查是否在冷却期
+
+                // 修复：检查是否在冷却期或已有待执行的重连任务
                 if (state.IsInCooldown && DateTime.Now < state.CooldownUntil)
                 {
+                    Console.WriteLine($"[重连管理器] 设备 {deviceId} 在冷却期内，跳过重连调度");
                     return; // 还在冷却期，不处理
+                }
+
+                // 修复：检查是否已有待执行的重连任务（避免重复调度）
+                if (state.NextRetry != DateTime.MinValue && DateTime.Now < state.NextRetry)
+                {
+                    Console.WriteLine($"[重连管理器] 设备 {deviceId} 已有待执行重连任务，跳过重复调度");
+                    return; // 已有待执行的重连任务，不重复调度
                 }
 
                 // 重置冷却状态
                 state.IsInCooldown = false;
-                
+
                 // 检查是否已达到最大重连次数
                 if (state.Attempts >= MAX_RECONNECT_ATTEMPTS)
                 {
@@ -164,9 +172,10 @@ namespace ControlEntradaSalida
                         state.IsPermanentFailure = true;
                         state.IsInCooldown = true;
                         state.CooldownUntil = DateTime.Now.AddMilliseconds(PERMANENT_FAILURE_COOLDOWN_MS);
-                        
+
+                        Console.WriteLine($"[重连管理器] 设备 {deviceId} 达到最大重连次数，进入冷却期");
                         OnPermanentFailure(new DeviceReconnectEventArgs(
-                            deviceId, state.Attempts, TimeSpan.Zero, true, 
+                            deviceId, state.Attempts, TimeSpan.Zero, true,
                             $"已达到最大重连次数({MAX_RECONNECT_ATTEMPTS})，进入冷却期"));
                     }
                     return;
@@ -179,9 +188,11 @@ namespace ControlEntradaSalida
                 state.Attempts++;
                 state.LastAttempt = DateTime.Now;
 
+                Console.WriteLine($"[重连管理器] 设备 {deviceId} 安排第 {state.Attempts} 次重连，延迟 {delay.TotalSeconds} 秒");
+
                 // 触发重连尝试开始事件
                 OnReconnectAttemptStarted(new DeviceReconnectEventArgs(
-                    deviceId, state.Attempts, delay, 
+                    deviceId, state.Attempts, delay,
                     state.Attempts >= MAX_RECONNECT_ATTEMPTS, reason));
             }
         }
@@ -197,19 +208,37 @@ namespace ControlEntradaSalida
                 if (_reconnectStates.TryGetValue(deviceId, out var state))
                 {
                     var wasInFailure = state.IsPermanentFailure || state.Attempts > 0;
-                    
+
+                    Console.WriteLine($"[重连管理器] 重置设备 {deviceId} 重连状态 - 之前尝试次数: {state.Attempts}");
+
                     state.Attempts = 0;
                     state.IsPermanentFailure = false;
                     state.IsInCooldown = false;
                     state.CooldownUntil = DateTime.MinValue;
                     state.NextRetry = DateTime.MinValue;
                     state.CurrentDelay = TimeSpan.Zero;
-                    
+
                     if (wasInFailure)
                     {
+                        Console.WriteLine($"[重连管理器] 设备 {deviceId} 连接恢复成功");
                         OnReconnectSucceeded(new DeviceReconnectEventArgs(
                             deviceId, 0, TimeSpan.Zero, false, "连接恢复成功"));
                     }
+                }
+                else
+                {
+                    // 修复：即使状态不存在，也要确保创建一个干净的状态记录
+                    Console.WriteLine($"[重连管理器] 为设备 {deviceId} 创建新的重连状态记录");
+                    _reconnectStates.TryAdd(deviceId, new ReconnectState
+                    {
+                        DeviceId = deviceId,
+                        Attempts = 0,
+                        IsPermanentFailure = false,
+                        IsInCooldown = false,
+                        CooldownUntil = DateTime.MinValue,
+                        NextRetry = DateTime.MinValue,
+                        CurrentDelay = TimeSpan.Zero
+                    });
                 }
             }
         }

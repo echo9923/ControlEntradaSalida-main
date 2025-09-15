@@ -35,6 +35,9 @@ namespace ControlEntradaSalida
             _statusManager = DeviceStatusManager.Instance;
             InitializeTimer();
             SetupEventHandlers();
+
+            // 订阅设备状态变更事件，与 DeviceConnectionManager 保持同步
+            DeviceConnectionManager.Instance.DeviceStatusChanged += OnDeviceStatusChanged;
         }
 
         private void InitializeComponent()
@@ -110,9 +113,27 @@ namespace ControlEntradaSalida
         private void InitializeTimer()
         {
             _refreshTimer = new Timer();
-            _refreshTimer.Interval = 5000; // 5秒刷新一次门状态
+            _refreshTimer.Interval = 10000; // 降低到10秒，主要用于门状态的细节检查
             _refreshTimer.Tick += RefreshTimer_Tick;
             _refreshTimer.Start();
+        }
+
+        /// <summary>
+        /// 处理设备状态变更事件 - 与 DeviceConnectionManager 保持同步
+        /// </summary>
+        private void OnDeviceStatusChanged(object sender, DeviceStatusChangedEventArgs e)
+        {
+            // 只处理当前设备的状态变更
+            if (_device != null && e.Device.Id == _device.Id)
+            {
+                // 更新本地设备引用
+                _device = e.Device;
+
+                // 线程安全地更新UI显示
+                this.Invoke((MethodInvoker)delegate {
+                    UpdateDisplay();
+                });
+            }
         }
 
         private void SetupEventHandlers()
@@ -297,12 +318,53 @@ namespace ControlEntradaSalida
 
         private void UpdateConnectionStatusDisplay()
         {
+            // 优先检查设备是否已启用
+            if (!_device.IsEnabled)
+            {
+                pbStatusIcon.BackColor = Color.Red;
+                pbStatusIcon.Image = CreateStatusIcon(Color.Red, false);
+                lblStatus.Text = "已禁用";
+                lblStatus.ForeColor = Color.Red;
+                pnlMain.BackColor = Color.LightGray;
+                pnlMain.BorderStyle = BorderStyle.FixedSingle;
+                return;
+            }
+
+            // 检查连接状态
             if (_device.IsConnected)
             {
-                pbStatusIcon.BackColor = Color.Green;
-                pbStatusIcon.Image = CreateStatusIcon(Color.Green, true);
-                lblStatus.Text = "在线";
-                lblStatus.ForeColor = Color.Green;
+                // 根据具体状态设置颜色
+                Color statusColor = Color.Green;
+                string statusText = "在线";
+
+                switch (_device.Status)
+                {
+                    case DeviceStatus.Online:
+                        statusColor = Color.Green;
+                        statusText = "在线";
+                        break;
+                    case DeviceStatus.AlwaysOpen:
+                        statusColor = Color.Orange;
+                        statusText = "常开";
+                        break;
+                    case DeviceStatus.AlwaysClose:
+                        statusColor = Color.Red;
+                        statusText = "常闭";
+                        break;
+                    case DeviceStatus.Unknown:
+                        statusColor = Color.Yellow;
+                        statusText = "状态未知";
+                        break;
+                    default:
+                        statusColor = Color.Green;
+                        statusText = "在线";
+                        break;
+                }
+
+                pbStatusIcon.BackColor = statusColor;
+                pbStatusIcon.Image = CreateStatusIcon(statusColor, true);
+                lblStatus.Text = statusText;
+                lblStatus.ForeColor = statusColor;
                 pnlMain.BackColor = Color.White;
                 pnlMain.BorderStyle = BorderStyle.FixedSingle;
             }
@@ -489,8 +551,19 @@ namespace ControlEntradaSalida
         {
             if (disposing)
             {
+                // 清理定时器
                 _refreshTimer?.Stop();
                 _refreshTimer?.Dispose();
+
+                // 取消订阅设备状态变更事件
+                try
+                {
+                    DeviceConnectionManager.Instance.DeviceStatusChanged -= OnDeviceStatusChanged;
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"取消订阅设备状态事件时发生异常: {ex.Message}");
+                }
             }
             base.Dispose(disposing);
         }

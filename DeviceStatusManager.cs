@@ -10,7 +10,7 @@ namespace ControlEntradaSalida
     /// </summary>
     public class DeviceStatusManager
     {
-        private static readonly Lazy<DeviceStatusManager> _instance = 
+        private static readonly Lazy<DeviceStatusManager> _instance =
             new Lazy<DeviceStatusManager>(() => new DeviceStatusManager());
 
         /// <summary>
@@ -54,6 +54,43 @@ namespace ControlEntradaSalida
                 LogError($"获取设备状态失败 - 设备ID: {device.Id}, 错误: {ex.Message}");
                 return CreateOfflineStatus(device.Id, $"状态获取失败: {ex.Message}");
             }
+        }
+
+        /// <summary>
+        /// 创建设备状态信息对象（修复：添加缺失的方法）
+        /// </summary>
+        /// <param name="device">设备连接信息</param>
+        /// <returns>设备状态信息</returns>
+        public DeviceStatusInfo CreateDeviceStatusInfo(DeviceConnectionInfo device)
+        {
+            if (device == null) return null;
+
+            return new DeviceStatusInfo
+            {
+                DeviceId = device.Id,
+                IsOnline = device.IsConnected,
+                LastUpdated = DateTime.Now,
+                DoorStatus = ConvertToNewDoorStatus(device.Status),
+                OverallStatus = device.IsConnected ? DeviceOverallStatus.Online : DeviceOverallStatus.Offline,
+                StatusMessage = device.StatusMessage ?? "状态未知"
+            };
+        }
+
+        /// <summary>
+        /// 转换旧的设备状态到新的门状态枚举（修复：添加状态转换方法）
+        /// </summary>
+        /// <param name="deviceStatus">旧的设备状态</param>
+        /// <returns>新的门状态</returns>
+        private DoorStatus ConvertToNewDoorStatus(DeviceStatus deviceStatus)
+        {
+            return deviceStatus switch
+            {
+                DeviceStatus.Online => DoorStatus.Closed, // 在线默认为门关闭
+                DeviceStatus.AlwaysOpen => DoorStatus.AlwaysOpen,
+                DeviceStatus.AlwaysClose => DoorStatus.AlwaysClosed,
+                DeviceStatus.Offline => DoorStatus.Unknown,
+                _ => DoorStatus.Unknown
+            };
         }
 
         /// <summary>

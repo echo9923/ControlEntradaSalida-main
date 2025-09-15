@@ -262,12 +262,12 @@ namespace ControlEntradaSalida
         {
             // 清空现有设备列表
             while (_devices.TryTake(out _)) { }
-            
+
             Common cmn = new Common();
             string connstr = cmn.obtenerCadenaConexion();
             BaseDatosMySQL bd = new BaseDatosMySQL();
             bd.conectarMySQL(connstr);
-            
+
             if (bd.conn != null)
             {
                 // 修改SQL查询，加载所有设备并获取其启用状态
@@ -276,7 +276,7 @@ namespace ControlEntradaSalida
                 {
                     MySqlCommand cmd = new MySqlCommand(sql, bd.conn);
                     MySqlDataReader rdr = cmd.ExecuteReader();
-                    
+
                     while (rdr.Read())
                     {
                         DeviceConnectionInfo device = new DeviceConnectionInfo
@@ -291,15 +291,21 @@ namespace ControlEntradaSalida
                             IsEnabled = Convert.ToInt32(rdr["status"]) == 1,
                             LastUsed = rdr["last_used_time"] != DBNull.Value ? Convert.ToDateTime(rdr["last_used_time"]) : DateTime.MinValue
                         };
-                        
+
                         // 初始化设备信号量
-                        _connectionSemaphores.TryAdd(device.Id, 
+                        _connectionSemaphores.TryAdd(device.Id,
                             SynchronizationHelper.CreateSemaphore(1, 1, $"Device-{device.Id}-Connection"));
-                        
+
                         _devices.Add(device);
                     }
-                    
+
                     rdr.Close();
+
+                    // 修复：设备加载完成后，异步检查和建立连接
+                    Task.Run(async () =>
+                    {
+                        await InitializeDeviceConnectionsAsync();
+                    });
                 }
                 catch (Exception ex)
                 {
@@ -312,6 +318,53 @@ namespace ControlEntradaSalida
                     bd.desconectarMySQL();
                 }
             }
+        }
+
+        /// <summary>
+        /// 初始化设备连接（新增方法）
+        /// </summary>
+        private async Task InitializeDeviceConnectionsAsync()
+        {
+            var enabledDevices = GetAllDevices().Where(d => d.IsEnabled).ToList();
+
+            if (enabledDevices.Count == 0) return;
+
+            Console.WriteLine($"开始初始化 {enabledDevices.Count} 个启用设备的连接状态");
+
+            // 并行检查所有启用设备的连接状态
+            var options = new ParallelOptions
+            {
+                MaxDegreeOfParallelism = Math.Min(Environment.ProcessorCount, MAX_CONCURRENT_CONNECTIONS)
+            };
+
+            await Task.Run(() =>
+            {
+                Parallel.ForEach(enabledDevices, options, device =>
+                {
+                    try
+                    {
+                        Console.WriteLine($"检查设备 {device.Id}({device.Name}) 的连接状态");
+
+                        // 尝试连接设备并更新状态
+                        bool connected = ConnectToDevice(device);
+
+                        if (connected)
+                        {
+                            Console.WriteLine($"设备 {device.Id}({device.Name}) 连接成功");
+                        }
+                        else
+                        {
+                            Console.WriteLine($"设备 {device.Id}({device.Name}) 连接失败: {device.StatusMessage}");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"初始化设备 {device.Id}({device.Name}) 连接时发生异常: {ex.Message}");
+                    }
+                });
+            });
+
+            Console.WriteLine("设备连接初始化完成");
         }
 
         /// <summary>
@@ -603,81 +656,119 @@ namespace ControlEntradaSalida
             {
                 bool previousConnectionState;
                 DeviceStatus previousStatus;
-                
+                DateTime lastConnectionSuccess;
+
                 lock (device.LockObject)
                 {
                     previousConnectionState = device.IsConnected;
                     previousStatus = device.Status;
+                    lastConnectionSuccess = device.LastUsed;
                 }
-                
+
                 // 如果设备未连接，尝试连接
                 if (device.UserID < 0)
                 {
                     return ConnectToDevice(device);
                 }
-                
+
+                // 修复：增加连接状态容错检查
+                // 如果设备刚刚连接成功（30秒内），给予更多容错时间
+                bool isRecentlyConnected = (DateTime.Now - lastConnectionSuccess).TotalSeconds < 30;
+
                 // 使用设备状态引擎检测状态
                 var workStatus = _statusEngine.GetDeviceWorkStatus(device.UserID);
-                
+
                 lock (device.LockObject)
                 {
                     if (workStatus.IsOnline)
                     {
                         device.IsConnected = true;
                         device.UpdateStatus(workStatus.Status, workStatus.StatusMessage);
+
+                        // 连接状态恢复，确保重连状态被重置
+                        if (!previousConnectionState)
+                        {
+                            _reconnectManager.ResetReconnectState(device.Id);
+                        }
                     }
                     else
                     {
+                        // 修复：对于最近连接成功的设备，增加容错机制
+                        if (isRecentlyConnected && previousConnectionState)
+                        {
+                            Console.WriteLine($"[容错机制] 设备 {device.Id}({device.Name}) 最近连接成功，忽略此次状态检查失败");
+                            // 保持连接状态不变，不触发重连
+                            return true;
+                        }
+
                         device.IsConnected = false;
                         device.UpdateStatus(DeviceStatus.Offline, workStatus.StatusMessage);
-                        
+
                         // 如果之前是连接状态，现在断开，则需要清理UserID
                         if (previousConnectionState)
                         {
                             device.UserID = -1;
                             device.RecordConnectionFailure(workStatus.LastErrorCode, workStatus.ErrorMessage);
-                            
-                            // 安排重连
-                            _reconnectManager.ScheduleReconnect(device.Id, "设备状态检查失败");
+
+                            // 修复：检查是否已在重连队列中，避免重复调度
+                            var reconnectState = _reconnectManager.GetReconnectState(device.Id);
+                            if (reconnectState == null || reconnectState.NextRetry == DateTime.MinValue)
+                            {
+                                Console.WriteLine($"[状态检查] 设备 {device.Id}({device.Name}) 连接丢失，安排重连");
+                                _reconnectManager.ScheduleReconnect(device.Id, "设备状态检查失败");
+                            }
+                            else
+                            {
+                                Console.WriteLine($"[状态检查] 设备 {device.Id}({device.Name}) 已在重连队列中，跳过重复调度");
+                            }
                         }
                     }
                 }
-                
+
                 // 如果连接状态或设备状态发生改变，触发事件
                 if (previousConnectionState != device.IsConnected || previousStatus != device.Status)
                 {
-                    OnDeviceStatusChanged(new DeviceStatusChangedEventArgs(device, device.IsConnected, 
+                    OnDeviceStatusChanged(new DeviceStatusChangedEventArgs(device, device.IsConnected,
                         device.StatusMessage, "StatusCheck"));
                 }
-                
+
                 return workStatus.IsOnline;
             }
             catch (Exception ex)
             {
                 bool previousConnectionState;
                 DeviceStatus previousStatus;
-                
+
                 lock (device.LockObject)
                 {
                     previousConnectionState = device.IsConnected;
                     previousStatus = device.Status;
-                    
+
                     device.IsConnected = false;
                     device.UpdateStatus(DeviceStatus.Unknown, $"状态检查异常: {ex.Message}");
                     device.UserID = -1; // 出现异常时重置连接ID
                     device.RecordConnectionFailure(0, ex.Message);
                 }
-                
-                // 安排重连
-                _reconnectManager.ScheduleReconnect(device.Id, $"状态检查异常: {ex.Message}");
-                
+
+                // 修复：异常情况下也要检查重连状态，避免重复调度
+                var reconnectState = _reconnectManager.GetReconnectState(device.Id);
+                if (reconnectState == null || reconnectState.NextRetry == DateTime.MinValue)
+                {
+                    Console.WriteLine($"[异常处理] 设备 {device.Id}({device.Name}) 状态检查异常，安排重连");
+                    _reconnectManager.ScheduleReconnect(device.Id, $"状态检查异常: {ex.Message}");
+                }
+                else
+                {
+                    Console.WriteLine($"[异常处理] 设备 {device.Id}({device.Name}) 已在重连队列中，跳过重复调度");
+                }
+
                 // 如果状态发生改变，触发事件
                 if (previousConnectionState != device.IsConnected || previousStatus != device.Status)
                 {
                     OnDeviceError(new DeviceErrorEventArgs(device, 0, ex.Message, ex, "StatusCheckException"));
                     OnDeviceStatusChanged(new DeviceStatusChangedEventArgs(device, false, ex.Message, "Exception"));
                 }
-                
+
                 return false;
             }
         }

@@ -243,6 +243,9 @@
     <Compile Include="MDIParent.designer.cs">
       <DependentUpon>MDIParent.cs</DependentUpon>
     </Compile>
+    <Compile Include="WebBrowserForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
     <Compile Include="ParamInformeEntradaSalida.cs">
       <SubType>Form</SubType>
     </Compile>

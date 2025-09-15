@@ -260,28 +260,58 @@ namespace ControlEntradaSalida
             int userID = -1;
             bool operationSucceeded = false;
             string deviceInfo = $"{this.textBoxNombre.Text} - {this.txtDireccionIP.Text}";
-            
+
             if (nuevo)
             {
                 if (login(out userID))
                 {
                     operationSucceeded = AddDevice();
-                    // 如果登录成功，断开连接（因为设备连接管理器会管理连接）
-                    if (userID >= 0)
+
+                    // 修复：登录成功后通知设备连接管理器建立连接，而不是立即断开
+                    if (userID >= 0 && operationSucceeded)
                     {
-                        HCNetSDK.NET_DVR_Logout_V30(userID);
+                        try
+                        {
+                            // 先断开临时连接
+                            HCNetSDK.NET_DVR_Logout_V30(userID);
+
+                            // 通知设备连接管理器重新加载设备并建立连接
+                            DeviceConnectionManager.Instance.LoadAllDevices();
+
+                            // 异步连接新添加的设备
+                            Task.Run(async () =>
+                            {
+                                await Task.Delay(1000); // 等待设备管理器加载完成
+                                var newDevice = DeviceConnectionManager.Instance.GetDeviceByAddress(
+                                    this.txtDireccionIP.Text, this.txtPuerto.Text);
+                                if (newDevice != null)
+                                {
+                                    await DeviceConnectionManager.Instance.ConnectToDeviceAsync(newDevice);
+                                }
+                            });
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine($"连接新设备时发生异常: {ex.Message}");
+                        }
                     }
                 }
-                else 
+                else
                 {
                     DialogResult res = MessageBox.Show("未能在设备上登录，您还是想要添加它吗？", "设备登录错误", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
 
                     if (res == DialogResult.Yes)
                     {
                         operationSucceeded = AddDevice();
+
+                        // 即使登录失败，也要通知设备连接管理器重新加载
+                        if (operationSucceeded)
+                        {
+                            DeviceConnectionManager.Instance.LoadAllDevices();
+                        }
                     }
                 }
-                
+
                 // 如果成功添加设备，通知其他界面
                 if (operationSucceeded)
                 {
@@ -291,17 +321,47 @@ namespace ControlEntradaSalida
                         DeviceChangeType.Added,
                         this.GetType().Name);
                 }
-            } 
+            }
             else
             {
-                login(out userID);
+                bool loginSuccess = login(out userID);
                 operationSucceeded = UpdateDevice(this.textBoxID.Text);
-                // 如果登录成功，断开连接（因为设备连接管理器会管理连接）
-                if (userID >= 0)
+
+                // 修复：更新设备后重新建立连接
+                if (operationSucceeded)
                 {
-                    HCNetSDK.NET_DVR_Logout_V30(userID);
+                    try
+                    {
+                        // 如果登录成功，先断开临时连接
+                        if (userID >= 0)
+                        {
+                            HCNetSDK.NET_DVR_Logout_V30(userID);
+                        }
+
+                        // 通知设备连接管理器重新加载设备信息
+                        DeviceConnectionManager.Instance.LoadAllDevices();
+
+                        // 异步重新连接更新后的设备
+                        if (loginSuccess)
+                        {
+                            Task.Run(async () =>
+                            {
+                                await Task.Delay(1000); // 等待设备管理器加载完成
+                                var updatedDevice = DeviceConnectionManager.Instance.GetDeviceByAddress(
+                                    this.txtDireccionIP.Text, this.txtPuerto.Text);
+                                if (updatedDevice != null)
+                                {
+                                    await DeviceConnectionManager.Instance.ConnectToDeviceAsync(updatedDevice);
+                                }
+                            });
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"重新连接更新设备时发生异常: {ex.Message}");
+                    }
                 }
-                
+
                 // 如果成功更新设备，通知其他界面
                 if (operationSucceeded)
                 {
@@ -312,7 +372,7 @@ namespace ControlEntradaSalida
                         this.GetType().Name);
                 }
             }
-            
+
             if (operationSucceeded)
             {
                 this.Close();

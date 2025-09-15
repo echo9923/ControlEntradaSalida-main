@@ -636,18 +636,23 @@ namespace ControlEntradaSalida
                 return;
             }
 
-            // 根据设备状态设置图标颜色和标签文本
+            // 优先使用 IsConnected 状态，然后参考 Status 枚举进行细化
+            if (!device.IsConnected)
+            {
+                statusIcon.BackColor = Color.FromArgb(108, 117, 125); // 现代化的灰色
+                statusLabel.Text = "离线";
+                statusLabel.ForeColor = Color.FromArgb(108, 117, 125);
+                statusIcon.Invalidate();
+                return;
+            }
+
+            // 设备已连接时，根据具体状态进行显示
             switch (device.Status)
             {
                 case DeviceStatus.Online:
                     statusIcon.BackColor = Color.FromArgb(40, 167, 69); // 现代化的绿色
                     statusLabel.Text = "在线";
                     statusLabel.ForeColor = Color.FromArgb(40, 167, 69);
-                    break;
-                case DeviceStatus.Offline:
-                    statusIcon.BackColor = Color.FromArgb(108, 117, 125); // 现代化的灰色
-                    statusLabel.Text = "离线";
-                    statusLabel.ForeColor = Color.FromArgb(108, 117, 125);
                     break;
                 case DeviceStatus.AlwaysOpen:
                     statusIcon.BackColor = Color.FromArgb(255, 193, 7); // 现代化的黄色
@@ -659,9 +664,16 @@ namespace ControlEntradaSalida
                     statusLabel.Text = "常闭";
                     statusLabel.ForeColor = Color.FromArgb(220, 53, 69);
                     break;
+                case DeviceStatus.Unknown:
+                    statusIcon.BackColor = Color.FromArgb(255, 193, 7); // 现代化的黄色
+                    statusLabel.Text = "状态未知";
+                    statusLabel.ForeColor = Color.FromArgb(255, 143, 0);
+                    break;
+                case DeviceStatus.Offline:
                 default:
+                    // 这些情况通常不会到达，因为我们已经在上面处理了 !IsConnected
                     statusIcon.BackColor = Color.FromArgb(108, 117, 125); // 现代化的灰色
-                    statusLabel.Text = "未知";
+                    statusLabel.Text = "离线";
                     statusLabel.ForeColor = Color.FromArgb(108, 117, 125);
                     break;
             }
@@ -804,6 +816,144 @@ namespace ControlEntradaSalida
         {
             Plantemplate frmGestionUsuariosDispositivo = new Plantemplate();
             ShowOwnedTopMost(frmGestionUsuariosDispositivo);
+        }
+        
+        private void webBrowserToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            ShowWebBrowserOption();
+        }
+        
+        /// <summary>
+        /// 显示网页浏览选项对话框
+        /// </summary>
+        private void ShowWebBrowserOption()
+        {
+            DialogResult result = MessageBox.Show(
+                "请选择网页打开方式：\n\n是：在新窗口中打开\n否：在当前界面中打开\n取消：取消操作",
+                "网页浏览选项",
+                MessageBoxButtons.YesNoCancel,
+                MessageBoxIcon.Question);
+
+            switch (result)
+            {
+                case DialogResult.Yes:
+                    OpenWebBrowserInNewWindow();
+                    break;
+                case DialogResult.No:
+                    OpenWebBrowserInCurrentWindow();
+                    break;
+                case DialogResult.Cancel:
+                    // 用户取消操作
+                    break;
+            }
+        }
+
+        /// <summary>
+        /// 在新窗口中打开网页浏览器
+        /// </summary>
+        private void OpenWebBrowserInNewWindow()
+        {
+            WebBrowserForm webForm = new WebBrowserForm();
+            ShowOwnedTopMost(webForm);
+        }
+
+        /// <summary>
+        /// 在当前界面中打开网页浏览器
+        /// </summary>
+        private void OpenWebBrowserInCurrentWindow()
+        {
+            // 隐藏设备状态面板
+            if (mainDevicePanel != null)
+            {
+                mainDevicePanel.Visible = false;
+            }
+
+            // 创建内嵌的WebBrowser控件
+            CreateEmbeddedWebBrowser();
+        }
+
+        /// <summary>
+        /// 创建内嵌的WebBrowser控件
+        /// </summary>
+        private void CreateEmbeddedWebBrowser()
+        {
+            // 检查是否已经存在WebBrowser控件
+            WebBrowser existingBrowser = this.Controls.OfType<WebBrowser>().FirstOrDefault();
+            if (existingBrowser != null)
+            {
+                existingBrowser.Visible = true;
+                existingBrowser.BringToFront();
+                return;
+            }
+
+            // 创建新的WebBrowser控件
+            WebBrowser webBrowser = new WebBrowser();
+            webBrowser.Dock = DockStyle.Fill;
+            webBrowser.Url = new Uri("https://www.bilibili.com/");
+            webBrowser.ScriptErrorsSuppressed = true;
+
+            // 添加返回按钮面板
+            Panel controlPanel = new Panel();
+            controlPanel.Height = 40;
+            controlPanel.Dock = DockStyle.Top;
+            controlPanel.BackColor = Color.FromArgb(240, 240, 240);
+
+            Button backButton = new Button();
+            backButton.Text = "返回主界面";
+            backButton.Size = new Size(100, 30);
+            backButton.Location = new Point(10, 5);
+            backButton.BackColor = Color.FromArgb(0, 123, 255);
+            backButton.ForeColor = Color.White;
+            backButton.FlatStyle = FlatStyle.Flat;
+            backButton.Click += (s, e) => ReturnToMainInterface();
+
+            Button refreshButton = new Button();
+            refreshButton.Text = "刷新";
+            refreshButton.Size = new Size(60, 30);
+            refreshButton.Location = new Point(120, 5);
+            refreshButton.BackColor = Color.FromArgb(40, 167, 69);
+            refreshButton.ForeColor = Color.White;
+            refreshButton.FlatStyle = FlatStyle.Flat;
+            refreshButton.Click += (s, e) => webBrowser.Refresh();
+
+            controlPanel.Controls.Add(backButton);
+            controlPanel.Controls.Add(refreshButton);
+
+            // 将控件添加到主窗体
+            this.Controls.Add(controlPanel);
+            this.Controls.Add(webBrowser);
+            
+            controlPanel.BringToFront();
+            webBrowser.BringToFront();
+        }
+
+        /// <summary>
+        /// 返回主界面
+        /// </summary>
+        private void ReturnToMainInterface()
+        {
+            // 移除WebBrowser控件和控制面板
+            var webBrowser = this.Controls.OfType<WebBrowser>().FirstOrDefault();
+            var controlPanel = this.Controls.OfType<Panel>().FirstOrDefault(p => p.Dock == DockStyle.Top && p.Height == 40);
+            
+            if (webBrowser != null)
+            {
+                this.Controls.Remove(webBrowser);
+                webBrowser.Dispose();
+            }
+            
+            if (controlPanel != null)
+            {
+                this.Controls.Remove(controlPanel);
+                controlPanel.Dispose();
+            }
+
+            // 显示设备状态面板
+            if (mainDevicePanel != null)
+            {
+                mainDevicePanel.Visible = true;
+                mainDevicePanel.BringToFront();
+            }
         }
         
         #region IRefreshableForm 实现

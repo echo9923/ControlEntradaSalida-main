@@ -112,25 +112,13 @@ namespace ControlEntradaSalida
                             lvi.SubItems.Add(rdr["ip_address"].ToString());//设备ip
                             lvi.SubItems.Add(rdr["port"].ToString());//设备端口
                             lvi.SubItems.Add(rdr["username"].ToString());//设备用户
-                            // 检查当前设备是否是已连接的设备
+
+                            // 修复：使用快速缓存状态检查，避免阻塞UI线程
                             string currentIp = rdr["ip_address"].ToString();
                             string currentPort = rdr["port"].ToString();
-                            bool isConnected = false;
-                            
-                            // 使用设备连接管理器检查设备连接状态
-                            var device = DeviceConnectionManager.Instance.GetDeviceByAddress(currentIp, currentPort);
-                            if (device != null)
-                            {
-                                isConnected = device.IsConnected;
-                            }
-                            
-                            if (isConnected)
-                            {
-                                lvi.SubItems.Add("已连接");
-                            } else
-                            {
-                                lvi.SubItems.Add("未连接");
-                            }
+                            string connectionStatus = GetCachedDeviceStatus(currentIp, currentPort);
+
+                            lvi.SubItems.Add(connectionStatus);//连接状态
                             lvi.SubItems.Add(rdr["status"].ToString());//状态
                             lvi.SubItems.Add(rdr["is_default"].ToString());//默认状态
                             lvi.SubItems.Add(rdr["last_used_time"].ToString());//最后一次登录时间
@@ -140,11 +128,176 @@ namespace ControlEntradaSalida
                     }
                     rdr.Close();
                     bd.desconectarMySQL();
+
+                    // 修复：在后台异步更新设备状态，不阻塞UI
+                    Task.Run(() => RefreshDeviceStatusAsync());
                 }
                 catch (Exception ex)
                 {
                     MessageBox.Show(ex.Message);
                 }
+            }
+        }
+
+        /// <summary>
+        /// 获取设备缓存状态（快速，不阻塞UI）
+        /// </summary>
+        /// <param name="ipAddress">设备IP地址</param>
+        /// <param name="port">设备端口</param>
+        /// <returns>连接状态描述</returns>
+        private string GetCachedDeviceStatus(string ipAddress, string port)
+        {
+            try
+            {
+                // 使用设备连接管理器检查缓存状态，不进行实时检查
+                var device = DeviceConnectionManager.Instance.GetDeviceByAddress(ipAddress, port);
+                if (device != null)
+                {
+                    if (device.IsConnected)
+                    {
+                        string statusDetail = GetDeviceStatusDetail(device);
+                        return $"已连接 ({statusDetail})";
+                    }
+                    else if (device.IsEnabled)
+                    {
+                        return $"连接失败 - {device.StatusMessage}";
+                    }
+                    else
+                    {
+                        return "已禁用";
+                    }
+                }
+                else
+                {
+                    return "未初始化";
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"获取设备 {ipAddress}:{port} 缓存状态时发生异常: {ex.Message}");
+                return "状态未知";
+            }
+        }
+
+        /// <summary>
+        /// 异步刷新设备状态（不阻塞UI）
+        /// </summary>
+        private async Task RefreshDeviceStatusAsync()
+        {
+            try
+            {
+                // 获取所有设备进行状态检查
+                var allDevices = DeviceConnectionManager.Instance.GetAllDevices();
+                if (allDevices == null || allDevices.Count == 0) return;
+
+                Console.WriteLine($"[设备管理界面] 开始异步刷新 {allDevices.Count} 个设备的状态");
+
+                // 使用并行处理提高效率，但限制并发数避免资源占用过多
+                var options = new ParallelOptions
+                {
+                    MaxDegreeOfParallelism = Math.Min(Environment.ProcessorCount, 3) // 限制并发数
+                };
+
+                await Task.Run(() =>
+                {
+                    Parallel.ForEach(allDevices.Where(d => d.IsEnabled), options, device =>
+                    {
+                        try
+                        {
+                            // 在后台线程中进行设备状态检查
+                            bool isOnline = DeviceConnectionManager.Instance.CheckDeviceStatus(device);
+
+                            // 状态检查完成后，更新UI（需要调用到UI线程）
+                            this.Invoke(new Action(() =>
+                            {
+                                UpdateDeviceStatusInList(device.Id.ToString(), device);
+                            }));
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine($"异步刷新设备 {device.Id}({device.Name}) 状态时发生异常: {ex.Message}");
+                        }
+                    });
+                });
+
+                Console.WriteLine("[设备管理界面] 设备状态异步刷新完成");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"异步刷新设备状态时发生异常: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// 更新列表中设备的状态显示
+        /// </summary>
+        /// <param name="deviceId">设备ID</param>
+        /// <param name="device">设备信息</param>
+        private void UpdateDeviceStatusInList(string deviceId, DeviceConnectionInfo device)
+        {
+            try
+            {
+                foreach (ListViewItem item in listView.Items)
+                {
+                    if (item.Text == deviceId)
+                    {
+                        // 更新连接状态列（索引6）
+                        if (item.SubItems.Count > 6)
+                        {
+                            if (device.IsConnected)
+                            {
+                                string statusDetail = GetDeviceStatusDetail(device);
+                                item.SubItems[6].Text = $"已连接 ({statusDetail})";
+                                item.BackColor = Color.LightGreen; // 连接成功用绿色背景
+                            }
+                            else if (device.IsEnabled)
+                            {
+                                item.SubItems[6].Text = $"连接失败 - {device.StatusMessage}";
+                                item.BackColor = Color.LightCoral; // 连接失败用红色背景
+                            }
+                            else
+                            {
+                                item.SubItems[6].Text = "已禁用";
+                                item.BackColor = Color.LightGray; // 禁用用灰色背景
+                            }
+                        }
+                        break;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"更新设备 {deviceId} 列表状态时发生异常: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// 获取设备状态详情（新增方法）
+        /// </summary>
+        /// <param name="device">设备信息</param>
+        /// <returns>状态详情</returns>
+        private string GetDeviceStatusDetail(DeviceConnectionInfo device)
+        {
+            try
+            {
+                switch (device.Status)
+                {
+                    case DeviceStatus.Online:
+                        return "在线";
+                    case DeviceStatus.AlwaysOpen:
+                        return "常开";
+                    case DeviceStatus.AlwaysClose:
+                        return "常闭";
+                    case DeviceStatus.Offline:
+                        return "离线";
+                    case DeviceStatus.Unknown:
+                    default:
+                        return "未知";
+                }
+            }
+            catch
+            {
+                return "状态未知";
             }
         }
         //窗体加载时：加载所有设备信息
