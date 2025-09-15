@@ -116,7 +116,7 @@ namespace ControlEntradaSalida
                 lock (_lockObject)
                 {
                     // 首先验证连接有效性
-                    if (!ValidateConnection(userID))
+                    if (!TestConnectivity(userID))
                     {
                         uint errorCode = HCNetSDK.NET_DVR_GetLastError();
                         workStatus.StatusMessage = $"连接验证失败，错误码: {errorCode}";
@@ -167,8 +167,9 @@ namespace ControlEntradaSalida
                         {
                             // 获取状态失败
                             uint errorCode = HCNetSDK.NET_DVR_GetLastError();
-                            workStatus.StatusMessage = $"获取设备状态失败，错误码: {errorCode}";
-                            workStatus.Status = DeviceStatus.Offline;
+                            workStatus.IsOnline = true;
+                            workStatus.StatusMessage = $"在线，但读取状态失败(错误码: {errorCode})";
+                            workStatus.Status = DeviceStatus.Online;
                             workStatus.LastErrorCode = errorCode;
                             workStatus.ErrorMessage = GetErrorMessage(errorCode);
                         }
