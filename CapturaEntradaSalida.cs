@@ -11,7 +11,6 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
-
 namespace ControlEntradaSalida
 {
     //实时接收、显示和记录出入事件 - 异步优化版本
@@ -21,8 +20,12 @@ namespace ControlEntradaSalida
         private HCNetSDK.MSGCallBack m_falarmData = null;
         private int m_lLogNum = 0;
         private Dictionary<int, int> lAlarmHandles = new Dictionary<int, int>(); // 设备ID到报警句柄的映射
-        
+        private readonly object _alarmSyncRoot = new object(); // 控制布防/撤防临界区，避免线程竞态
+        private bool _alarmCallbackRegistered = false; // 标记报警回调是否已经注册
+        private bool _hasShownNoDeviceMessage = false; // 控制无设备提示只弹一次
+
         // 异步数据库处理组件 - 核心异步处理机制
+
         private AsyncEventQueue _eventQueue;
         private EventDeduplicator _eventDeduplicator;
         private AsyncDatabaseWriter _asyncDatabaseWriter;
@@ -156,63 +159,95 @@ namespace ControlEntradaSalida
             }
         }
 
-
         //登录设备,设置报警监听参数,实现与设备建立"监听"连接
         private void Deploy()
         {
-            // 清除之前的报警连接
-            UnDeploy();
-            
-            // 获取所有已连接的设备
-            var connectedDevices = DeviceConnectionManager.Instance.GetAllDevices()
-                .Where(d => d.IsConnected).ToList();
-                
-            if (connectedDevices.Count == 0)
+            lock (_alarmSyncRoot)
             {
-                MessageBox.Show("没有已连接的设备", "设备连接", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                return;
-            }
+                // 仅为已经在线的设备维持布防状态，避免重复撤防
+                var connectedDevices = DeviceConnectionManager.Instance.GetAllDevices()
+                    .Where(d => d.IsConnected && d.UserID >= 0).ToList();
 
-            m_falarmData = new HCNetSDK.MSGCallBack(MsgCallback);//注册回调函数
-            if (!HCNetSDK.NET_DVR_SetDVRMessageCallBack_V50(0, m_falarmData, IntPtr.Zero))
-            {
-                MessageBox.Show("NET_DVR_SetDVRMessageCallBack_V50 fail", "operation fail", MessageBoxButtons.OK);
-                return;
-            }
-            
-            // 为每个已连接的设备设置报警监听
-            foreach (var device in connectedDevices)
-            {
-                HCNetSDK.NET_DVR_SETUPALARM_PARAM struSetupAlarmParam = new HCNetSDK.NET_DVR_SETUPALARM_PARAM();
-                struSetupAlarmParam.dwSize = (uint)Marshal.SizeOf(struSetupAlarmParam);
-                struSetupAlarmParam.byLevel = 1;
-                struSetupAlarmParam.byAlarmInfoType = 1;
-                struSetupAlarmParam.byDeployType = (byte)1;
-
-                int alarmHandle = HCNetSDK.NET_DVR_SetupAlarmChan_V41(device.UserID, ref struSetupAlarmParam);
-                if (alarmHandle < 0)
+                if (connectedDevices.Count == 0)
                 {
-                    MessageBox.Show($"设备 {device.Name} 设置报警监听失败，错误代码: " + HCNetSDK.NET_DVR_GetLastError(), "Setup alarm chan failed");
+                    if (lAlarmHandles.Count > 0)
+                    {
+                        foreach (var handle in lAlarmHandles.Values.ToList())
+                        {
+                            HCNetSDK.NET_DVR_CloseAlarmChan_V30(handle);
+                        }
+                        lAlarmHandles.Clear();
+                    }
+                    if (!_hasShownNoDeviceMessage)
+                    {
+                        _hasShownNoDeviceMessage = true;
+                        MessageBox.Show("暂无在线设备", "设备状态", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    }
+                    return;
                 }
-                else
+
+                _hasShownNoDeviceMessage = false;
+
+                if (!_alarmCallbackRegistered)
                 {
-                    lAlarmHandles[device.Id] = alarmHandle;
-                    //MessageBox.Show($"设备 {device.Name} 设置报警监听成功");
+                    m_falarmData = new HCNetSDK.MSGCallBack(MsgCallback); // 注册报警回调，避免重复注册
+                    if (!HCNetSDK.NET_DVR_SetDVRMessageCallBack_V50(0, m_falarmData, IntPtr.Zero))
+                    {
+                        MessageBox.Show("NET_DVR_SetDVRMessageCallBack_V50 fail", "operation fail", MessageBoxButtons.OK);
+                        return;
+                    }
+                    _alarmCallbackRegistered = true;
+                }
+                var activeDeviceIds = new HashSet<int>(connectedDevices.Select(d => d.Id));
+                foreach (var device in connectedDevices)
+                {
+                    if (lAlarmHandles.ContainsKey(device.Id))
+                    {
+                        continue; // 设备已经布防，无需重复
+                    }
+                    HCNetSDK.NET_DVR_SETUPALARM_PARAM struSetupAlarmParam = new HCNetSDK.NET_DVR_SETUPALARM_PARAM();
+                    struSetupAlarmParam.dwSize = (uint)Marshal.SizeOf(struSetupAlarmParam);
+                    struSetupAlarmParam.byLevel = 1;
+                    struSetupAlarmParam.byAlarmInfoType = 1;
+                    struSetupAlarmParam.byDeployType = (byte)1;
+
+                    int alarmHandle = HCNetSDK.NET_DVR_SetupAlarmChan_V41(device.UserID, ref struSetupAlarmParam);
+                    if (alarmHandle < 0)
+                    {
+                        MessageBox.Show($"设备 {device.Name} 布防失败，错误码: " + HCNetSDK.NET_DVR_GetLastError(), "Setup alarm chan failed");
+                    }
+                    else
+                    {
+                        lAlarmHandles[device.Id] = alarmHandle;
+                    }
+                }
+                var staleDeviceIds = lAlarmHandles.Keys.Where(id => !activeDeviceIds.Contains(id)).ToList();
+                foreach (var deviceId in staleDeviceIds)
+                {
+                    if (lAlarmHandles.TryGetValue(deviceId, out var handle))
+                    {
+                        HCNetSDK.NET_DVR_CloseAlarmChan_V30(handle);
+                    }
+                    lAlarmHandles.Remove(deviceId);
                 }
             }
         }
-        
-        //断开所有设备的报警监听
+
+        // 断开所有设备的报警通道
         private void UnDeploy()
         {
-            foreach (var kvp in lAlarmHandles)
+            lock (_alarmSyncRoot)
             {
-                HCNetSDK.NET_DVR_CloseAlarmChan_V30(kvp.Value);
+                foreach (var handle in lAlarmHandles.Values.ToList())
+                {
+                    HCNetSDK.NET_DVR_CloseAlarmChan_V30(handle);
+                }
+                lAlarmHandles.Clear();
+                _alarmCallbackRegistered = false;
+                _hasShownNoDeviceMessage = false;
             }
-            lAlarmHandles.Clear();
         }
 
-        //设备每次发送事件时会调用此方法,识别事件类型
         private void MsgCallback(int lCommand, ref HCNetSDK.NET_DVR_ALARMER pAlarmer, IntPtr pAlarmInfo, uint dwBufLen, IntPtr pUser)
         {
             switch (lCommand)
@@ -564,3 +599,4 @@ namespace ControlEntradaSalida
         
     
 }
+
