@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Concurrent;
 using System.Threading;
 using System.Threading.Tasks;
@@ -6,73 +6,73 @@ using System.Threading.Tasks;
 namespace ControlEntradaSalida
 {
     /// <summary>
-    /// 闂ㄧ浜嬩欢鏁版嵁妯″瀷 - 鐢ㄤ簬寮傛鏁版嵁搴撳鐞?
-    /// 涓ユ牸鎸夌収娴峰悍濞佽SDK缂栫▼鎸囧崡璁捐锛岀‘淇濊交閲忕骇蹇€熷鐞?
+    /// 门禁事件数据模型 - 用于异步数据库处理
+    /// 严格按照海康威视SDK编程指南设计，确保轻量级快速处理
     /// </summary>
     public class AccessLogEvent
     {
         /// <summary>
-        /// 搴忓彿锛堜笌鏁版嵁搴?sequence_number 瀵瑰簲锛?
+        /// 序号（与数据库sequence_number 对应）
         /// </summary>
         public long SequenceNumber { get; set; }
 
         /// <summary>
-        /// 浜嬩欢鍙戠敓鏃堕棿
+        /// 事件发生时间
         /// </summary>
         public DateTime EventTime { get; set; }
 
         /// <summary>
-        /// 鍛樺伐宸ュ彿
+        /// 员工工号
         /// </summary>
         public string EmployeeNumber { get; set; }
 
         /// <summary>
-        /// 鍛樺伐濮撳悕
+        /// 员工姓名
         /// </summary>
         public string EmployeeName { get; set; }
 
         /// <summary>
-        /// 璁惧缂栧彿
+        /// 设备编号
         /// </summary>
         public int DeviceNumber { get; set; }
 
         /// <summary>
-        /// 璁惧鍚嶇О
+        /// 设备名称
         /// </summary>
         public string DeviceName { get; set; }
 
         /// <summary>
-        /// 浜嬩欢绫诲瀷锛堝師濮嬫灇涓惧€硷級
+        /// 事件类型（原始枚举值）
         /// </summary>
         public string EventType { get; set; }
 
         /// <summary>
-        /// 浜嬩欢绫诲瀷涓枃鏄剧ず鍊?
+        /// 事件类型中文显示值
         /// </summary>
         public string EventTypeDisplay { get; set; }
 
         /// <summary>
-        /// 杩滅▼涓绘満鍦板潃
+        /// 远程主机地址
         /// </summary>
         public string RemoteHostAddress { get; set; }
 
         /// <summary>
-        /// 浜嬩欢浼樺厛绾э紙1=楂橈紝2=涓紝3=浣庯級
+        /// 事件优先级（1=高，2=中，3=低）
         /// </summary>
         public int Priority { get; set; } = 2;
 
         /// <summary>
-        /// 鍒涘缓鏃堕棿锛堢敤浜庣洃鎺у鐞嗗欢杩燂級
+        /// 创建时间（用于监控处理延迟）
         /// </summary>
         public DateTime CreateTime { get; set; } = DateTime.Now;
 
         /// <summary>
-        /// 閲嶈瘯娆℃暟
+        /// 重试次数
         /// </summary>
         public int RetryCount { get; set; } = 0;
 
         /// <summary>
-        /// 鐢熸垚浜嬩欢鍘婚噸鏍囪瘑
+        /// 生成事件去重标识
         /// </summary>
         public string GetDeduplicationKey()
         {
@@ -81,8 +81,8 @@ namespace ControlEntradaSalida
     }
 
     /// <summary>
-    /// 绾跨▼瀹夊叏鐨勫紓姝ヤ簨浠堕槦鍒?
-    /// 鍩轰簬娴峰悍濞佽SDK缂栫▼鎸囧崡璁捐锛屽疄鐜拌交閲忕骇浜嬩欢缂撳啿鏈哄埗
+    /// 线程安全的异步事件队列
+    /// 基于海康威视SDK编程指南设计，实现轻量级事件缓冲机制
     /// </summary>
     public class AsyncEventQueue : IDisposable
     {
@@ -101,62 +101,62 @@ namespace ControlEntradaSalida
         }
 
         /// <summary>
-        /// 褰撳墠闃熷垪闀垮害
+        /// 当前队列长度
         /// </summary>
         public int Count => _queue.Count;
 
         /// <summary>
-        /// 闃熷垪鏄惁涓虹┖
+        /// 队列是否为空
         /// </summary>
         public bool IsEmpty => _queue.IsEmpty;
 
         /// <summary>
-        /// 鍏ラ槦浜嬩欢鎬绘暟
+        /// 入队事件总数
         /// </summary>
         public long EnqueuedCount => _enqueuedCount;
 
         /// <summary>
-        /// 鍑洪槦浜嬩欢鎬绘暟  
+        /// 出队事件总数  
         /// </summary>
         public long DequeuedCount => _dequeuedCount;
 
         /// <summary>
-        /// 寮傛鍏ラ槦浜嬩欢锛堣交閲忕骇鎿嶄綔锛岀‘淇漇DK鍥炶皟蹇€熻繑鍥烇級
+        /// 异步入队事件（轻量级操作，确保SDK回调快速返回）
         /// </summary>
-        /// <param name="eventData">浜嬩欢鏁版嵁</param>
-        /// <returns>鏄惁鎴愬姛鍏ラ槦</returns>
+        /// <param name="eventData">事件数据</param>
+        /// <returns>是否成功入队</returns>
         public bool TryEnqueue(AccessLogEvent eventData)
         {
             if (_disposed || eventData == null) return false;
 
-            // 瀹归噺淇濇姢鏈哄埗 - 闃叉鍐呭瓨婧㈠嚭
+            // 容量保护机制 - 防止内存溢出
             if (_queue.Count >= _maxCapacity)
             {
-                Console.WriteLine($"[WARNING] 浜嬩欢闃熷垪宸叉弧锛屽綋鍓嶅閲? {_queue.Count}锛屼涪寮冧簨浠? {eventData.GetDeduplicationKey()}");
+                Console.WriteLine($"[WARNING] 事件队列已满，当前容量? {_queue.Count}，丢弃事件? {eventData.GetDeduplicationKey()}");
                 return false;
             }
 
             _queue.Enqueue(eventData);
             Interlocked.Increment(ref _enqueuedCount);
             
-            // 閫氱煡绛夊緟鐨勬秷璐硅€呯嚎绋嬫湁鏂版暟鎹?
+            // 通知等待的消费者线程有新数据
             _dataAvailable.Set();
             
             return true;
         }
 
         /// <summary>
-        /// 灏濊瘯鍑洪槦浜嬩欢
+        /// 尝试出队事件
         /// </summary>
-        /// <param name="eventData">杈撳嚭鐨勪簨浠舵暟鎹?/param>
-        /// <returns>鏄惁鎴愬姛鍑洪槦</returns>
+        /// <param name="eventData">输出的事件数据</param>
+        /// <returns>是否成功出队</returns>
         public bool TryDequeue(out AccessLogEvent eventData)
         {
             if (_queue.TryDequeue(out eventData))
             {
                 Interlocked.Increment(ref _dequeuedCount);
                 
-                // 濡傛灉闃熷垪涓虹┖锛岄噸缃俊鍙?
+                // 如果队列为空，重置信号
                 if (_queue.IsEmpty)
                 {
                     _dataAvailable.Reset();
@@ -169,10 +169,10 @@ namespace ControlEntradaSalida
         }
 
         /// <summary>
-        /// 鎵归噺鍑洪槦浜嬩欢锛堢敤浜庢壒澶勭悊浼樺寲锛?
+        /// 批量出队事件（用于批处理优化）
         /// </summary>
-        /// <param name="maxCount">鏈€澶у嚭闃熸暟閲?/param>
-        /// <returns>鍑洪槦鐨勪簨浠跺垪琛?/returns>
+        /// <param name="maxCount">最大出队数量</param>
+        /// <returns>出队的事件列表</returns>
         public AccessLogEvent[] DequeueBatch(int maxCount = 50)
         {
             if (maxCount <= 0) return new AccessLogEvent[0];
@@ -185,7 +185,7 @@ namespace ControlEntradaSalida
                 events[actualCount++] = evt;
             }
 
-            // 璋冩暣鏁扮粍澶у皬
+            // 调整数组大小
             if (actualCount < events.Length)
             {
                 Array.Resize(ref events, actualCount);
@@ -195,26 +195,26 @@ namespace ControlEntradaSalida
         }
 
         /// <summary>
-        /// 绛夊緟闃熷垪鏈夋暟鎹紙甯﹁秴鏃舵満鍒讹級
+        /// 等待队列有数据（带超时机制）
         /// </summary>
-        /// <param name="timeoutMs">瓒呮椂鏃堕棿锛堟绉掞級</param>
-        /// <returns>鏄惁鏈夋暟鎹彲鐢?/returns>
+        /// <param name="timeoutMs">超时时间（毫秒）</param>
+        /// <returns>是否有数据可用</returns>
         public bool WaitForData(int timeoutMs = 5000)
         {
             if (_disposed) return false;
             
-            // 濡傛灉闃熷垪涓嶄负绌猴紝绔嬪嵆杩斿洖
+            // 如果队列不为空，立即返回
             if (!_queue.IsEmpty) return true;
             
-            // 绛夊緟鏂版暟鎹垨瓒呮椂
+            // 等待新数据或超时
             return _dataAvailable.Wait(timeoutMs);
         }
 
         /// <summary>
-        /// 寮傛绛夊緟闃熷垪鏈夋暟鎹?
+        /// 异步等待队列有数据
         /// </summary>
-        /// <param name="cancellationToken">鍙栨秷浠ょ墝</param>
-        /// <returns>绛夊緟浠诲姟</returns>
+        /// <param name="cancellationToken">取消令牌</param>
+        /// <returns>等待任务</returns>
         public Task<bool> WaitForDataAsync(CancellationToken cancellationToken = default)
         {
             if (_disposed) return Task.FromResult(false);
@@ -236,34 +236,34 @@ namespace ControlEntradaSalida
         }
 
         /// <summary>
-        /// 鑾峰彇闃熷垪缁熻淇℃伅
+        /// 获取队列统计信息
         /// </summary>
         public string GetStatistics()
         {
-            return $"闃熷垪鐘舵€? 褰撳墠闀垮害={Count}, 鎬诲叆闃?{EnqueuedCount}, 鎬诲嚭闃?{DequeuedCount}, 寰呭鐞?{Count}";
+            return $"队列状态: 当前长度={Count}, 总入队?{EnqueuedCount}, 总出队?{DequeuedCount}, 待处理?{Count}";
         }
 
         /// <summary>
-        /// 娓呯┖闃熷垪
+        /// 清空队列
         /// </summary>
         public void Clear()
         {
             while (_queue.TryDequeue(out _))
             {
-                // 娓呯┖鎵€鏈夊厓绱?
+                // 清空所有元素
             }
             _dataAvailable.Reset();
         }
 
         /// <summary>
-        /// 閲婃斁璧勬簮
+        /// 释放资源
         /// </summary>
         public void Dispose()
         {
             if (!_disposed)
             {
                 _disposed = true;
-                _dataAvailable?.Set(); // 鍞ら啋绛夊緟鐨勭嚎绋?
+                _dataAvailable?.Set(); // 唤醒等待的线程
                 _dataAvailable?.Dispose();
             }
         }

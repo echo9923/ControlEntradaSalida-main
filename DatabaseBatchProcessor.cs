@@ -8,55 +8,55 @@ using MySql.Data.MySqlClient;
 namespace ControlEntradaSalida
 {
     /// <summary>
-    /// 鎵归噺澶勭悊缁撴灉
+    /// 批量处理结果
     /// </summary>
     public class BatchProcessResult
     {
         /// <summary>
-        /// 澶勭悊鏄惁鎴愬姛
+        /// 处理是否成功
         /// </summary>
         public bool Success { get; set; }
         
         /// <summary>
-        /// 鎴愬姛澶勭悊鐨勮褰曟暟閲?
+        /// 成功处理的记录数量
         /// </summary>
         public int ProcessedCount { get; set; }
         
         /// <summary>
-        /// 澶辫触鐨勮褰曟暟閲?
+        /// 失败的记录数量
         /// </summary>
         public int FailedCount { get; set; }
         
         /// <summary>
-        /// 澶勭悊鑰楁椂锛堟绉掞級
+        /// 处理耗时（毫秒）
         /// </summary>
         public long ElapsedMilliseconds { get; set; }
         
         /// <summary>
-        /// 閿欒淇℃伅
+        /// 错误信息
         /// </summary>
         public string ErrorMessage { get; set; }
         
         /// <summary>
-        /// 澶辫触鐨勪簨浠跺垪琛紙鐢ㄤ簬閲嶈瘯锛?
+        /// 失败的事件列表（用于重试）
         /// </summary>
         public List<AccessLogEvent> FailedEvents { get; set; } = new List<AccessLogEvent>();
     }
 
     /// <summary>
-    /// 鏁版嵁搴撴壒閲忓鐞嗗櫒 - 浼樺寲闂ㄧ浜嬩欢鏁版嵁搴撳啓鍏ユ€ц兘
+    /// 数据库批量处理器 - 优化门禁事件数据库写入性能
     /// 
-    /// 鏍稿績鍔熻兘锛?
-    /// 1. 鎵归噺SQL鐢熸垚鍜屾墽琛?
-    /// 2. 浜嬪姟鎺у埗纭繚鏁版嵁涓€鑷存€? 
-    /// 3. 閿欒澶勭悊鍜岄噸璇曟満鍒?
-    /// 4. 鎬ц兘鐩戞帶鍜屼紭鍖?
+    /// 核心功能：
+    /// 1. 批量SQL生成和执行
+    /// 2. 事务控制确保数据一致性 
+    /// 3. 错误处理和重试机制
+    /// 4. 性能监控和优化
     /// 
-    /// 璁捐鍘熷垯锛?
-    /// - 鎵归噺鎿嶄綔鍑忓皯鏁版嵁搴撹繛鎺ュ紑閿€
-    /// - 浜嬪姟淇濊瘉鏁版嵁瀹屾暣鎬?
-    /// - 鍙傛暟鍖栨煡璇㈤槻姝QL娉ㄥ叆
-    /// - 寮傚父闅旂閬垮厤鍗曚釜閿欒褰卞搷鏁存壒鏁版嵁
+    /// 设计原则：
+    /// - 批量操作减少数据库连接开销
+    /// - 事务保证数据完整性
+    /// - 参数化查询防止SQL注入
+    /// - 异常隔离避免单个错误影响整批数据
     /// </summary>
     public class DatabaseBatchProcessor : IDisposable
     {
@@ -67,19 +67,19 @@ namespace ControlEntradaSalida
         private long _totalProcessingTime = 0;
 
         /// <summary>
-        /// 鍒濆鍖栨壒閲忓鐞嗗櫒
+        /// 初始化批量处理器
         /// </summary>
-        /// <param name="connectionString">鏁版嵁搴撹繛鎺ュ瓧绗︿覆</param>
+        /// <param name="connectionString">数据库连接字符串</param>
         public DatabaseBatchProcessor(string connectionString)
         {
             _connectionString = connectionString ?? throw new ArgumentNullException(nameof(connectionString));
         }
 
         /// <summary>
-        /// 鎵归噺鍐欏叆闂ㄧ浜嬩欢鍒版暟鎹簱
+        /// 批量写入门禁事件到数据库
         /// </summary>
-        /// <param name="events">浜嬩欢鍒楄〃</param>
-        /// <returns>鎵归噺澶勭悊缁撴灉</returns>
+        /// <param name="events">事件列表</param>
+        /// <returns>批量处理结果</returns>
         public async Task<BatchProcessResult> ProcessBatchAsync(AccessLogEvent[] events)
         {
             if (_disposed)
@@ -104,7 +104,7 @@ namespace ControlEntradaSalida
                             await transaction.CommitAsync();
                             result.Success = true;
                             
-                            // 鏇存柊缁熻淇℃伅
+                            // 更新统计信息
                             System.Threading.Interlocked.Increment(ref _totalBatchesProcessed);
                             System.Threading.Interlocked.Add(ref _totalEventsProcessed, result.ProcessedCount);
                         }
@@ -112,12 +112,12 @@ namespace ControlEntradaSalida
                         {
                             await transaction.RollbackAsync();
                             result.Success = false;
-                            result.ErrorMessage = $"鎵归噺鍐欏叆澶辫触: {ex.Message}";
+                            result.ErrorMessage = $"批量写入失败: {ex.Message}";
                             result.FailedEvents.AddRange(events);
                             
-                            Console.WriteLine($"[ERROR] 鎵归噺鏁版嵁搴撳啓鍏ュけ璐? {ex.Message}");
+                            Console.WriteLine($"[ERROR] 批量数据库写入失败? {ex.Message}");
                             
-                            // 濡傛灉鎵归噺澶辫触锛屽皾璇曢€愪釜鍐欏叆浠ラ殧绂婚敊璇?
+                            // 如果批量失败，尝试逐个写入以隔离错误
                             await ProcessIndividuallyAsync(connection, events, result);
                         }
                     }
@@ -126,9 +126,9 @@ namespace ControlEntradaSalida
             catch (Exception ex)
             {
                 result.Success = false;
-                result.ErrorMessage = $"鏁版嵁搴撹繛鎺ュけ璐? {ex.Message}";
+                result.ErrorMessage = $"数据库连接失败: {ex.Message}";
                 result.FailedEvents.AddRange(events);
-                Console.WriteLine($"[ERROR] 鏁版嵁搴撹繛鎺ュ紓甯? {ex.Message}");
+                Console.WriteLine($"[ERROR] 数据库连接异常: {ex.Message}");
             }
             finally
             {
@@ -136,7 +136,7 @@ namespace ControlEntradaSalida
                 result.ElapsedMilliseconds = stopwatch.ElapsedMilliseconds;
                 System.Threading.Interlocked.Add(ref _totalProcessingTime, result.ElapsedMilliseconds);
                 
-                // 杈撳嚭鎬ц兘鏃ュ織
+                // 输出性能日志
                 LogPerformance(result, events.Length);
             }
 
@@ -144,21 +144,21 @@ namespace ControlEntradaSalida
         }
 
         /// <summary>
-        /// 鎵ц鎵归噺鎻掑叆SQL
+        /// 执行批量插入SQL
         /// </summary>
-        /// <param name="connection">鏁版嵁搴撹繛鎺?/param>
-        /// <param name="transaction">鏁版嵁搴撲簨鍔?/param>
-        /// <param name="events">浜嬩欢鍒楄〃</param>
-        /// <returns>鎴愬姛鎻掑叆鐨勮褰曟暟</returns>
+        /// <param name="connection">数据库连接</param>
+        /// <param name="transaction">数据库事务</param>
+        /// <param name="events">事件列表</param>
+        /// <returns>成功插入的记录数</returns>
         private async Task<int> ExecuteBatchInsertAsync(MySqlConnection connection, MySqlTransaction transaction, AccessLogEvent[] events)
         {
-            const int maxParametersPerBatch = 1000; // MySQL鍙傛暟鏁伴噺闄愬埗
+            const int maxParametersPerBatch = 1000; // MySQL参数数量限制
             const int parametersPerRecord = 8; // 每条记录的参数数量
             int maxRecordsPerBatch = maxParametersPerBatch / parametersPerRecord;
             
             int totalProcessed = 0;
             
-            // 鍒嗘壒澶勭悊浠ラ伩鍏嶅弬鏁拌繃澶?
+            // 分批处理以避免参数过多
             for (int i = 0; i < events.Length; i += maxRecordsPerBatch)
             {
                 int batchSize = Math.Min(maxRecordsPerBatch, events.Length - i);
@@ -178,10 +178,10 @@ namespace ControlEntradaSalida
         }
 
         /// <summary>
-        /// 鏋勫缓鎵归噺鎻掑叆SQL璇彞
+        /// 构建批量插入SQL语句
         /// </summary>
-        /// <param name="recordCount">璁板綍鏁伴噺</param>
-        /// <returns>鎵归噺鎻掑叆SQL</returns>
+        /// <param name="recordCount">记录数量</param>
+        /// <returns>批量插入SQL</returns>
         private string BuildBatchInsertSql(int recordCount)
         {
             var sql = new StringBuilder();
@@ -197,10 +197,10 @@ namespace ControlEntradaSalida
         }
 
         /// <summary>
-        /// 娣诲姞鎵归噺鎻掑叆鍙傛暟
+        /// 添加批量插入参数
         /// </summary>
-        /// <param name="command">MySQL鍛戒护</param>
-        /// <param name="events">浜嬩欢鍒楄〃</param>
+        /// <param name="command">MySQL命令</param>
+        /// <param name="events">事件列表</param>
         private void AddBatchParameters(MySqlCommand command, ArraySegment<AccessLogEvent> events)
         {
             for (int i = 0; i < events.Count; i++)
@@ -219,18 +219,18 @@ namespace ControlEntradaSalida
         }
 
         /// <summary>
-        /// 閫愪釜澶勭悊浜嬩欢锛堥敊璇殧绂伙級
+        /// 逐个处理事件（错误隔离）
         /// </summary>
-        /// <param name="connection">鏁版嵁搴撹繛鎺?/param>
-        /// <param name="events">浜嬩欢鍒楄〃</param>
-        /// <param name="result">澶勭悊缁撴灉</param>
+        /// <param name="connection">数据库连接</param>
+        /// <param name="events">事件列表</param>
+        /// <param name="result">处理结果</param>
         private async Task ProcessIndividuallyAsync(MySqlConnection connection, AccessLogEvent[] events, BatchProcessResult result)
         {
             const string singleInsertSql = @"
                 INSERT INTO access_logs (sequence_number, employee_number, employee_name, device_number, device_name, event_type, event_time, remote_host_address) 
                 VALUES (@sequence_number, @employee_number, @employee_name, @device_number, @device_name, @event_type, @event_time, @remote_host_address)";
 
-            result.FailedEvents.Clear(); // 娓呯┖澶辫触鍒楄〃锛岄噸鏂
+            result.FailedEvents.Clear(); // 清空失败列表，重新
             int individualSuccess = 0;
 
             foreach (var evt in events)
@@ -357,6 +357,3 @@ namespace ControlEntradaSalida
         }
     }
 }
-
-
-

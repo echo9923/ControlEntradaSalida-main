@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 namespace ControlEntradaSalida
 {
     /// <summary>
-    /// 寮傛鏁版嵁搴撳鐞嗘満鍒剁畝鍖栭獙璇佺▼搴?
+    /// 异步数据库处理机制简化验证程序
     /// </summary>
     public class AsyncProcessingValidator
     {
@@ -35,26 +35,26 @@ namespace ControlEntradaSalida
         }
 
         /// <summary>
-        /// 杩愯鍩虹楠岃瘉娴嬭瘯
+        /// 运行基础验证测试
         /// </summary>
         public async Task RunBasicTest()
         {
-            Console.WriteLine("\\n========== 寮傛澶勭悊鏈哄埗楠岃瘉娴嬭瘯 ==========\\n");
+            Console.WriteLine("\n========== 异步处理机制验证测试 \n");
 
             try
             {
-                // 娴嬭瘯1锛氬熀纭€鍔熻兘
+                // 测试1：基础功能
                 TestBasicFunctionality();
 
-                // 娴嬭瘯2锛氬紓姝ュ啓鍏?
+                // 测试2：异步写入
                 await TestAsyncWriting();
 
-                Console.WriteLine("\\n========== 娴嬭瘯瀹屾垚 ==========\\n");
+                Console.WriteLine("\n========== 测试完成 \n");
                 PrintStatistics();
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[ERROR] 娴嬭瘯寮傚父: {ex.Message}");
+                Console.WriteLine($"[ERROR] 测试异常: {ex.Message}");
             }
             finally
             {
@@ -64,25 +64,25 @@ namespace ControlEntradaSalida
 
         private void TestBasicFunctionality()
         {
-            Console.WriteLine("[TEST 1] 鍩虹鍔熻兘娴嬭瘯...");
+            Console.WriteLine("[TEST 1] 基础功能测试...");
 
-            // 鍒涘缓娴嬭瘯浜嬩欢
+            // 创建测试事件
             var testEvent = CreateTestEvent("TEST001", DateTime.Now, "12345", "MINOR_FACE_VERIFY_PASS", 1);
 
-            // 娴嬭瘯闃熷垪鎿嶄綔
+            // 测试队列操作
             bool enqueued = _eventQueue.TryEnqueue(testEvent);
-            Console.WriteLine($"  - 浜嬩欢鍏ラ槦: {(enqueued ? "成功" : "失败")}");
+            Console.WriteLine($"  - 事件入队: {(enqueued ? "成功" : "失败")}");
 
             bool dequeued = _eventQueue.TryDequeue(out AccessLogEvent dequeuedEvent);
-            Console.WriteLine($"  - 浜嬩欢鍑洪槦: {(dequeued ? "成功" : "失败")}");
+            Console.WriteLine($"  - 事件出队: {(dequeued ? "成功" : "失败")}");
 
-            // 娴嬭瘯鍘婚噸鍔熻兘
+            // 测试去重功能
             bool isDup1 = _eventDeduplicator.IsEventProcessed(testEvent);
             _eventDeduplicator.MarkEventProcessed(testEvent);
             bool isDup2 = _eventDeduplicator.IsEventProcessed(testEvent);
 
-            Console.WriteLine($"  - 鍘婚噸鍔熻兘: {(!isDup1 && isDup2 ? "成功" : "失败")}");
-            Console.WriteLine("[TEST 1] 瀹屾垚\\n");
+            Console.WriteLine($"  - 去重功能: {(!isDup1 && isDup2 ? "成功" : "失败")}");
+            Console.WriteLine("[TEST 1] 完成\n");
         }
 
         private async Task TestAsyncWriting()
@@ -131,11 +131,11 @@ namespace ControlEntradaSalida
                 SequenceNumber = sequence,
                 EventTime = eventTime,
                 EmployeeNumber = employeeId,
-                EmployeeName = $"娴嬭瘯鍛樺伐_{employeeId}",
+                EmployeeName = $"测试员工_{employeeId}",
                 EventType = eventType,
                 EventTypeDisplay = eventType,
                 DeviceNumber = deviceId,
-                DeviceName = $"娴嬭瘯璁惧_{deviceId}",
+                DeviceName = $"测试设备_{deviceId}",
                 RemoteHostAddress = "127.0.0.1",
                 Priority = 2
             };
@@ -143,15 +143,15 @@ namespace ControlEntradaSalida
 
         private void PrintStatistics()
         {
-            Console.WriteLine("========== 缁熻淇℃伅 ==========");
-            Console.WriteLine($"闃熷垪缁熻: {_eventQueue?.GetStatistics()}");
-            Console.WriteLine($"鍘婚噸缁熻: {_eventDeduplicator?.GetStatistics()}");
-            Console.WriteLine($"鍐欏叆缁熻: {_asyncWriter?.GetStatistics()}");
+            Console.WriteLine("========== 统计信息 ==========");
+            Console.WriteLine($"队列统计: {_eventQueue?.GetStatistics()}");
+            Console.WriteLine($"去重统计: {_deduplicator?.GetStatistics()}");
+            Console.WriteLine($"写入统计: {_asyncWriter?.GetStatistics()}");
         }
 
         private async Task CleanupAsync()
         {
-            Console.WriteLine("[CLEANUP] 娓呯悊璧勬簮...");
+            Console.WriteLine("[CLEANUP] 清理资源...");
             if (_asyncWriter != null)
             {
                 await _asyncWriter.StopAsync(3000);
@@ -159,7 +159,7 @@ namespace ControlEntradaSalida
             }
             _eventDeduplicator?.Dispose();
             _eventQueue?.Dispose();
-            Console.WriteLine("[CLEANUP] 瀹屾垚");
+            Console.WriteLine("[CLEANUP] 完成");
         }
 
         public void Dispose()
@@ -169,7 +169,7 @@ namespace ControlEntradaSalida
     }
 
     /// <summary>
-    /// 楠岃瘉绋嬪簭鍏ュ彛
+    /// 验证程序入口
     /// </summary>
     public static class AsyncValidationProgram
     {
