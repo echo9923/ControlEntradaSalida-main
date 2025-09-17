@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Runtime.InteropServices;
 
 namespace ControlEntradaSalida
@@ -3761,7 +3761,7 @@ namespace ControlEntradaSalida
         }
 
         // 新增接口一个
-        [DllImportAttribute(@"HCNetSDK\HCNetSDK.dll")]
+        [DllImportAttribute(@".\HCNetSDK.dll")]
         public static extern int NET_DVR_SendWithRecvRemoteConfig(int lHandle, IntPtr lpInBuff, uint dwInBuffSize, IntPtr lpOutBuff, uint dwOutBuffSize, ref uint dwOutDataLen);
 
         // 用户调用SendwithRecv接口时，接口返回的状态

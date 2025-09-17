@@ -301,35 +301,35 @@ namespace ControlEntradaSalida
 
 
         #region  HCNetSDK.dll function definition
-        [DllImport(@"HCNetSDK\HCNetSDK.dll")]
+        [DllImport(@".\HCNetSDK.dll")]
         public static extern bool NET_DVR_Init();
 
-        [DllImport(@"HCNetSDK\HCNetSDK.dll")]
+        [DllImport(@".\HCNetSDK.dll")]
         public static extern int NET_DVR_Login_V40(ref NET_DVR_USER_LOGIN_INFO pLoginInfo, ref NET_DVR_DEVICEINFO_V40 lpDeviceInfo);
 
-        [DllImport(@"HCNetSDK\HCNetSDK.dll")]
+        [DllImport(@".\HCNetSDK.dll")]
         public static extern uint NET_DVR_GetLastError();
 
-        [DllImport(@"HCNetSDK\HCNetSDK.dll")]
+        [DllImport(@".\HCNetSDK.dll")]
         public static extern bool NET_DVR_SetLogToFile(int nLogLevel, string strLogDir, bool bAutoDel);
 
         public delegate void RemoteConfigCallback(uint dwType, IntPtr lpBuffer, uint dwBufLen, IntPtr pUserData);
-        [DllImport(@"HCNetSDK\HCNetSDK.dll")]
+        [DllImport(@".\HCNetSDK.dll")]
         public static extern int NET_DVR_StartRemoteConfig(int lUserID, int dwCommand, IntPtr lpInBuffer, int dwInBufferLen, RemoteConfigCallback cbStateCallback, IntPtr pUserData);
 
-        [DllImport(@"HCNetSDK\HCNetSDK.dll")]
+        [DllImport(@".\HCNetSDK.dll")]
         public static extern int NET_DVR_GetNextRemoteConfig(int lHandle, ref HCNetSDK_Facial.NET_DVR_FACE_RECORD lpOutBuff, int dwOutBuffSize);
 
-        [DllImport(@"HCNetSDK\HCNetSDK.dll")]
+        [DllImport(@".\HCNetSDK.dll")]
         public static extern int NET_DVR_StopRemoteConfig(int lHandle);
 
-        [DllImport(@"HCNetSDK\HCNetSDK.dll")]
+        [DllImport(@".\HCNetSDK.dll")]
         public static extern int NET_DVR_SendWithRecvRemoteConfig(int lHandle, ref HCNetSDK_Facial.NET_DVR_FACE_RECORD lpInBuff, int dwInBuffSize, ref HCNetSDK_Facial.NET_DVR_FACE_STATUS lpOutBuff, int dwOutBuffSize, IntPtr dwOutDataLen);
 
-        [DllImport(@"HCNetSDK\HCNetSDK.dll")]
+        [DllImport(@".\HCNetSDK.dll")]
         public static extern bool NET_DVR_RemoteControl(int lUserID, int dwCommand, ref HCNetSDK_Facial.NET_DVR_FACE_PARAM_CTRL_CARDNO lpInBuffer, int dwInBufferSize);
 
-        [DllImport(@"HCNetSDK\HCNetSDK.dll")]
+        [DllImport(@".\HCNetSDK.dll")]
         public static extern int NET_DVR_GetNextRemoteConfig(int lHandle, ref HCNetSDK_Facial.NET_DVR_CAPTURE_FACE_CFG lpOutBuff, int dwOutBuffSize);
         #endregion
     }
