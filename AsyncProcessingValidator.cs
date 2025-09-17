@@ -145,7 +145,7 @@ namespace ControlEntradaSalida
         {
             Console.WriteLine("========== 统计信息 ==========");
             Console.WriteLine($"队列统计: {_eventQueue?.GetStatistics()}");
-            Console.WriteLine($"去重统计: {_deduplicator?.GetStatistics()}");
+            Console.WriteLine($"去重统计: {_eventDeduplicator?.GetStatistics()}");
             Console.WriteLine($"写入统计: {_asyncWriter?.GetStatistics()}");
         }
 

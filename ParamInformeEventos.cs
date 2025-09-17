@@ -31,17 +31,19 @@ namespace ControlEntradaSalida
         //构建最终 SQL 查询语句字符串；根据用户勾选/填写的条件筛选,查询关联表 employees 和 access_logs,按 log_date, log_time 升序排序。
         private string GetQueryExpression()
         {
-            
-            string retval = null;
-            retval = "SELECT access_logs.log_number, employees.employee_id, employees.first_name, employees.last_name, access_logs.log_date, access_logs.log_time, devices.device_name as dispositivo FROM employees, access_logs LEFT JOIN devices ON access_logs.device_id = devices.device_id WHERE employees.employee_id = access_logs.employee_id ";
+            StringBuilder sql = new StringBuilder();
+            sql.Append("SELECT logs.sequence_number, logs.employee_number, logs.employee_name, logs.device_number, logs.device_name, logs.event_type, logs.event_time, logs.remote_host_address, emp.first_name, emp.last_name ");
+            sql.Append("FROM access_logs AS logs ");
+            sql.Append("LEFT JOIN employees AS emp ON emp.employee_id = logs.employee_number ");
+            sql.Append("WHERE 1=1 ");
 
-            // 如果不是"所有员工"，则按员工工号筛选
-            if (this.radioButtonTodosEmpleados.Checked == false)
+            // 员工过滤：优先按工号精确匹配，其次支持关键字模糊查询
+            if (!this.radioButtonTodosEmpleados.Checked)
             {
-                // 如果姓名查询框为空，但工号查询框不为空，则使用工号查询
                 if (string.IsNullOrEmpty(this.textBoxNombreEmpleado.Text) && !string.IsNullOrEmpty(this.textBoxDocumentoEmpleado.Text))
                 {
-                    retval += String.Format("AND employees.employee_id = '{0}' ", this.textBoxDocumentoEmpleado.Text);
+                    string employeeNumber = MySqlHelper.EscapeString(this.textBoxDocumentoEmpleado.Text.Trim());
+                    sql.AppendFormat("AND logs.employee_number = '{0}' ", employeeNumber);
                 }
             }
 
@@ -49,41 +51,42 @@ namespace ControlEntradaSalida
             ComboboxItem selectedDispositivo = (ComboboxItem)this.cmbDispositivos.SelectedItem;
             if (selectedDispositivo != null && Convert.ToInt32(selectedDispositivo.Value) != 0)
             {
-                retval += String.Format("AND access_logs.device_id = {0} ", selectedDispositivo.Value);
+                sql.AppendFormat("AND logs.device_number = {0} ", selectedDispositivo.Value);
             }
-            
-            // 日期范围筛选
-            if (this.radioButtonTodasFechas.Checked == false)
+
+            // 日期范围筛选（基于 event_time 的日期部分）
+            if (!this.radioButtonTodasFechas.Checked)
             {
-                string fechainicial = dateTimePickerFechaInicial.Value.ToString("yyyy-MM-dd");
-                string fechafinal = dateTimePickerFechaFinal.Value.ToString("yyyy-MM-dd");
-                retval += String.Format("AND access_logs.log_date BETWEEN CAST('{0}' AS DATE) AND CAST('{1}' AS DATE) ", fechainicial, fechafinal);
-                
+                string fechainicial = this.dateTimePickerFechaInicial.Value.ToString("yyyy-MM-dd");
+                string fechafinal = this.dateTimePickerFechaFinal.Value.ToString("yyyy-MM-dd");
+                sql.AppendFormat("AND DATE(logs.event_time) BETWEEN '{0}' AND '{1}' ", fechainicial, fechafinal);
             }
-            
-            // 时间范围筛选（只有在指定时间段且时间段有效时才应用）
+
+            // 时间范围筛选（基于 event_time 的时间部分）
             if (this.radioButtonRangoHoras.Checked)
             {
-                string horainicial = dateTimePickerHoraInicial.Value.ToString("HH:mm:ss");
-                string horafinal = dateTimePickerHoraFinal.Value.ToString("HH:mm:ss");
-                retval += String.Format("AND access_logs.log_time BETWEEN CAST('{0}' AS TIME) AND CAST('{1}' AS TIME) ", horainicial, horafinal);
+                string horainicial = this.dateTimePickerHoraInicial.Value.ToString("HH:mm:ss");
+                string horafinal = this.dateTimePickerHoraFinal.Value.ToString("HH:mm:ss");
+                sql.AppendFormat("AND TIME(logs.event_time) BETWEEN '{0}' AND '{1}' ", horainicial, horafinal);
             }
-            
-            // 姓名/工号/部门模糊查询（支持回车搜索）
+
+            // 关键字查询：兼容姓名、工号
             if (!string.IsNullOrEmpty(this.textBoxNombreEmpleado.Text))
             {
-                retval += String.Format("AND (employees.first_name LIKE '%{0}%' OR employees.employee_id LIKE '%{0}%' OR employees.last_name LIKE '%{0}%') ", this.textBoxNombreEmpleado.Text);
+                string keyword = MySqlHelper.EscapeString(this.textBoxNombreEmpleado.Text.Trim());
+                sql.AppendFormat("AND (logs.employee_name LIKE '%{0}%' OR logs.employee_number LIKE '%{0}%' OR emp.first_name LIKE '%{0}%' OR emp.last_name LIKE '%{0}%') ", keyword);
             }
-            
-            // 部门模糊查询（支持回车搜索）
+
+            // 姓氏查询（沿用旧版行为）
             if (!string.IsNullOrEmpty(this.textBoxApellidosEmpleado.Text))
             {
-                retval += String.Format("AND employees.last_name LIKE '%{0}%' ", this.textBoxApellidosEmpleado.Text);
+                string lastNameKeyword = MySqlHelper.EscapeString(this.textBoxApellidosEmpleado.Text.Trim());
+                sql.AppendFormat("AND emp.last_name LIKE '%{0}%' ", lastNameKeyword);
             }
-            
-            retval += "ORDER BY log_date, log_time, employee_id ASC";
 
-            return retval;
+            sql.Append("ORDER BY logs.event_time ASC, logs.employee_number ASC");
+
+            return sql.ToString();
         }
         //执行 SQL 查询；解析每一行记录为 InformeEventos 实例，并添加到列表中；同时将结果添加到 listView 控件中进行显示；如果没有记录，弹出"没有可显示的记录"。
         private bool ExecuteQuery(string sql, out List<InformeEventos> eventList)
@@ -98,75 +101,76 @@ namespace ControlEntradaSalida
             {
                 try
                 {
-                    MySqlCommand cmd = new MySqlCommand(sql, bd.conn);
-                    MySqlDataReader rdr = cmd.ExecuteReader();
-                    
-                    if (rdr.HasRows)
+                    using (MySqlCommand cmd = new MySqlCommand(sql, bd.conn))
+                    using (MySqlDataReader rdr = cmd.ExecuteReader())
                     {
-                        while (rdr.Read())
+                        if (rdr.HasRows)
                         {
-                            DateTime date;
-                            DateTime time;
-                            string strDate;
-                            string strTime;
-                            try
+                            while (rdr.Read())
                             {
-                                date = DateTime.Parse(rdr["log_date"].ToString());
-                                strDate = date.ToString("yyyy-MM-dd");
-                            }
-                            catch
-                            {
-                                strDate = "";
-                            }
-                            try
-                            {
-                                time = DateTime.Parse(rdr["log_time"].ToString());
-                                strTime = time.ToString("HH:mm:ss");
-                            }
-                            catch
-                            {
-                                strTime = "";
+                                long sequenceNumber = rdr["sequence_number"] != DBNull.Value ? Convert.ToInt64(rdr["sequence_number"]) : 0L;
+                                int deviceNumber = rdr["device_number"] != DBNull.Value ? Convert.ToInt32(rdr["device_number"]) : 0;
+
+                                DateTime eventTime = DateTime.MinValue;
+                                if (rdr["event_time"] != DBNull.Value)
+                                {
+                                    DateTime.TryParse(rdr["event_time"].ToString(), out eventTime);
+                                }
+
+                                string employeeNumber = rdr["employee_number"]?.ToString();
+                                string employeeName = rdr["employee_name"]?.ToString();
+                                if (string.IsNullOrWhiteSpace(employeeName))
+                                {
+                                    string firstName = rdr["first_name"]?.ToString();
+                                    string lastName = rdr["last_name"]?.ToString();
+                                    employeeName = string.Join(" ", new[] { firstName, lastName }.Where(value => !string.IsNullOrWhiteSpace(value)));
+                                }
+
+                                InformeEventos info = new InformeEventos
+                                {
+                                    SequenceNumber = sequenceNumber,
+                                    EmployeeNumber = employeeNumber,
+                                    EmployeeName = employeeName,
+                                    DeviceNumber = deviceNumber,
+                                    DeviceName = rdr["device_name"]?.ToString(),
+                                    EventType = rdr["event_type"]?.ToString(),
+                                    EventTime = eventTime,
+                                    RemoteHostAddress = rdr["remote_host_address"]?.ToString()
+                                };
+
+                                eventList.Add(info);
+
+                                ListViewItem lvi = new ListViewItem(sequenceNumber > 0 ? sequenceNumber.ToString() : string.Empty);
+                                lvi.SubItems.Add(employeeNumber ?? string.Empty);
+                                lvi.SubItems.Add(info.EmployeeName ?? string.Empty);
+                                lvi.SubItems.Add(info.EventType ?? string.Empty);
+                                lvi.SubItems.Add(info.EventDateText);
+                                lvi.SubItems.Add(info.EventTimeText);
+                                this.listView.Items.Add(lvi);
                             }
 
-                            InformeEventos ie = new InformeEventos();
-                            ie.num = rdr["log_number"].ToString();
-                            ie.documento = rdr["employee_id"].ToString();
-                            ie.nombres = rdr["first_name"].ToString();
-                            ie.apellidos = rdr["last_name"].ToString();
-                            ie.fecha = strDate;
-                            ie.hora = strTime;
-                            ie.dispositivo = rdr["dispositivo"].ToString();
-                            eventList.Add(ie);
-                            ie = null;
-
-                            ListViewItem lvi = new ListViewItem(rdr["log_number"].ToString());//编号
-                            lvi.SubItems.Add(rdr["employee_id"].ToString());//文档号
-                            lvi.SubItems.Add(rdr["first_name"].ToString());//名字
-                            lvi.SubItems.Add(rdr["last_name"].ToString());//姓氏
-                            lvi.SubItems.Add(strDate);
-                            lvi.SubItems.Add(strTime);
-                            lvi.SubItems.Add(rdr["dispositivo"].ToString());
-                            listView.Items.Add(lvi);
-                            lvi = null;
+                            retval = true;
                         }
-                        rdr.Close();
-                        bd.desconectarMySQL();
-                        retval = true;
-                    } else
-                    {
-                        MessageBox.Show("没有可显示的记录", "没有可显示的记录", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                        
+                        else
+                        {
+                            MessageBox.Show("没有可显示的记录", "没有可显示的记录", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                        }
                     }
                 }
                 catch (Exception ex)
                 {
                     MessageBox.Show(ex.Message);
                 }
+                finally
+                {
+                    bd.desconectarMySQL();
+                }
             }
             else
             {
                 MessageBox.Show(bd.errormsg);
             }
+
             return retval;
         }
         //点击"查看报表"按钮的事件处理,调用 GetQueryExpression() 获取 SQL 查询字符串；清空当前 listView；调用 ExecuteQuery(...) 执行 SQL 并填充界面；创建 Informe 报表窗体并传入数据，展示报表。

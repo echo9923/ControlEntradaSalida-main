@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Report xmlns="http://schemas.microsoft.com/sqlserver/reporting/2008/01/reportdefinition" xmlns:rd="http://schemas.microsoft.com/SQLServer/reporting/reportdesigner">
   <Body>
     <ReportItems>
@@ -40,7 +40,7 @@
                         <Paragraph>
                           <TextRuns>
                             <TextRun>
-                              <Value>Num</Value>
+                              <Value>序号</Value>
                               <Style>
                                 <FontWeight>Bold</FontWeight>
                               </Style>
@@ -72,7 +72,7 @@
                         <Paragraph>
                           <TextRuns>
                             <TextRun>
-                              <Value>Documento</Value>
+                              <Value>工号</Value>
                               <Style>
                                 <FontWeight>Bold</FontWeight>
                               </Style>
@@ -104,7 +104,7 @@
                         <Paragraph>
                           <TextRuns>
                             <TextRun>
-                              <Value>Nombres</Value>
+                              <Value>姓名</Value>
                               <Style>
                                 <FontWeight>Bold</FontWeight>
                               </Style>
@@ -136,7 +136,7 @@
                         <Paragraph>
                           <TextRuns>
                             <TextRun>
-                              <Value>Apellidos</Value>
+                              <Value>事件类型</Value>
                               <Style>
                                 <FontWeight>Bold</FontWeight>
                               </Style>
@@ -168,7 +168,7 @@
                         <Paragraph>
                           <TextRuns>
                             <TextRun>
-                              <Value>Fecha</Value>
+                              <Value>日期</Value>
                               <Style>
                                 <FontWeight>Bold</FontWeight>
                               </Style>
@@ -200,7 +200,7 @@
                         <Paragraph>
                           <TextRuns>
                             <TextRun>
-                              <Value>Hora</Value>
+                              <Value>时刻</Value>
                               <Style>
                                 <FontWeight>Bold</FontWeight>
                               </Style>
@@ -269,7 +269,7 @@
                         <Paragraph>
                           <TextRuns>
                             <TextRun>
-                              <Value>=Fields!num.Value</Value>
+                              <Value>=Fields!SequenceNumber.Value</Value>
                               <Style />
                             </TextRun>
                           </TextRuns>
@@ -299,7 +299,7 @@
                         <Paragraph>
                           <TextRuns>
                             <TextRun>
-                              <Value>=Fields!documento.Value</Value>
+                              <Value>=Fields!EmployeeNumber.Value</Value>
                               <Style />
                             </TextRun>
                           </TextRuns>
@@ -329,7 +329,7 @@
                         <Paragraph>
                           <TextRuns>
                             <TextRun>
-                              <Value>=Fields!nombres.Value</Value>
+                              <Value>=Fields!EmployeeName.Value</Value>
                               <Style />
                             </TextRun>
                           </TextRuns>
@@ -359,7 +359,7 @@
                         <Paragraph>
                           <TextRuns>
                             <TextRun>
-                              <Value>=Fields!apellidos.Value</Value>
+                              <Value>=Fields!EventType.Value</Value>
                               <Style />
                             </TextRun>
                           </TextRuns>
@@ -389,7 +389,7 @@
                         <Paragraph>
                           <TextRuns>
                             <TextRun>
-                              <Value>=Fields!fecha.Value</Value>
+                              <Value>=Fields!EventDateText.Value</Value>
                               <Style />
                             </TextRun>
                           </TextRuns>
@@ -419,7 +419,7 @@
                         <Paragraph>
                           <TextRuns>
                             <TextRun>
-                              <Value>=Fields!hora.Value</Value>
+                              <Value>=Fields!EventTimeText.Value</Value>
                               <Style />
                             </TextRun>
                           </TextRuns>
@@ -449,7 +449,7 @@
                         <Paragraph>
                           <TextRuns>
                             <TextRun>
-                              <Value>=Fields!dispositivo.Value</Value>
+                              <Value>=Fields!DeviceName.Value</Value>
                               <Style />
                             </TextRun>
                           </TextRuns>
@@ -524,7 +524,7 @@
             <Paragraph>
               <TextRuns>
                 <TextRun>
-                  <Value>INFORME DE EVENTOS</Value>
+                  <Value>事件日志报表</Value>
                   <Style>
                     <FontSize>12pt</FontSize>
                     <FontWeight>Bold</FontWeight>
@@ -581,41 +581,48 @@
       <Query>
         <DataSourceName>ControlEntradaSalida</DataSourceName>
         <CommandText>/* Local Query */</CommandText>
-      </Query>
-      <Fields>
-        <Field Name="apellidos">
-          <DataField>apellidos</DataField>
-          <rd:TypeName>System.String</rd:TypeName>
-        </Field>
-        <Field Name="documento">
-          <DataField>documento</DataField>
-          <rd:TypeName>System.String</rd:TypeName>
-        </Field>
-        <Field Name="evento">
-          <DataField>evento</DataField>
-          <rd:TypeName>System.String</rd:TypeName>
-        </Field>
-        <Field Name="fecha">
-          <DataField>fecha</DataField>
-          <rd:TypeName>System.String</rd:TypeName>
-        </Field>
-        <Field Name="hora">
-          <DataField>hora</DataField>
-          <rd:TypeName>System.String</rd:TypeName>
-        </Field>
-        <Field Name="nombres">
-          <DataField>nombres</DataField>
-          <rd:TypeName>System.String</rd:TypeName>
-        </Field>
-        <Field Name="num">
-          <DataField>num</DataField>
-          <rd:TypeName>System.String</rd:TypeName>
-        </Field>
-        <Field Name="dispositivo">
-          <DataField>dispositivo</DataField>
-          <rd:TypeName>System.String</rd:TypeName>
-        </Field>
-      </Fields>
+      </Query>        <Fields>
+          <Field Name=\"SequenceNumber\">
+            <DataField>SequenceNumber</DataField>
+            <rd:TypeName>System.Int64</rd:TypeName>
+          </Field>
+          <Field Name=\"EmployeeNumber\">
+            <DataField>EmployeeNumber</DataField>
+            <rd:TypeName>System.String</rd:TypeName>
+          </Field>
+          <Field Name=\"EmployeeName\">
+            <DataField>EmployeeName</DataField>
+            <rd:TypeName>System.String</rd:TypeName>
+          </Field>
+          <Field Name=\"EventType\">
+            <DataField>EventType</DataField>
+            <rd:TypeName>System.String</rd:TypeName>
+          </Field>
+          <Field Name=\"EventDateText\">
+            <DataField>EventDateText</DataField>
+            <rd:TypeName>System.String</rd:TypeName>
+          </Field>
+          <Field Name=\"EventTimeText\">
+            <DataField>EventTimeText</DataField>
+            <rd:TypeName>System.String</rd:TypeName>
+          </Field>
+          <Field Name=\"DeviceName\">
+            <DataField>DeviceName</DataField>
+            <rd:TypeName>System.String</rd:TypeName>
+          </Field>
+          <Field Name=\"DeviceNumber\">
+            <DataField>DeviceNumber</DataField>
+            <rd:TypeName>System.Int32</rd:TypeName>
+          </Field>
+          <Field Name=\"EventTime\">
+            <DataField>EventTime</DataField>
+            <rd:TypeName>System.DateTime</rd:TypeName>
+          </Field>
+          <Field Name=\"RemoteHostAddress\">
+            <DataField>RemoteHostAddress</DataField>
+            <rd:TypeName>System.String</rd:TypeName>
+          </Field>
+        </Fields>
       <rd:DataSetInfo>
         <rd:DataSetName>ControlEntradaSalida</rd:DataSetName>
         <rd:TableName>InformeEventos</rd:TableName>
@@ -626,3 +633,5 @@
   <rd:ReportUnitType>Cm</rd:ReportUnitType>
   <rd:ReportID>64df8764-5208-46a6-8b26-c217340def71</rd:ReportID>
 </Report>
+
+

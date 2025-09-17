@@ -411,7 +411,7 @@ namespace ControlEntradaSalida
             // 
             // apellidos
             // 
-            this.apellidos.Text = "部门";
+            this.apellidos.Text = "事件类型";
             this.apellidos.Width = 87;
             // 
             // fecha
