@@ -10,18 +10,18 @@ using System.Threading.Tasks;
 namespace ControlEntradaSalida
 {
     /// <summary>
-    /// 事件去重器 - 防止门禁事件重复处理
+    /// 浜嬩欢鍘婚噸鍣?- 闃叉闂ㄧ浜嬩欢閲嶅澶勭悊
     /// 
-    /// 解决的问题：
-    /// 1. 网络重传：网络不稳定导致SDK重复接收相同事件
-    /// 2. 设备故障：设备异常可能重复发送相同时间戳的事件
-    /// 3. 系统重启：系统重启后可能重复处理未确认的事件
+    /// 瑙ｅ喅鐨勯棶棰橈細
+    /// 1. 缃戠粶閲嶄紶锛氱綉缁滀笉绋冲畾瀵艰嚧SDK閲嶅鎺ユ敹鐩稿悓浜嬩欢
+    /// 2. 璁惧鏁呴殰锛氳澶囧紓甯稿彲鑳介噸澶嶅彂閫佺浉鍚屾椂闂存埑鐨勪簨浠?
+    /// 3. 绯荤粺閲嶅惎锛氱郴缁熼噸鍚悗鍙兘閲嶅澶勭悊鏈‘璁ょ殑浜嬩欢
     /// 
-    /// 设计原理：
-    /// - 使用事件唯一标识（员工ID + 设备ID + 时间戳 + 事件类型）生成MD5哈希
-    /// - 基于时间窗口的缓存管理，保留最近1小时的事件记录
-    /// - 定期清理过期记录，防止内存泄漏
-    /// - 线程安全设计，支持高并发访问
+    /// 璁捐鍘熺悊锛?
+    /// - 浣跨敤浜嬩欢鍞竴鏍囪瘑锛堝憳宸D + 璁惧ID + 鏃堕棿鎴?+ 浜嬩欢绫诲瀷锛夌敓鎴怣D5鍝堝笇
+    /// - 鍩轰簬鏃堕棿绐楀彛鐨勭紦瀛樼鐞嗭紝淇濈暀鏈€杩?灏忔椂鐨勪簨浠惰褰?
+    /// - 瀹氭湡娓呯悊杩囨湡璁板綍锛岄槻姝㈠唴瀛樻硠婕?
+    /// - 绾跨▼瀹夊叏璁捐锛屾敮鎸侀珮骞跺彂璁块棶
     /// </summary>
     public class EventDeduplicator : IDisposable
     {
@@ -34,28 +34,28 @@ namespace ControlEntradaSalida
         private long _duplicateEventsBlocked = 0;
 
         /// <summary>
-        /// 初始化事件去重器
+        /// 鍒濆鍖栦簨浠跺幓閲嶅櫒
         /// </summary>
-        /// <param name="maxCacheSize">最大缓存大小（默认10000条）</param>
-        /// <param name="cacheExpiryMinutes">缓存过期时间（分钟，默认60分钟）</param>
-        /// <param name="cleanupIntervalMinutes">清理间隔时间（分钟，默认5分钟）</param>
+        /// <param name="maxCacheSize">鏈€澶х紦瀛樺ぇ灏忥紙榛樿10000鏉★級</param>
+        /// <param name="cacheExpiryMinutes">缂撳瓨杩囨湡鏃堕棿锛堝垎閽燂紝榛樿60鍒嗛挓锛?/param>
+        /// <param name="cleanupIntervalMinutes">娓呯悊闂撮殧鏃堕棿锛堝垎閽燂紝榛樿5鍒嗛挓锛?/param>
         public EventDeduplicator(int maxCacheSize = 10000, int cacheExpiryMinutes = 60, int cleanupIntervalMinutes = 5)
         {
             _processedEvents = new ConcurrentDictionary<string, DateTime>();
             _maxCacheSize = maxCacheSize;
             _cacheExpiry = TimeSpan.FromMinutes(cacheExpiryMinutes);
 
-            // 创建定期清理任务
+            // 鍒涘缓瀹氭湡娓呯悊浠诲姟
             _cleanupTimer = new Timer(CleanupExpiredEvents, null, 
                 TimeSpan.FromMinutes(cleanupIntervalMinutes), 
                 TimeSpan.FromMinutes(cleanupIntervalMinutes));
         }
 
         /// <summary>
-        /// 检查事件是否已经被处理过
+        /// 妫€鏌ヤ簨浠舵槸鍚﹀凡缁忚澶勭悊杩?
         /// </summary>
-        /// <param name="accessEvent">门禁事件</param>
-        /// <returns>true表示已处理过（应丢弃），false表示未处理过（应继续处理）</returns>
+        /// <param name="accessEvent">闂ㄧ浜嬩欢</param>
+        /// <returns>true琛ㄧず宸插鐞嗚繃锛堝簲涓㈠純锛夛紝false琛ㄧず鏈鐞嗚繃锛堝簲缁х画澶勭悊锛?/returns>
         public bool IsEventProcessed(AccessLogEvent accessEvent)
         {
             if (_disposed || accessEvent == null) return true;
@@ -68,16 +68,16 @@ namespace ControlEntradaSalida
             if (isProcessed)
             {
                 Interlocked.Increment(ref _duplicateEventsBlocked);
-                Console.WriteLine($"[DUPLICATE] 检测到重复事件并丢弃: {accessEvent.GetDeduplicationKey()}");
+                Console.WriteLine($"[DUPLICATE] 妫€娴嬪埌閲嶅浜嬩欢骞朵涪寮? {accessEvent.GetDeduplicationKey()}");
             }
 
             return isProcessed;
         }
 
         /// <summary>
-        /// 标记事件为已处理
+        /// 鏍囪浜嬩欢涓哄凡澶勭悊
         /// </summary>
-        /// <param name="accessEvent">门禁事件</param>
+        /// <param name="accessEvent">闂ㄧ浜嬩欢</param>
         public void MarkEventProcessed(AccessLogEvent accessEvent)
         {
             if (_disposed || accessEvent == null) return;
@@ -85,32 +85,32 @@ namespace ControlEntradaSalida
             string eventKey = GenerateEventKey(accessEvent);
             DateTime processTime = DateTime.Now;
 
-            // 容量保护 - 如果缓存过大，先清理一次
+            // 瀹归噺淇濇姢 - 濡傛灉缂撳瓨杩囧ぇ锛屽厛娓呯悊涓€娆?
             if (_processedEvents.Count >= _maxCacheSize)
             {
                 CleanupExpiredEvents(null);
             }
 
-            // 如果仍然超过容量，删除最旧的记录
+            // 濡傛灉浠嶇劧瓒呰繃瀹归噺锛屽垹闄ゆ渶鏃х殑璁板綍
             if (_processedEvents.Count >= _maxCacheSize)
             {
-                RemoveOldestEntries(_maxCacheSize / 10); // 删除10%的最旧记录
+                RemoveOldestEntries(_maxCacheSize / 10); // 鍒犻櫎10%鐨勬渶鏃ц褰?
             }
 
             _processedEvents.TryAdd(eventKey, processTime);
         }
 
         /// <summary>
-        /// 生成事件唯一标识
+        /// 鐢熸垚浜嬩欢鍞竴鏍囪瘑
         /// </summary>
-        /// <param name="accessEvent">门禁事件</param>
-        /// <returns>事件唯一标识（MD5哈希）</returns>
+        /// <param name="accessEvent">闂ㄧ浜嬩欢</param>
+        /// <returns>浜嬩欢鍞竴鏍囪瘑锛圡D5鍝堝笇锛?/returns>
         private string GenerateEventKey(AccessLogEvent accessEvent)
         {
-            // 构造唯一标识字符串
-            string uniqueString = $"{accessEvent.EmployeeId}_{accessEvent.DeviceId}_{accessEvent.EventTime:yyyy-MM-dd HH:mm:ss}_{accessEvent.EventType}";
+            // 鏋勯€犲敮涓€鏍囪瘑瀛楃涓?
+            string uniqueString = $"{accessEvent.EmployeeNumber}_{accessEvent.DeviceNumber}_{accessEvent.EventTime:yyyy-MM-dd HH:mm:ss}_{accessEvent.EventType}";
             
-            // 生成MD5哈希
+            // 鐢熸垚MD5鍝堝笇
             using (MD5 md5 = MD5.Create())
             {
                 byte[] hashBytes = md5.ComputeHash(Encoding.UTF8.GetBytes(uniqueString));
@@ -124,9 +124,9 @@ namespace ControlEntradaSalida
         }
 
         /// <summary>
-        /// 清理过期的事件记录（定时任务）
+        /// 娓呯悊杩囨湡鐨勪簨浠惰褰曪Paper瀹氭椂浠诲姟锛?
         /// </summary>
-        /// <param name="state">定时器状态（未使用）</param>
+        /// <param name="state">瀹氭椂鍣ㄧ姸鎬侊紙鏈娇鐢級</param>
         private void CleanupExpiredEvents(object state)
         {
             if (_disposed) return;
@@ -136,7 +136,7 @@ namespace ControlEntradaSalida
                 DateTime cutoffTime = DateTime.Now - _cacheExpiry;
                 int removedCount = 0;
 
-                // 查找并删除过期记录
+                // 鏌ユ壘骞跺垹闄よ繃鏈熻褰?
                 var keysToRemove = new List<string>();
                 foreach (var kvp in _processedEvents)
                 {
@@ -146,7 +146,7 @@ namespace ControlEntradaSalida
                     }
                 }
 
-                // 删除过期记录
+                // 鍒犻櫎杩囨湡璁板綍
                 foreach (string key in keysToRemove)
                 {
                     if (_processedEvents.TryRemove(key, out _))
@@ -157,7 +157,7 @@ namespace ControlEntradaSalida
 
                 if (removedCount > 0)
                 {
-                    Console.WriteLine($"[CLEANUP] 清理过期去重记录: {removedCount}条, 剩余: {_processedEvents.Count}条");
+                    Console.WriteLine($"[CLEANUP] 清理过期去重记录: {removedCount}条，剩余: {_processedEvents.Count}条");
                 }
             }
             catch (Exception ex)
@@ -167,16 +167,16 @@ namespace ControlEntradaSalida
         }
 
         /// <summary>
-        /// 删除最旧的记录（容量保护）
+        /// 鍒犻櫎鏈€鏃х殑璁板綍锛堝閲忎繚鎶わ級
         /// </summary>
-        /// <param name="countToRemove">要删除的记录数量</param>
+        /// <param name="countToRemove">瑕佸垹闄ょ殑璁板綍鏁伴噺</param>
         private void RemoveOldestEntries(int countToRemove)
         {
             if (countToRemove <= 0) return;
 
             try
             {
-                // 按时间排序，删除最旧的记录
+                // 鎸夋椂闂存帓搴忥紝鍒犻櫎鏈€鏃х殑璁板綍
                 var sortedEntries = _processedEvents.OrderBy(kvp => kvp.Value).Take(countToRemove);
                 int removedCount = 0;
 
@@ -188,7 +188,7 @@ namespace ControlEntradaSalida
                     }
                 }
 
-                Console.WriteLine($"[CAPACITY] 容量保护删除最旧记录: {removedCount}条, 剩余: {_processedEvents.Count}条");
+                Console.WriteLine($"[CAPACITY] 容量维护删除最旧记录: {removedCount}条，剩余: {_processedEvents.Count}条");
             }
             catch (Exception ex)
             {
@@ -202,13 +202,13 @@ namespace ControlEntradaSalida
         /// <returns>统计信息字符串</returns>
         public string GetStatistics()
         {
-            return $"去重器状态: 缓存记录={_processedEvents.Count}, 总检查数={_totalEventsChecked}, 重复拦截数={_duplicateEventsBlocked}, 去重率={GetDeduplicationRate():P2}";
+            return $"去重器状态: 缓存记录={_processedEvents.Count}, 总检测数={_totalEventsChecked}, 拦截重复数={_duplicateEventsBlocked}, 去重率={GetDeduplicationRate():P2}";
         }
 
         /// <summary>
-        /// 获取去重率
+        /// 鑾峰彇鍘婚噸鐜?
         /// </summary>
-        /// <returns>去重率（0-1之间的值）</returns>
+        /// <returns>鍘婚噸鐜囷紙0-1涔嬮棿鐨勫€硷級</returns>
         public double GetDeduplicationRate()
         {
             long totalChecked = _totalEventsChecked;
@@ -218,18 +218,18 @@ namespace ControlEntradaSalida
         }
 
         /// <summary>
-        /// 清空所有缓存记录
+        /// 娓呯┖鎵€鏈夌紦瀛樿褰?
         /// </summary>
         public void Clear()
         {
             _processedEvents.Clear();
             _totalEventsChecked = 0;
             _duplicateEventsBlocked = 0;
-            Console.WriteLine("[CLEAR] 已清空去重器缓存");
+            Console.WriteLine("[CLEAR] 宸叉竻绌哄幓閲嶅櫒缂撳瓨");
         }
 
         /// <summary>
-        /// 手动触发清理过期记录
+        /// 鎵嬪姩瑙﹀彂娓呯悊杩囨湡璁板綍
         /// </summary>
         public void ForceCleanup()
         {
@@ -237,9 +237,9 @@ namespace ControlEntradaSalida
         }
 
         /// <summary>
-        /// 检查去重器健康状态
+        /// 妫€鏌ュ幓閲嶅櫒鍋ュ悍鐘舵€?
         /// </summary>
-        /// <returns>健康状态报告</returns>
+        /// <returns>鍋ュ悍鐘舵€佹姤鍛?/returns>
         public string GetHealthStatus()
         {
             int cacheSize = _processedEvents.Count;
@@ -247,17 +247,17 @@ namespace ControlEntradaSalida
             
             string status;
             if (memoryUsageRatio < 0.7)
-                status = "健康";
+                status = "鍋ュ悍";
             else if (memoryUsageRatio < 0.9)
-                status = "警告";
+                status = "璀﹀憡";
             else
-                status = "危险";
+                status = "鍗遍櫓";
 
-            return $"去重器健康状态: {status} (缓存使用率: {memoryUsageRatio:P1})";
+            return $"鍘婚噸鍣ㄥ仴搴风姸鎬? {status} (缂撳瓨浣跨敤鐜? {memoryUsageRatio:P1})";
         }
 
         /// <summary>
-        /// 释放资源
+        /// 閲婃斁璧勬簮
         /// </summary>
         public void Dispose()
         {
@@ -266,7 +266,7 @@ namespace ControlEntradaSalida
                 _disposed = true;
                 _cleanupTimer?.Dispose();
                 _processedEvents?.Clear();
-                Console.WriteLine("[DISPOSE] 事件去重器已释放资源");
+                Console.WriteLine("[DISPOSE] 浜嬩欢鍘婚噸鍣ㄥ凡閲婃斁璧勬簮");
             }
         }
     }

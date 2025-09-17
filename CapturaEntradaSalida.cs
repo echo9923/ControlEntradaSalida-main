@@ -18,7 +18,7 @@ namespace ControlEntradaSalida
     public partial class CapturaEntradaSalida : Form
     {
         private HCNetSDK.MSGCallBack m_falarmData = null;
-        private int m_lLogNum = 0;
+        private long m_lLogNum = 0;
         private Dictionary<int, int> lAlarmHandles = new Dictionary<int, int>(); // 设备ID到报警句柄的映射
         private readonly object _alarmSyncRoot = new object(); // 控制布防/撤防临界区，避免线程竞态
         private bool _alarmCallbackRegistered = false; // 标记报警回调是否已经注册
@@ -108,9 +108,13 @@ namespace ControlEntradaSalida
         /// <param name="deviceId">设备ID</param>
         /// <param name="employeeName">员工姓名</param>
         /// <returns>是否成功入队</returns>
-        private bool EnqueueAccessLogAsync(string logNumber, DateTime eventTime, string employeeId, 
-                                          string eventType, int deviceId, string employeeName = null)
+        private bool EnqueueAccessLogAsync(EventDataQuick eventData)
         {
+            if (eventData == null)
+            {
+                return false;
+            }
+
             // 检查异步组件是否已初始化
             if (!_asyncComponentsInitialized || _eventQueue == null || _eventDeduplicator == null)
             {
@@ -120,36 +124,35 @@ namespace ControlEntradaSalida
 
             try
             {
-                // 创建轻量级事件对象
                 var accessEvent = new AccessLogEvent
                 {
-                    LogNumber = logNumber,
-                    EventTime = eventTime,
-                    EmployeeId = employeeId,
-                    DeviceId = deviceId,
-                    EventType = eventType,
-                    EmployeeName = employeeName,
-                    Priority = 2, // 普通优先级
+                    SequenceNumber = eventData.SequenceNumber,
+                    EventTime = eventData.EventTime,
+                    EmployeeNumber = eventData.EmployeeNumber ?? string.Empty,
+                    EmployeeName = eventData.EmployeeName,
+                    DeviceNumber = eventData.DeviceNumber,
+                    DeviceName = eventData.DeviceName,
+                    EventType = eventData.EventTypeCode,
+                    EventTypeDisplay = eventData.EventTypeDisplay,
+                    RemoteHostAddress = eventData.RemoteHostAddress,
+                    Priority = 2,
                     CreateTime = DateTime.Now
                 };
 
-                // 去重检查（防止网络重传等导致的重复事件）
                 if (_eventDeduplicator.IsEventProcessed(accessEvent))
                 {
-                    return true; // 重复事件，直接返回成功
+                    return true;
                 }
 
-                // 标记事件为已处理（去重）
                 _eventDeduplicator.MarkEventProcessed(accessEvent);
 
-                // 异步入队（轻量级操作，确保 SDK 回调快速返回）
                 bool enqueued = _eventQueue.TryEnqueue(accessEvent);
-                
+
                 if (!enqueued)
                 {
                     Console.WriteLine($"[WARNING] 事件入队失败，队列可能已满: {accessEvent.GetDeduplicationKey()}");
                 }
-                
+
                 return enqueued;
             }
             catch (Exception ex)
@@ -271,31 +274,25 @@ namespace ControlEntradaSalida
         {
             try
             {
-                // 步骤 1：快速解析事件数据（轻量级操作）
+                // 步骤 1：解析事件数据，保持回调轻量化
                 var eventData = ParseEventDataFast(ref pAlarmer, pAlarmInfo, dwBufLen);
-                
+
                 if (eventData == null)
                 {
-                    return; // 解析失败，直接返回
+                    return; // 解析失败或非目标事件，直接返回
                 }
 
-                // 步骤 2：异步入队数据库任务（轻量级操作）
-                bool enqueued = EnqueueAccessLogAsync(
-                    eventData.LogNumber,
-                    eventData.EventTime,
-                    eventData.EmployeeId,
-                    eventData.EventType,
-                    eventData.DeviceId,
-                    eventData.EmployeeName);
+                // 步骤 2：异步入队等待数据库写入
+                EnqueueAccessLogAsync(eventData);
 
-                // 步骤 3：即时更新UI显示（线程安全）
+                // 步骤 3：实时刷新 UI 展示
                 UpdateUIImmediately(eventData);
-                
-                // SDK 回调快速返回（整个处理时间 < 5ms）
+
+                // SDK 回调需尽可能快速返回，整段处理保持毫秒级
             }
             catch (Exception ex)
             {
-                // 错误处理：绝不能让异常抛出到SDK层
+                // 捕获所有异常，避免影响 SDK 内部线程
                 Console.WriteLine($"[ERROR] ProcessCommAlarmACS 异常: {ex.Message}");
             }
         }
@@ -308,17 +305,17 @@ namespace ControlEntradaSalida
         {
             try
             {
-                // 解析SDK事件结构体
-                HCNetSDK.NET_DVR_ACS_ALARM_INFO struAcsAlarmInfo = 
+                HCNetSDK.NET_DVR_ACS_ALARM_INFO struAcsAlarmInfo =
                     (HCNetSDK.NET_DVR_ACS_ALARM_INFO)Marshal.PtrToStructure(pAlarmInfo, typeof(HCNetSDK.NET_DVR_ACS_ALARM_INFO));
-                
-                // 事件类型映射
-                HCNetSDK.NET_DVR_LOG_V30 struFileInfo = new HCNetSDK.NET_DVR_LOG_V30();
-                struFileInfo.dwMajorType = struAcsAlarmInfo.dwMajor;
-                struFileInfo.dwMinorType = struAcsAlarmInfo.dwMinor;
+
+                HCNetSDK.NET_DVR_LOG_V30 struFileInfo = new HCNetSDK.NET_DVR_LOG_V30
+                {
+                    dwMajorType = struAcsAlarmInfo.dwMajor,
+                    dwMinorType = struAcsAlarmInfo.dwMinor
+                };
+
                 char[] csTmp = new char[256];
-                
-                // 快速类型映射（轻量级）
+
                 if (HCNetSDK.MAJOR_ALARM == struFileInfo.dwMajorType)
                     TypeMap.AlarmMinorTypeMap(struFileInfo, csTmp);
                 else if (HCNetSDK.MAJOR_OPERATION == struFileInfo.dwMajorType)
@@ -327,16 +324,18 @@ namespace ControlEntradaSalida
                     TypeMap.ExceptionMinorTypeMap(struFileInfo, csTmp);
                 else if (HCNetSDK.MAJOR_EVENT == struFileInfo.dwMajorType)
                     TypeMap.EventMinorTypeMap(struFileInfo, csTmp);
-                
-                string eventType = new String(csTmp).TrimEnd('\0');
-                
-                // 只处理 MINOR_FACE_VERIFY_PASS 事件（提高性能）
-                if (eventType != "MINOR_FACE_VERIFY_PASS")
+
+                string eventTypeCode = new string(csTmp).TrimEnd('\0');
+                if (string.IsNullOrWhiteSpace(eventTypeCode))
                 {
-                    return null; // 非目标事件，直接返回
+                    eventTypeCode = "UNKNOWN";
                 }
-                
-                // 提取关键信息（轻量级）
+
+                if (eventTypeCode != "MINOR_FACE_VERIFY_PASS")
+                {
+                    return null;
+                }
+
                 var eventTime = new DateTime(
                     (int)struAcsAlarmInfo.struTime.dwYear,
                     (int)struAcsAlarmInfo.struTime.dwMonth,
@@ -344,44 +343,105 @@ namespace ControlEntradaSalida
                     (int)struAcsAlarmInfo.struTime.dwHour,
                     (int)struAcsAlarmInfo.struTime.dwMinute,
                     (int)struAcsAlarmInfo.struTime.dwSecond);
-                
-                // 仅使用人脸识别的工号/员工编号，不再解析卡号
-                string employeeNo = null;
+
+                string employeeNumber = null;
                 try
                 {
                     if (struAcsAlarmInfo.struAcsEventInfo.dwEmployeeNo != 0)
                     {
-                        employeeNo = struAcsAlarmInfo.struAcsEventInfo.dwEmployeeNo.ToString();
+                        employeeNumber = struAcsAlarmInfo.struAcsEventInfo.dwEmployeeNo.ToString();
                     }
                 }
-                catch { /* 结构体兼容性保护 */ }
-                
-                // 获取设备ID（轻量级）
-                int deviceId = 0;
-                int userId = pAlarmer.lUserID; // 提取ref参数的值到局部变量
-                var device = DeviceConnectionManager.Instance.GetAllDevices().FirstOrDefault(d => d.UserID == userId);
-                if (device != null)
+                catch
                 {
-                    deviceId = device.Id;
+                    // 结构体兼容保护
                 }
-                
-                // 递增事件编号（线程安全）
-                int currentLogNum = System.Threading.Interlocked.Increment(ref m_lLogNum);
-                
+
+                int userId = pAlarmer.lUserID;
+                var device = DeviceConnectionManager.Instance.GetAllDevices().FirstOrDefault(d => d.UserID == userId);
+                int deviceId = device?.Id ?? 0;
+                string deviceName = device?.Name ?? string.Empty;
+
+                string remoteHostAddress = ResolveRemoteHostAddress(ref struAcsAlarmInfo, ref pAlarmer, device);
+
+                long sequenceNumber = System.Threading.Interlocked.Increment(ref m_lLogNum);
+
                 return new EventDataQuick
                 {
-                    LogNumber = currentLogNum.ToString(),
+                    SequenceNumber = sequenceNumber,
+                    EmployeeNumber = employeeNumber ?? string.Empty,
+                    EmployeeName = null,
+                    DeviceNumber = deviceId,
+                    DeviceName = deviceName,
+                    EventTypeCode = eventTypeCode,
+                    EventTypeDisplay = TranslateEventType(eventTypeCode),
                     EventTime = eventTime,
-                    EventType = eventType,
-                    EmployeeId = employeeNo,
-                    DeviceId = deviceId,
-                    EmployeeName = null // 员工姓名将在后台异步查询
+                    RemoteHostAddress = remoteHostAddress
                 };
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"[ERROR] 解析事件数据异常: {ex.Message}");
                 return null;
+            }
+        }
+
+        private string ResolveRemoteHostAddress(ref HCNetSDK.NET_DVR_ACS_ALARM_INFO alarmInfo, ref HCNetSDK.NET_DVR_ALARMER alarmer, DeviceConnectionInfo device)
+        {
+            string remoteHost = alarmInfo.struRemoteHostAddr.sIpV4;
+
+            if (string.IsNullOrWhiteSpace(remoteHost))
+            {
+                remoteHost = TryParseIpString(alarmInfo.struRemoteHostAddr.byIPv6);
+            }
+
+            if (string.IsNullOrWhiteSpace(remoteHost))
+            {
+                remoteHost = alarmer.sDeviceIP;
+            }
+
+            if (string.IsNullOrWhiteSpace(remoteHost) && device != null)
+            {
+                remoteHost = device.IpAddress;
+            }
+
+            return string.IsNullOrWhiteSpace(remoteHost) ? string.Empty : remoteHost;
+        }
+
+        private string TryParseIpString(byte[] rawBytes)
+        {
+            if (rawBytes == null || rawBytes.Length == 0)
+            {
+                return null;
+            }
+
+            string candidate = Encoding.ASCII.GetString(rawBytes).Trim('\0');
+            return string.IsNullOrWhiteSpace(candidate) ? null : candidate;
+        }
+
+        private string TranslateEventType(string eventTypeCode)
+        {
+            if (string.IsNullOrWhiteSpace(eventTypeCode))
+            {
+                return "\u672a\u77e5\u4e8b\u4ef6";
+            }
+
+            switch (eventTypeCode)
+            {
+                case "MINOR_FACE_VERIFY_PASS":
+                    return "\u4eba\u8138\u9a8c\u8bc1\u901a\u8fc7";
+                case "MINOR_FACE_VERIFY_FAIL":
+                    return "\u4eba\u8138\u9a8c\u8bc1\u5931\u8d25";
+                case "MINOR_REMOTE_OPEN_DOOR":
+                    return "\u8fdc\u7a0b\u5f00\u95e8";
+                case "MINOR_REMOTE_CLOSE_DOOR":
+                    return "\u8fdc\u7a0b\u5173\u95e8";
+                case "MINOR_REMOTE_ALWAYS_OPEN":
+                    return "\u8fdc\u7a0b\u5e38\u5f00";
+                case "MINOR_REMOTE_ALWAYS_CLOSE":
+                    return "\u8fdc\u7a0b\u5e38\u95ed";
+                default:
+                    return eventTypeCode;
             }
         }
 
@@ -392,20 +452,27 @@ namespace ControlEntradaSalida
         {
             try
             {
-                // 使用 SafeUIUpdater 确保线程安全的UI更新
                 SafeUIUpdater.UpdateUI(this.listViewEventos, () =>
                 {
-                    ListViewItem item = new ListViewItem();
-                    item.Text = eventData.LogNumber;
-                    item.SubItems.Add(eventData.EventTime.ToString("yyyy-MM-dd"));
-                    item.SubItems.Add(eventData.EventTime.ToString("HH:mm:ss"));
-                    item.SubItems.Add(eventData.EventType);
-                    item.SubItems.Add(eventData.EmployeeId ?? "");
-                    item.SubItems.Add(eventData.EmployeeName ?? "查询中..."); // 姓名将在后台查询
-                    
+                    string employeeName = string.IsNullOrWhiteSpace(eventData.EmployeeName)
+                        ? "\u67e5\u8be2\u4e2d..."
+                        : eventData.EmployeeName;
+
+                    string eventTypeDisplay = string.IsNullOrWhiteSpace(eventData.EventTypeDisplay)
+                        ? TranslateEventType(eventData.EventTypeCode)
+                        : eventData.EventTypeDisplay;
+
+                    ListViewItem item = new ListViewItem(eventData.SequenceNumber.ToString());
+                    item.SubItems.Add(eventData.EmployeeNumber ?? string.Empty);
+                    item.SubItems.Add(employeeName);
+                    item.SubItems.Add(eventData.DeviceNumber.ToString());
+                    item.SubItems.Add(eventData.DeviceName ?? string.Empty);
+                    item.SubItems.Add(eventTypeDisplay);
+                    item.SubItems.Add(eventData.EventTime.ToString("yyyy-MM-dd HH:mm:ss"));
+                    item.SubItems.Add(eventData.RemoteHostAddress ?? string.Empty);
+
                     this.listViewEventos.Items.Add(item);
-                    
-                    // 自动滚动到最新事件
+
                     if (this.listViewEventos.Items.Count > 0)
                     {
                         this.listViewEventos.EnsureVisible(this.listViewEventos.Items.Count - 1);
@@ -414,7 +481,7 @@ namespace ControlEntradaSalida
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[ERROR] UI更新异常: {ex.Message}");
+                Console.WriteLine($"[ERROR] UI 更新异常: {ex.Message}");
             }
         }
         
@@ -423,12 +490,15 @@ namespace ControlEntradaSalida
         /// </summary>
         private class EventDataQuick
         {
-            public string LogNumber { get; set; }
-            public DateTime EventTime { get; set; }
-            public string EventType { get; set; }
-            public string EmployeeId { get; set; }
-            public int DeviceId { get; set; }
+            public long SequenceNumber { get; set; }
+            public string EmployeeNumber { get; set; }
             public string EmployeeName { get; set; }
+            public int DeviceNumber { get; set; }
+            public string DeviceName { get; set; }
+            public string EventTypeCode { get; set; }
+            public string EventTypeDisplay { get; set; }
+            public DateTime EventTime { get; set; }
+            public string RemoteHostAddress { get; set; }
         }
         //根据卡号（文档号）从 employees 表中查找员工姓名；用于显示在事件列表中。
         private string GetEmployeeName(string employeeId)

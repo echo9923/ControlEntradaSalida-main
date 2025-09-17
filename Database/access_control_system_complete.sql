@@ -1,4 +1,4 @@
--- MySQL Script for Access Control System
+﻿-- MySQL Script for Access Control System
 -- Database Refactoring - English Naming Convention
 -- Generated for ControlEntradaSalida System
 -- Author: System Database Refactoring
@@ -69,27 +69,27 @@ CREATE TABLE IF NOT EXISTS `access_control_system`.`employees` (
 DROP TABLE IF EXISTS `access_control_system`.`access_logs`;
 
 CREATE TABLE IF NOT EXISTS `access_control_system`.`access_logs` (
-  `log_id` BIGINT NOT NULL AUTO_INCREMENT,
-  `log_number` INT NOT NULL,
-  `log_date` DATE NOT NULL,
-  `log_time` TIME NOT NULL,
-  `employee_id` VARCHAR(30) NOT NULL,
-  `device_id` INT NOT NULL,
-  `event_type` VARCHAR(255) NOT NULL,
-  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (`log_id`),
-  UNIQUE KEY `uk_composite` (`log_number`, `log_date`, `log_time`, `device_id`),
-  INDEX `idx_employee_date` (`employee_id` ASC, `log_date` ASC),
-  INDEX `idx_device_date` (`device_id` ASC, `log_date` ASC),
-  INDEX `idx_log_date` (`log_date` ASC),
+  `sequence_number` BIGINT NOT NULL AUTO_INCREMENT,
+  `employee_number` VARCHAR(30) NOT NULL,
+  `employee_name` VARCHAR(255) NOT NULL,
+  `device_number` INT NOT NULL,
+  `device_name` VARCHAR(255) NOT NULL,
+  `event_type` VARCHAR(128) NOT NULL,
+  `event_time` DATETIME NOT NULL,
+  `remote_host_address` VARCHAR(128) NOT NULL,
+  PRIMARY KEY (`sequence_number`),
+  UNIQUE KEY `uk_event_uniqueness` (`employee_number`, `device_number`, `event_time`, `event_type`),
+  INDEX `idx_employee_time` (`employee_number` ASC, `event_time` ASC),
+  INDEX `idx_device_time` (`device_number` ASC, `event_time` ASC),
+  INDEX `idx_event_time` (`event_time` ASC),
   INDEX `idx_event_type` (`event_type` ASC),
   CONSTRAINT `fk_access_logs_employee`
-    FOREIGN KEY (`employee_id`)
+    FOREIGN KEY (`employee_number`)
     REFERENCES `access_control_system`.`employees` (`employee_id`)
     ON DELETE CASCADE
     ON UPDATE CASCADE,
   CONSTRAINT `fk_access_logs_device`
-    FOREIGN KEY (`device_id`)
+    FOREIGN KEY (`device_number`)
     REFERENCES `access_control_system`.`devices` (`device_id`)
     ON DELETE RESTRICT
     ON UPDATE CASCADE
@@ -130,7 +130,7 @@ BEGIN
     START TRANSACTION;
     
     -- Delete employee access logs
-    DELETE FROM access_logs WHERE employee_id = emp_id;
+    DELETE FROM access_logs WHERE employee_number = emp_id;
     
     -- Delete employee record
     DELETE FROM employees WHERE employee_id = emp_id;
@@ -149,80 +149,64 @@ DELIMITER //
 USE `access_control_system`//
 CREATE DEFINER=`root`@`localhost` PROCEDURE `generate_attendance_report`()
 BEGIN
-    DECLARE var_employee_id VARCHAR(30);
-    DECLARE var_previous_employee_id VARCHAR(30);
-    DECLARE var_log_date DATE;
-    DECLARE var_previous_log_date DATE;
-    DECLARE var_log_time TIME;
-    DECLARE var_device_id INT;
+    DECLARE var_employee_number VARCHAR(30);
+    DECLARE var_previous_employee_number VARCHAR(30);
+    DECLARE var_event_time DATETIME;
+    DECLARE var_event_date DATE;
+    DECLARE var_previous_event_date DATE;
+    DECLARE var_device_number INT;
     DECLARE var_finished INTEGER DEFAULT 0;
-    DECLARE var_updated BOOLEAN;
-    DECLARE var_last_id INTEGER;
-    
-    DECLARE attendance_cursor CURSOR FOR 
-        SELECT log_date, log_time, employee_id, device_id 
-        FROM access_logs 
-        ORDER BY employee_id, log_date, log_time ASC;
-    
+    DECLARE var_last_id BIGINT;
+
+    DECLARE attendance_cursor CURSOR FOR
+        SELECT event_time, employee_number, device_number
+        FROM access_logs
+        ORDER BY employee_number, event_time ASC;
+
     DECLARE CONTINUE HANDLER FOR NOT FOUND SET var_finished = 1;
 
-    -- Drop temporary table if exists
     DROP TABLE IF EXISTS temp_attendance_report;
-    
-    -- Create temporary report table
+
     CREATE TABLE temp_attendance_report (
-        id INTEGER NOT NULL PRIMARY KEY AUTO_INCREMENT,
+        id BIGINT NOT NULL PRIMARY KEY AUTO_INCREMENT,
         report_date DATE NOT NULL,
         check_in_time TIME,
         check_out_time TIME,
-        employee_id VARCHAR(30) NOT NULL,
-        device_id INT,
-        INDEX idx_employee_date (employee_id, report_date)
+        employee_number VARCHAR(30) NOT NULL,
+        device_number INT,
+        INDEX idx_employee_date (employee_number, report_date)
     );
 
     OPEN attendance_cursor;
-    
-    SET var_previous_employee_id = "";
-    SET var_previous_log_date = "1900-01-01";
-    SET var_updated = 0;
-    
-    START TRANSACTION;
-    
+
+    SET var_previous_employee_number = '';
+    SET var_previous_event_date = '1900-01-01';
+    SET var_last_id = NULL;
+
     attendance_loop: LOOP
-        FETCH attendance_cursor INTO var_log_date, var_log_time, var_employee_id, var_device_id;
-        
+        FETCH attendance_cursor INTO var_event_time, var_employee_number, var_device_number;
+
         IF var_finished = 1 THEN
             LEAVE attendance_loop;
         END IF;
 
-        IF var_previous_log_date != var_log_date THEN
-            -- New date, insert new record
-            INSERT INTO temp_attendance_report (report_date, check_in_time, employee_id, device_id) 
-            VALUES (var_log_date, var_log_time, var_employee_id, var_device_id);
-            SET var_updated = 0;
+        SET var_event_date = DATE(var_event_time);
+
+        IF var_previous_employee_number <> var_employee_number OR var_previous_event_date <> var_event_date OR var_last_id IS NULL THEN
+            INSERT INTO temp_attendance_report (report_date, check_in_time, employee_number, device_number)
+            VALUES (var_event_date, TIME(var_event_time), var_employee_number, var_device_number);
+            SET var_last_id = LAST_INSERT_ID();
         ELSE
-            IF var_previous_employee_id = var_employee_id AND var_updated = 1 THEN
-                -- Same employee, new day, insert new record
-                INSERT INTO temp_attendance_report (report_date, check_in_time, employee_id, device_id) 
-                VALUES (var_log_date, var_log_time, var_employee_id, var_device_id);
-                SET var_updated = 0;
-            ELSE
-                -- Update existing record with check out time
-                UPDATE temp_attendance_report 
-                SET check_out_time = var_log_time 
-                WHERE employee_id = var_employee_id 
-                  AND report_date = var_log_date 
-                  AND id = var_last_id;
-                SET var_updated = 1;
-            END IF;
+            UPDATE temp_attendance_report
+            SET check_out_time = TIME(var_event_time),
+                device_number = var_device_number
+            WHERE id = var_last_id;
         END IF;
 
-        SET var_last_id = (SELECT MAX(id) FROM temp_attendance_report);
-        SET var_previous_employee_id = var_employee_id;
-        SET var_previous_log_date = var_log_date;
+        SET var_previous_employee_number = var_employee_number;
+        SET var_previous_event_date = var_event_date;
     END LOOP attendance_loop;
-    
-    COMMIT;
+
     CLOSE attendance_cursor;
 END//
 DELIMITER ;
@@ -262,3 +246,4 @@ SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS;
 -- Stored procedures created:
 -- 1. delete_employee (formerly ELIMINAR_EMPLEADO)
 -- 2. generate_attendance_report (formerly CREAR_TABLA_INFORME_ES)
+
