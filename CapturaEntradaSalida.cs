@@ -124,12 +124,16 @@ namespace ControlEntradaSalida
 
             try
             {
+                // 判断是否为人员相关事件
+                bool isPersonRelated = IsPersonRelatedEvent(eventData.EventTypeCode);
+                
                 var accessEvent = new AccessLogEvent
                 {
                     SequenceNumber = eventData.SequenceNumber,
                     EventTime = eventData.EventTime,
-                    EmployeeNumber = eventData.EmployeeNumber ?? string.Empty,
-                    EmployeeName = eventData.EmployeeName,
+                    // 根据事件类型决定是否存储工号和姓名
+                    EmployeeNumber = isPersonRelated ? (eventData.EmployeeNumber ?? string.Empty) : string.Empty,
+                    EmployeeName = isPersonRelated ? eventData.EmployeeName : string.Empty,
                     DeviceNumber = eventData.DeviceNumber,
                     DeviceName = eventData.DeviceName,
                     EventType = eventData.EventTypeCode,
@@ -443,6 +447,45 @@ namespace ControlEntradaSalida
             }
         }
 
+        /// <summary>
+        /// 判断事件是否与人员相关
+        /// 人员相关事件：人脸验证等需要显示工号和姓名
+        /// 设备相关事件：门锁操作、门状态变化等不显示工号和姓名
+        /// </summary>
+        /// <param name="eventTypeCode">事件类型代码</param>
+        /// <returns>true表示人员相关事件，false表示设备相关事件</returns>
+        private bool IsPersonRelatedEvent(string eventTypeCode)
+        {
+            switch (eventTypeCode)
+            {
+                // 人员相关事件 - 需要显示工号和姓名
+                case "MINOR_FACE_VERIFY_PASS":
+                case "MINOR_FACE_VERIFY_FAIL":
+                    return true;
+                    
+                // 设备相关事件 - 不显示工号和姓名
+                case "MINOR_LOCK_OPEN":
+                case "MINOR_LOCK_CLOSE":
+                case "MINOR_DOOR_OPEN_NORMAL":
+                case "MINOR_DOOR_CLOSE_NORMAL":
+                case "MINOR_DOOR_OPEN_ABNORMAL":
+                case "MINOR_DOOR_OPEN_TIMEOUT":
+                case "MINOR_DOOR_BUTTON_PRESS":
+                case "MINOR_DOOR_BUTTON_RELEASE":
+                case "MINOR_REMOTE_OPEN_DOOR":
+                case "MINOR_REMOTE_CLOSE_DOOR":
+                case "MINOR_ALWAYS_OPEN_BEGIN":
+                case "MINOR_ALWAYS_OPEN_END":
+                case "MINOR_ALWAYS_CLOSE_BEGIN":
+                case "MINOR_ALWAYS_CLOSE_END":
+                    return false;
+                    
+                default:
+                    // 未知事件类型默认为设备相关事件
+                    return false;
+            }
+        }
+
         private string ResolveRemoteHostAddress(ref HCNetSDK.NET_DVR_ACS_ALARM_INFO alarmInfo, ref HCNetSDK.NET_DVR_ALARMER alarmer, DeviceConnectionInfo device)
         {
             string remoteHost = alarmInfo.struRemoteHostAddr.sIpV4;
@@ -545,28 +588,49 @@ namespace ControlEntradaSalida
             {
                 SafeUIUpdater.UpdateUI(this.listViewEventos, () =>
                 {
-                    string employeeName = string.IsNullOrWhiteSpace(eventData.EmployeeName)
-                        ? "\u67e5\u8be2\u4e2d..."
-                        : eventData.EmployeeName;
+                    // 判断是否为人员相关事件
+                    bool isPersonRelated = IsPersonRelatedEvent(eventData.EventTypeCode);
+                    
+                    // 根据事件类型决定是否显示工号和姓名
+                    string displayEmployeeNumber = isPersonRelated ? (eventData.EmployeeNumber ?? string.Empty) : string.Empty;
+                    string displayEmployeeName = isPersonRelated ? 
+                        (string.IsNullOrWhiteSpace(eventData.EmployeeName) ? "查询中..." : eventData.EmployeeName) : 
+                        string.Empty;
 
                     string eventTypeDisplay = string.IsNullOrWhiteSpace(eventData.EventTypeDisplay)
                         ? TranslateEventType(eventData.EventTypeCode)
                         : eventData.EventTypeDisplay;
 
                     ListViewItem item = new ListViewItem(eventData.SequenceNumber.ToString());
-                    item.SubItems.Add(eventData.EmployeeNumber ?? string.Empty);
-                    item.SubItems.Add(employeeName);
-                    item.SubItems.Add(eventData.DeviceNumber.ToString());
-                    item.SubItems.Add(eventData.DeviceName ?? string.Empty);
+                    item.SubItems.Add(displayEmployeeNumber);        // 工号：人员事件显示，设备事件为空
+                    item.SubItems.Add(displayEmployeeName);          // 姓名：人员事件显示，设备事件为空
+                    item.SubItems.Add(eventData.DeviceNumber.ToString()); // 设备编号：始终显示
+                    item.SubItems.Add(eventData.DeviceName ?? string.Empty); // 设备名称：始终显示
                     item.SubItems.Add(eventTypeDisplay);
                     item.SubItems.Add(eventData.EventTime.ToString("yyyy-MM-dd HH:mm:ss"));
                     item.SubItems.Add(eventData.RemoteHostAddress ?? string.Empty);
 
-                    this.listViewEventos.Items.Add(item);
+                    // 将新事件插入到列表顶部（索引0），而不是添加到末尾
+                    this.listViewEventos.Items.Insert(0, item);
 
+                    // 确保用户能看到最新事件（现在在顶部）
                     if (this.listViewEventos.Items.Count > 0)
                     {
-                        this.listViewEventos.EnsureVisible(this.listViewEventos.Items.Count - 1);
+                        this.listViewEventos.EnsureVisible(0);
+                        // 可选：选中最新的事件以突出显示
+                        this.listViewEventos.Items[0].Selected = true;
+                        this.listViewEventos.Items[0].Focused = true;
+                    }
+                    
+                    // 可选：限制列表项数量，避免内存占用过多
+                    const int maxItems = 1000;
+                    if (this.listViewEventos.Items.Count > maxItems)
+                    {
+                        // 移除最旧的事件（现在在列表末尾）
+                        for (int i = this.listViewEventos.Items.Count - 1; i >= maxItems; i--)
+                        {
+                            this.listViewEventos.Items.RemoveAt(i);
+                        }
                     }
                 });
             }
