@@ -302,7 +302,6 @@
     <Compile Include="EventDeduplicator.cs" />
     <Compile Include="DatabaseBatchProcessor.cs" />
     <Compile Include="AsyncDatabaseWriter.cs" />
-    <Compile Include="AsyncProcessingValidator.cs" />
     <EmbeddedResource Include="CapturaEntradaSalida.resx">
       <DependentUpon>CapturaEntradaSalida.cs</DependentUpon>
     </EmbeddedResource>
