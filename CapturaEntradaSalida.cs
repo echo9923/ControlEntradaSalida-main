@@ -331,7 +331,8 @@ namespace ControlEntradaSalida
                     eventTypeCode = "UNKNOWN";
                 }
 
-                if (eventTypeCode != "MINOR_FACE_VERIFY_PASS")
+                // 支持的事件类型：人脸验证、门锁操作、门状态变化
+                if (!IsSupportedEventType(eventTypeCode))
                 {
                     return null;
                 }
@@ -386,6 +387,47 @@ namespace ControlEntradaSalida
             }
         }
 
+        /// <summary>
+        /// 判断是否为支持的事件类型
+        /// </summary>
+        /// <param name="eventTypeCode">事件类型代码</param>
+        /// <returns>是否支持</returns>
+        private bool IsSupportedEventType(string eventTypeCode)
+        {
+            switch (eventTypeCode)
+            {
+                // 人脸验证事件
+                case "MINOR_FACE_VERIFY_PASS":
+                case "MINOR_FACE_VERIFY_FAIL":
+                
+                // 门锁操作事件
+                case "MINOR_LOCK_OPEN":
+                case "MINOR_LOCK_CLOSE":
+                
+                // 门状态变化事件
+                case "MINOR_DOOR_OPEN_NORMAL":
+                case "MINOR_DOOR_CLOSE_NORMAL":
+                case "MINOR_DOOR_OPEN_ABNORMAL":
+                case "MINOR_DOOR_OPEN_TIMEOUT":
+                
+                // 门按钮事件
+                case "MINOR_DOOR_BUTTON_PRESS":
+                case "MINOR_DOOR_BUTTON_RELEASE":
+                
+                // 远程控制事件
+                case "MINOR_REMOTE_OPEN_DOOR":
+                case "MINOR_REMOTE_CLOSE_DOOR":
+                case "MINOR_ALWAYS_OPEN_BEGIN":
+                case "MINOR_ALWAYS_OPEN_END":
+                case "MINOR_ALWAYS_CLOSE_BEGIN":
+                case "MINOR_ALWAYS_CLOSE_END":
+                    return true;
+                    
+                default:
+                    return false;
+            }
+        }
+
         private string ResolveRemoteHostAddress(ref HCNetSDK.NET_DVR_ACS_ALARM_INFO alarmInfo, ref HCNetSDK.NET_DVR_ALARMER alarmer, DeviceConnectionInfo device)
         {
             string remoteHost = alarmInfo.struRemoteHostAddr.sIpV4;
@@ -423,23 +465,57 @@ namespace ControlEntradaSalida
         {
             if (string.IsNullOrWhiteSpace(eventTypeCode))
             {
-                return "\u672a\u77e5\u4e8b\u4ef6";
+                return "未知事件";
             }
 
             switch (eventTypeCode)
             {
+                // 人脸验证事件
                 case "MINOR_FACE_VERIFY_PASS":
-                    return "\u4eba\u8138\u9a8c\u8bc1\u901a\u8fc7";
+                    return "人脸验证通过";
                 case "MINOR_FACE_VERIFY_FAIL":
-                    return "\u4eba\u8138\u9a8c\u8bc1\u5931\u8d25";
+                    return "人脸验证失败";
+                
+                // 门锁操作事件
+                case "MINOR_LOCK_OPEN":
+                    return "门锁打开";
+                case "MINOR_LOCK_CLOSE":
+                    return "门锁关闭";
+                
+                // 门状态变化事件
+                case "MINOR_DOOR_OPEN_NORMAL":
+                    return "门正常打开";
+                case "MINOR_DOOR_CLOSE_NORMAL":
+                    return "门正常关闭";
+                case "MINOR_DOOR_OPEN_ABNORMAL":
+                    return "门异常打开";
+                case "MINOR_DOOR_OPEN_TIMEOUT":
+                    return "门打开超时";
+                
+                // 门按钮事件
+                case "MINOR_DOOR_BUTTON_PRESS":
+                    return "门按钮按下";
+                case "MINOR_DOOR_BUTTON_RELEASE":
+                    return "门按钮释放";
+                
+                // 远程控制事件
                 case "MINOR_REMOTE_OPEN_DOOR":
-                    return "\u8fdc\u7a0b\u5f00\u95e8";
+                    return "远程开门";
                 case "MINOR_REMOTE_CLOSE_DOOR":
-                    return "\u8fdc\u7a0b\u5173\u95e8";
+                    return "远程关门";
+                case "MINOR_ALWAYS_OPEN_BEGIN":
+                    return "常开模式开始";
+                case "MINOR_ALWAYS_OPEN_END":
+                    return "常开模式结束";
+                case "MINOR_ALWAYS_CLOSE_BEGIN":
+                    return "常闭模式开始";
+                case "MINOR_ALWAYS_CLOSE_END":
+                    return "常闭模式结束";
                 case "MINOR_REMOTE_ALWAYS_OPEN":
-                    return "\u8fdc\u7a0b\u5e38\u5f00";
+                    return "远程常开";
                 case "MINOR_REMOTE_ALWAYS_CLOSE":
-                    return "\u8fdc\u7a0b\u5e38\u95ed";
+                    return "远程常闭";
+                    
                 default:
                     return eventTypeCode;
             }

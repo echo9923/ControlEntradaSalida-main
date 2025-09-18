@@ -11,7 +11,6 @@ namespace ControlEntradaSalida
         /// <summary>
         /// 应用程序的主要入口点
         /// </summary>
-        [STAThread]
         static void Main()
         {
             Application.EnableVisualStyles();
