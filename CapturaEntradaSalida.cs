@@ -367,11 +367,26 @@ namespace ControlEntradaSalida
 
                 long sequenceNumber = System.Threading.Interlocked.Increment(ref m_lLogNum);
 
+                // 查询员工名字
+                string employeeName = null;
+                if (!string.IsNullOrWhiteSpace(employeeNumber))
+                {
+                    try
+                    {
+                        employeeName = GetEmployeeName(employeeNumber);
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"[WARNING] 查询员工名字失败 (员工号: {employeeNumber}): {ex.Message}");
+                        employeeName = null; // 查询失败时保持为null，UI会显示"查询中..."
+                    }
+                }
+
                 return new EventDataQuick
                 {
                     SequenceNumber = sequenceNumber,
                     EmployeeNumber = employeeNumber ?? string.Empty,
-                    EmployeeName = null,
+                    EmployeeName = employeeName, // 现在会包含实际的员工名字或null
                     DeviceNumber = deviceId,
                     DeviceName = deviceName,
                     EventTypeCode = eventTypeCode,
