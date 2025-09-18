@@ -208,7 +208,8 @@ namespace ControlEntradaSalida
                 var evt = events.Array[events.Offset + i];
                 
                 command.Parameters.AddWithValue($"@sequence_number{i}", evt.SequenceNumber);
-                command.Parameters.AddWithValue($"@employee_number{i}", evt.EmployeeNumber ?? string.Empty);
+                command.Parameters.AddWithValue($"@employee_number{i}",
+                    string.IsNullOrWhiteSpace(evt.EmployeeNumber) ? (object)DBNull.Value : evt.EmployeeNumber);
                 command.Parameters.AddWithValue($"@employee_name{i}", evt.EmployeeName ?? string.Empty);
                 command.Parameters.AddWithValue($"@device_number{i}", evt.DeviceNumber);
                 command.Parameters.AddWithValue($"@device_name{i}", evt.DeviceName ?? string.Empty);
@@ -240,7 +241,8 @@ namespace ControlEntradaSalida
                     using (var command = new MySqlCommand(singleInsertSql, connection))
                     {
                         command.Parameters.AddWithValue("@sequence_number", evt.SequenceNumber);
-                        command.Parameters.AddWithValue("@employee_number", evt.EmployeeNumber ?? string.Empty);
+                        command.Parameters.AddWithValue("@employee_number",
+                            string.IsNullOrWhiteSpace(evt.EmployeeNumber) ? (object)DBNull.Value : evt.EmployeeNumber);
                         command.Parameters.AddWithValue("@employee_name", evt.EmployeeName ?? string.Empty);
                         command.Parameters.AddWithValue("@device_number", evt.DeviceNumber);
                         command.Parameters.AddWithValue("@device_name", evt.DeviceName ?? string.Empty);

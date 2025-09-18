@@ -50,16 +50,16 @@ namespace ControlEntradaSalida
                 // 获取数据库连接字符串
                 Common cmn = new Common();
                 string connectionString = cmn.obtenerCadenaConexion();
-                
+
                 // 初始化线程安全的事件队列（容量10000条）
                 _eventQueue = new AsyncEventQueue(maxCapacity: 10000);
-                
+
                 // 初始化事件去重器（缓存时间60分钟）
                 _eventDeduplicator = new EventDeduplicator(
-                    maxCacheSize: 10000, 
-                    cacheExpiryMinutes: 60, 
+                    maxCacheSize: 10000,
+                    cacheExpiryMinutes: 60,
                     cleanupIntervalMinutes: 5);
-                
+
                 // 配置批处理参数（按照设计文档推荐值）
                 var batchConfig = new BatchConfiguration
                 {
@@ -68,7 +68,7 @@ namespace ControlEntradaSalida
                     MinBatchSize = 1,      // 最小批大小
                     MaxBatchSize = 200     // 最大批大小
                 };
-                
+
                 // 配置重试策略（指数退避）
                 var retryPolicy = new RetryPolicy
                 {
@@ -77,15 +77,15 @@ namespace ControlEntradaSalida
                     BackoffMultiplier = 2.0, // 指数退避因子
                     MaxDelayMs = 30000      // 最大延时30秒
                 };
-                
+
                 // 初始化异步数据库写入器
                 _asyncDatabaseWriter = new AsyncDatabaseWriter(
-                    connectionString, 
-                    _eventQueue, 
+                    connectionString,
+                    _eventQueue,
                     _eventDeduplicator,
-                    batchConfig, 
+                    batchConfig,
                     retryPolicy);
-                    
+
                 _asyncComponentsInitialized = true;
                 Console.WriteLine("[INIT] 异步数据库处理组件初始化成功");
             }
@@ -126,7 +126,7 @@ namespace ControlEntradaSalida
             {
                 // 判断是否为人员相关事件
                 bool isPersonRelated = IsPersonRelatedEvent(eventData.EventTypeCode);
-                
+
                 var accessEvent = new AccessLogEvent
                 {
                     SequenceNumber = eventData.SequenceNumber,
@@ -300,8 +300,8 @@ namespace ControlEntradaSalida
                 Console.WriteLine($"[ERROR] ProcessCommAlarmACS 异常: {ex.Message}");
             }
         }
-        
-        
+
+
         /// <summary>
         /// 快速解析事件数据（轻量级操作，不进行数据库查询）
         /// </summary>
@@ -418,21 +418,21 @@ namespace ControlEntradaSalida
                 // 人脸验证事件
                 case "MINOR_FACE_VERIFY_PASS":
                 case "MINOR_FACE_VERIFY_FAIL":
-                
+
                 // 门锁操作事件
                 case "MINOR_LOCK_OPEN":
                 case "MINOR_LOCK_CLOSE":
-                
+
                 // 门状态变化事件
                 case "MINOR_DOOR_OPEN_NORMAL":
                 case "MINOR_DOOR_CLOSE_NORMAL":
                 case "MINOR_DOOR_OPEN_ABNORMAL":
                 case "MINOR_DOOR_OPEN_TIMEOUT":
-                
+
                 // 门按钮事件
                 case "MINOR_DOOR_BUTTON_PRESS":
                 case "MINOR_DOOR_BUTTON_RELEASE":
-                
+
                 // 远程控制事件
                 case "MINOR_REMOTE_OPEN_DOOR":
                 case "MINOR_REMOTE_CLOSE_DOOR":
@@ -441,7 +441,7 @@ namespace ControlEntradaSalida
                 case "MINOR_ALWAYS_CLOSE_BEGIN":
                 case "MINOR_ALWAYS_CLOSE_END":
                     return true;
-                    
+
                 default:
                     return false;
             }
@@ -462,7 +462,7 @@ namespace ControlEntradaSalida
                 case "MINOR_FACE_VERIFY_PASS":
                 case "MINOR_FACE_VERIFY_FAIL":
                     return true;
-                    
+
                 // 设备相关事件 - 不显示工号和姓名
                 case "MINOR_LOCK_OPEN":
                 case "MINOR_LOCK_CLOSE":
@@ -479,7 +479,7 @@ namespace ControlEntradaSalida
                 case "MINOR_ALWAYS_CLOSE_BEGIN":
                 case "MINOR_ALWAYS_CLOSE_END":
                     return false;
-                    
+
                 default:
                     // 未知事件类型默认为设备相关事件
                     return false;
@@ -533,13 +533,13 @@ namespace ControlEntradaSalida
                     return "人脸验证通过";
                 case "MINOR_FACE_VERIFY_FAIL":
                     return "人脸验证失败";
-                
+
                 // 门锁操作事件
                 case "MINOR_LOCK_OPEN":
                     return "门锁打开";
                 case "MINOR_LOCK_CLOSE":
                     return "门锁关闭";
-                
+
                 // 门状态变化事件
                 case "MINOR_DOOR_OPEN_NORMAL":
                     return "门正常打开";
@@ -549,13 +549,13 @@ namespace ControlEntradaSalida
                     return "门异常打开";
                 case "MINOR_DOOR_OPEN_TIMEOUT":
                     return "门打开超时";
-                
+
                 // 门按钮事件
                 case "MINOR_DOOR_BUTTON_PRESS":
                     return "门按钮按下";
                 case "MINOR_DOOR_BUTTON_RELEASE":
                     return "门按钮释放";
-                
+
                 // 远程控制事件
                 case "MINOR_REMOTE_OPEN_DOOR":
                     return "远程开门";
@@ -573,7 +573,7 @@ namespace ControlEntradaSalida
                     return "远程常开";
                 case "MINOR_REMOTE_ALWAYS_CLOSE":
                     return "远程常闭";
-                    
+
                 default:
                     return eventTypeCode;
             }
@@ -590,11 +590,11 @@ namespace ControlEntradaSalida
                 {
                     // 判断是否为人员相关事件
                     bool isPersonRelated = IsPersonRelatedEvent(eventData.EventTypeCode);
-                    
+
                     // 根据事件类型决定是否显示工号和姓名
                     string displayEmployeeNumber = isPersonRelated ? (eventData.EmployeeNumber ?? string.Empty) : string.Empty;
-                    string displayEmployeeName = isPersonRelated ? 
-                        (string.IsNullOrWhiteSpace(eventData.EmployeeName) ? "查询中..." : eventData.EmployeeName) : 
+                    string displayEmployeeName = isPersonRelated ?
+                        (string.IsNullOrWhiteSpace(eventData.EmployeeName) ? "查询中..." : eventData.EmployeeName) :
                         string.Empty;
 
                     string eventTypeDisplay = string.IsNullOrWhiteSpace(eventData.EventTypeDisplay)
@@ -619,7 +619,7 @@ namespace ControlEntradaSalida
                         this.listViewEventos.EnsureVisible(0);
                         // 已移除自动选中功能：不再自动选中最新事件
                     }
-                    
+
                     // 可选：限制列表项数量，避免内存占用过多
                     const int maxItems = 1000;
                     if (this.listViewEventos.Items.Count > maxItems)
@@ -637,7 +637,7 @@ namespace ControlEntradaSalida
                 Console.WriteLine($"[ERROR] UI 更新异常: {ex.Message}");
             }
         }
-        
+
         /// <summary>
         /// 轻量级事件数据结构（用于快速解析）
         /// </summary>
@@ -658,7 +658,7 @@ namespace ControlEntradaSalida
         {
             string retval = null;
 
-           
+
             Common cmn = new Common();
             string connstr = cmn.obtenerCadenaConexion();
             BaseDatosMySQL bd = new BaseDatosMySQL();
@@ -670,11 +670,11 @@ namespace ControlEntradaSalida
                 try
                 {
                     MySqlCommand cmd = new MySqlCommand(sql, bd.conn);
-                    cmd.Parameters.AddWithValue("@employee_id", employeeId);                    
+                    cmd.Parameters.AddWithValue("@employee_id", employeeId);
                     MySqlDataReader rdr = cmd.ExecuteReader();
                     if (rdr.HasRows)
                     {
-                        
+
                         while (rdr.Read())
                         {
                             retval = rdr["full_name"].ToString();
@@ -701,10 +701,13 @@ namespace ControlEntradaSalida
             {
                 // 订阅设备状态变化事件
                 DeviceConnectionManager.Instance.DeviceStatusChanged += OnDeviceStatusChanged;
-                
+
                 // 启动异步数据库写入器
                 await StartAsyncDatabaseWriter();
-                
+
+                // 加载最近100条历史记录
+                await LoadRecentHistoryAsync();
+
                 Deploy();
             }
             catch (Exception ex)
@@ -712,7 +715,129 @@ namespace ControlEntradaSalida
                 MessageBox.Show($"窗体初始化异常: {ex.Message}", "初始化错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
-        
+
+        /// <summary>
+        /// 加载最近100条历史记录到实时监控界面
+        /// </summary>
+        private async Task LoadRecentHistoryAsync()
+        {
+            try
+            {
+                using (var connection = new MySqlConnection(ConfigurationManager.ConnectionStrings["mysql"].ConnectionString))
+                {
+                    await connection.OpenAsync();
+
+                    // 查询最近100条记录，按时间倒序
+                    string query = @"
+                        SELECT al.sequence_number, al.employee_number, al.device_number, 
+                               al.access_time, al.event_type, al.card_number,
+                               e.employee_name, d.device_name, d.device_location
+                        FROM access_logs al
+                        LEFT JOIN employees e ON al.employee_number = e.employee_number
+                        LEFT JOIN devices d ON al.device_number = d.device_number
+                        ORDER BY al.sequence_number DESC
+                        LIMIT 100";
+
+                    using (var command = new MySqlCommand(query, connection))
+                    using (var reader = await command.ExecuteReaderAsync())
+                    {
+                        var historyEvents = new List<EventDataQuick>();
+                        long maxSequenceNumber = 0;
+
+                        while (await reader.ReadAsync())
+                        {
+                            var sequenceNumber = reader.GetInt64("sequence_number");
+                            if (sequenceNumber > maxSequenceNumber)
+                                maxSequenceNumber = sequenceNumber;
+
+                            var eventData = new EventDataQuick
+                            {
+                                SequenceNumber = sequenceNumber,
+                                EmployeeNumber = reader.IsDBNull("employee_number") ? "" : reader.GetString("employee_number"),
+                                DeviceNumber = reader.IsDBNull("device_number") ? "" : reader.GetString("device_number"),
+                                AccessTime = reader.GetDateTime("access_time"),
+                                EventType = reader.IsDBNull("event_type") ? "" : reader.GetString("event_type"),
+                                CardNumber = reader.IsDBNull("card_number") ? "" : reader.GetString("card_number"),
+                                EmployeeName = reader.IsDBNull("employee_name") ? "未知员工" : reader.GetString("employee_name"),
+                                DeviceName = reader.IsDBNull("device_name") ? "未知设备" : reader.GetString("device_name"),
+                                DeviceLocation = reader.IsDBNull("device_location") ? "" : reader.GetString("device_location")
+                            };
+
+                            historyEvents.Add(eventData);
+                        }
+
+                        // 设置下一个序号从最大序号+1开始
+                        m_lLogNum = maxSequenceNumber + 1;
+
+                        // 将历史记录按时间正序添加到界面（最新的在最后）
+                        historyEvents.Reverse();
+
+                        // 在UI线程中更新界面
+                        if (InvokeRequired)
+                        {
+                            Invoke(new Action(() =>
+                            {
+                                foreach (var eventData in historyEvents)
+                                {
+                                    AddEventToListView(eventData);
+                                }
+                            }));
+                        }
+                        else
+                        {
+                            foreach (var eventData in historyEvents)
+                            {
+                                AddEventToListView(eventData);
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                // 记录错误但不阻止程序运行
+                Console.WriteLine($"加载历史记录失败: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// 将事件数据添加到ListView控件
+        /// </summary>
+        private void AddEventToListView(EventDataQuick eventData)
+        {
+            try
+            {
+                var item = new ListViewItem(eventData.SequenceNumber.ToString());
+                item.SubItems.Add(eventData.EmployeeNumber);
+                item.SubItems.Add(eventData.EmployeeName);
+                item.SubItems.Add(eventData.DeviceNumber);
+                item.SubItems.Add(eventData.DeviceName);
+                item.SubItems.Add(eventData.DeviceLocation);
+                item.SubItems.Add(eventData.AccessTime.ToString("yyyy-MM-dd HH:mm:ss"));
+                item.SubItems.Add(eventData.EventType);
+                item.SubItems.Add(eventData.CardNumber);
+
+                // 添加到列表末尾
+                listViewEventos.Items.Add(item);
+
+                // 保持最大1000条记录，删除最旧的
+                if (listViewEventos.Items.Count > 1000)
+                {
+                    listViewEventos.Items.RemoveAt(0);
+                }
+
+                // 自动滚动到最新记录
+                if (listViewEventos.Items.Count > 0)
+                {
+                    listViewEventos.Items[listViewEventos.Items.Count - 1].EnsureVisible();
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"添加事件到列表失败: {ex.Message}");
+            }
+        }
+
         /// <summary>
         /// 启动异步数据库写入器
         /// </summary>
@@ -723,7 +848,7 @@ namespace ControlEntradaSalida
                 Console.WriteLine("[WARNING] 异步组件未初始化，无法启动数据库写入器");
                 return;
             }
-            
+
             try
             {
                 await _asyncDatabaseWriter.StartAsync();
@@ -735,7 +860,7 @@ namespace ControlEntradaSalida
                 throw;
             }
         }
-        
+
         /// <summary>
         /// 获取异步处理统计信息
         /// </summary>
@@ -745,21 +870,21 @@ namespace ControlEntradaSalida
             {
                 return "异步组件未初始化";
             }
-            
+
             var stats = new List<string>();
-            
+
             if (_eventQueue != null)
                 stats.Add(_eventQueue.GetStatistics());
-                
+
             if (_eventDeduplicator != null)
                 stats.Add(_eventDeduplicator.GetStatistics());
-                
+
             if (_asyncDatabaseWriter != null)
                 stats.Add(_asyncDatabaseWriter.GetStatistics());
-            
+
             return string.Join("\n", stats);
         }
-        
+
         //设备状态变化事件处理
         private void OnDeviceStatusChanged(object sender, DeviceStatusChangedEventArgs e)
         {
@@ -769,7 +894,7 @@ namespace ControlEntradaSalida
                 Deploy();
             }));
         }
-        
+
         //窗体关闭前关闭报警通道 NET_DVR_CloseAlarmChan() 并停止异步处理器
         private async void GestionEventos_FormClosing(object sender, FormClosingEventArgs e)
         {
@@ -777,10 +902,10 @@ namespace ControlEntradaSalida
             {
                 // 取消订阅设备状态变化事件
                 DeviceConnectionManager.Instance.DeviceStatusChanged -= OnDeviceStatusChanged;
-                
+
                 // 停止异步数据库处理器
                 await StopAsyncDatabaseWriter();
-                
+
                 UnDeploy();
             }
             catch (Exception ex)
@@ -788,7 +913,7 @@ namespace ControlEntradaSalida
                 Console.WriteLine($"[ERROR] 窗体关闭异常: {ex.Message}");
             }
         }
-        
+
         /// <summary>
         /// 停止异步数据库写入器
         /// </summary>
@@ -806,20 +931,20 @@ namespace ControlEntradaSalida
                     Console.WriteLine($"[ERROR] 停止异步数据库写入器失败: {ex.Message}");
                 }
             }
-            
+
             // 释放资源
             _asyncDatabaseWriter?.Dispose();
             _eventDeduplicator?.Dispose();
             _eventQueue?.Dispose();
         }
-        
+
         //
         private void listViewEventos_SelectedIndexChanged(object sender, EventArgs e)
         {
 
         }
     }
-        
-    
+
+
 }
 
