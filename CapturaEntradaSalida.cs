@@ -617,9 +617,7 @@ namespace ControlEntradaSalida
                     if (this.listViewEventos.Items.Count > 0)
                     {
                         this.listViewEventos.EnsureVisible(0);
-                        // 可选：选中最新的事件以突出显示
-                        this.listViewEventos.Items[0].Selected = true;
-                        this.listViewEventos.Items[0].Focused = true;
+                        // 已移除自动选中功能：不再自动选中最新事件
                     }
                     
                     // 可选：限制列表项数量，避免内存占用过多
