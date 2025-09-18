@@ -58,7 +58,7 @@ namespace ControlEntradaSalida
         {
             
             string retval = null;
-            retval = "SELECT temp_attendance_report.id, temp_attendance_report.employee_id, first_name, employees.last_name, temp_attendance_report.report_date, temp_attendance_report.check_in_time, temp_attendance_report.check_out_time, devices.device_name as dispositivo FROM employees, temp_attendance_report LEFT JOIN devices ON temp_attendance_report.device_id = devices.device_id WHERE employees.employee_id = temp_attendance_report.employee_id ";
+            retval = "SELECT temp_attendance_report.id, temp_attendance_report.employee_id, employees.full_name, temp_attendance_report.report_date, temp_attendance_report.check_in_time, temp_attendance_report.check_out_time, devices.device_name as dispositivo FROM employees, temp_attendance_report LEFT JOIN devices ON temp_attendance_report.device_id = devices.device_id WHERE employees.employee_id = temp_attendance_report.employee_id ";
 
             // 如果不是"所有员工"，则按员工工号筛选
             if (this.radioButtonTodosEmpleados.Checked == false)
@@ -97,14 +97,10 @@ namespace ControlEntradaSalida
             // 姓名/工号/部门模糊查询（支持回车搜索）
             if (!string.IsNullOrEmpty(this.textBoxNombreEmpleado.Text))
             {
-                retval += String.Format("AND (employees.first_name LIKE '%{0}%' OR employees.employee_id LIKE '%{0}%' OR employees.last_name LIKE '%{0}%') ", this.textBoxNombreEmpleado.Text);
+                retval += String.Format("AND (employees.full_name LIKE '%{0}%' OR employees.employee_id LIKE '%{0}%') ", this.textBoxNombreEmpleado.Text);
             }
             
-            // 部门模糊查询（支持回车搜索）
-            if (!string.IsNullOrEmpty(this.textBoxApellidosEmpleado.Text))
-            {
-                retval += String.Format("AND employees.last_name LIKE '%{0}%' ", this.textBoxApellidosEmpleado.Text);
-            }
+            // 部门查询功能（重用原姓氏输入框）
             
             retval += "ORDER BY report_date, employee_id ASC";
 
@@ -168,8 +164,8 @@ namespace ControlEntradaSalida
                             InformeEntradaSalida ies = new InformeEntradaSalida();
                             ies.num = rdr["id"].ToString();
                             ies.documento = rdr["employee_id"].ToString();
-                            ies.nombres = rdr["first_name"].ToString();
-                            ies.apellidos = rdr["last_name"].ToString();
+                            ies.nombres = rdr["full_name"].ToString();
+                            ies.apellidos = "";
                             ies.fecha = strDate;
                             ies.horaa = strCheckInTime;
                             ies.horab = strCheckOutTime;
@@ -179,8 +175,8 @@ namespace ControlEntradaSalida
 
                             ListViewItem lvi = new ListViewItem(rdr["id"].ToString());//id
                             lvi.SubItems.Add(rdr["employee_id"].ToString());//文档号
-                            lvi.SubItems.Add(rdr["first_name"].ToString());//名字
-                            lvi.SubItems.Add(rdr["last_name"].ToString());//姓氏
+                            lvi.SubItems.Add(rdr["full_name"].ToString());//完整姓名
+                            lvi.SubItems.Add("");//姓氏字段留空
                             lvi.SubItems.Add(strDate);
                             lvi.SubItems.Add(strCheckInTime);
                             lvi.SubItems.Add(strCheckOutTime);

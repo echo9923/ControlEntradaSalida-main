@@ -51,8 +51,7 @@ DROP TABLE IF EXISTS `access_control_system`.`employees`;
 CREATE TABLE IF NOT EXISTS `access_control_system`.`employees` (
   `employee_id` VARCHAR(30) NOT NULL,
   `card_number` VARCHAR(20) NOT NULL,
-  `first_name` VARCHAR(255) NOT NULL,
-  `last_name` VARCHAR(255) NOT NULL,
+  `full_name` VARCHAR(255) NOT NULL,
   `photo_path` VARCHAR(255) NOT NULL DEFAULT '',
   `status` ENUM('ACTIVE', 'INACTIVE') NOT NULL DEFAULT 'ACTIVE',
   `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -60,7 +59,7 @@ CREATE TABLE IF NOT EXISTS `access_control_system`.`employees` (
   PRIMARY KEY (`employee_id`),
   UNIQUE KEY `uk_card_number` (`card_number`),
   INDEX `idx_status` (`status` ASC),
-  INDEX `idx_name` (`first_name` ASC, `last_name` ASC)
+  INDEX `idx_full_name` (`full_name` ASC)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- -----------------------------------------------------
@@ -223,10 +222,10 @@ INSERT INTO devices (device_name, description, ip_address, port, username, passw
 ('Secondary Entrance Device', 'Secondary access control device', '192.168.1.101', '8000', 'admin', 'admin123', 1, 0);
 
 -- Insert sample employees
-INSERT INTO employees (employee_id, card_number, first_name, last_name, status) VALUES
-('EMP001', 'CARD001', 'John', 'Doe', 'ACTIVE'),
-('EMP002', 'CARD002', 'Jane', 'Smith', 'ACTIVE'),
-('EMP003', 'CARD003', 'Bob', 'Johnson', 'INACTIVE');
+INSERT INTO employees (employee_id, card_number, full_name, status) VALUES
+('EMP001', 'CARD001', 'John Doe', 'ACTIVE'),
+('EMP002', 'CARD002', 'Jane Smith', 'ACTIVE'),
+('EMP003', 'CARD003', 'Bob Johnson', 'INACTIVE');
 */
 
 -- -----------------------------------------------------

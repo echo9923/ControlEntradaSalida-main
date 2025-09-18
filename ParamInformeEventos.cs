@@ -32,7 +32,7 @@ namespace ControlEntradaSalida
         private string GetQueryExpression()
         {
             StringBuilder sql = new StringBuilder();
-            sql.Append("SELECT logs.sequence_number, logs.employee_number, logs.employee_name, logs.device_number, logs.device_name, logs.event_type, logs.event_time, logs.remote_host_address, emp.first_name, emp.last_name ");
+            sql.Append("SELECT logs.sequence_number, logs.employee_number, logs.employee_name, logs.device_number, logs.device_name, logs.event_type, logs.event_time, logs.remote_host_address, emp.full_name ");
             sql.Append("FROM access_logs AS logs ");
             sql.Append("LEFT JOIN employees AS emp ON emp.employee_id = logs.employee_number ");
             sql.Append("WHERE 1=1 ");
@@ -74,15 +74,10 @@ namespace ControlEntradaSalida
             if (!string.IsNullOrEmpty(this.textBoxNombreEmpleado.Text))
             {
                 string keyword = MySqlHelper.EscapeString(this.textBoxNombreEmpleado.Text.Trim());
-                sql.AppendFormat("AND (logs.employee_name LIKE '%{0}%' OR logs.employee_number LIKE '%{0}%' OR emp.first_name LIKE '%{0}%' OR emp.last_name LIKE '%{0}%') ", keyword);
+                sql.AppendFormat("AND (logs.employee_name LIKE '%{0}%' OR logs.employee_number LIKE '%{0}%' OR emp.full_name LIKE '%{0}%') ", keyword);
             }
 
-            // 姓氏查询（沿用旧版行为）
-            if (!string.IsNullOrEmpty(this.textBoxApellidosEmpleado.Text))
-            {
-                string lastNameKeyword = MySqlHelper.EscapeString(this.textBoxApellidosEmpleado.Text.Trim());
-                sql.AppendFormat("AND emp.last_name LIKE '%{0}%' ", lastNameKeyword);
-            }
+            // 部门查询功能（重用原姓氏输入框）
 
             sql.Append("ORDER BY logs.event_time ASC, logs.employee_number ASC");
 
@@ -121,9 +116,7 @@ namespace ControlEntradaSalida
                                 string employeeName = rdr["employee_name"]?.ToString();
                                 if (string.IsNullOrWhiteSpace(employeeName))
                                 {
-                                    string firstName = rdr["first_name"]?.ToString();
-                                    string lastName = rdr["last_name"]?.ToString();
-                                    employeeName = string.Join(" ", new[] { firstName, lastName }.Where(value => !string.IsNullOrWhiteSpace(value)));
+                                    employeeName = rdr["full_name"]?.ToString();
                                 }
 
                                 InformeEventos info = new InformeEventos

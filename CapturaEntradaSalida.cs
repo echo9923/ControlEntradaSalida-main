@@ -524,7 +524,7 @@ namespace ControlEntradaSalida
                         
                         while (rdr.Read())
                         {
-                            retval = rdr["first_name"].ToString() + " " + rdr["last_name"].ToString();
+                            retval = rdr["full_name"].ToString();
                         }
                     }
                     rdr.Close();
