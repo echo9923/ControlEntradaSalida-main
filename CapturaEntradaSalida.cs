@@ -582,49 +582,68 @@ namespace ControlEntradaSalida
         /// <summary>
         /// 即时更新UI显示（线程安全）
         /// </summary>
+        private ListViewItem CreateListViewItem(EventDataQuick eventData, bool allowPlaceholderForMissingName)
+        {
+            if (eventData == null)
+            {
+                return null;
+            }
+
+            bool isPersonRelated = IsPersonRelatedEvent(eventData.EventTypeCode);
+            string displayEmployeeNumber = isPersonRelated ? (eventData.EmployeeNumber ?? string.Empty) : string.Empty;
+            string displayEmployeeName = string.Empty;
+
+            if (isPersonRelated)
+            {
+                if (!string.IsNullOrWhiteSpace(eventData.EmployeeName))
+                {
+                    displayEmployeeName = eventData.EmployeeName;
+                }
+                else if (allowPlaceholderForMissingName)
+                {
+                    displayEmployeeName = "查询中...";
+                }
+            }
+
+            string eventTypeDisplay = string.IsNullOrWhiteSpace(eventData.EventTypeDisplay)
+                ? TranslateEventType(eventData.EventTypeCode)
+                : eventData.EventTypeDisplay;
+
+            ListViewItem item = new ListViewItem(eventData.SequenceNumber.ToString());
+            item.SubItems.Add(displayEmployeeNumber);
+            item.SubItems.Add(displayEmployeeName);
+            item.SubItems.Add(eventData.DeviceNumber.ToString());
+            item.SubItems.Add(eventData.DeviceName ?? string.Empty);
+            item.SubItems.Add(eventTypeDisplay);
+            item.SubItems.Add(eventData.EventTime.ToString("yyyy-MM-dd HH:mm:ss"));
+            item.SubItems.Add(eventData.RemoteHostAddress ?? string.Empty);
+
+            return item;
+        }
+
         private void UpdateUIImmediately(EventDataQuick eventData)
         {
             try
             {
                 SafeUIUpdater.UpdateUI(this.listViewEventos, () =>
                 {
-                    // 判断是否为人员相关事件
-                    bool isPersonRelated = IsPersonRelatedEvent(eventData.EventTypeCode);
+                    ListViewItem item = CreateListViewItem(eventData, true);
+                    if (item == null)
+                    {
+                        return;
+                    }
 
-                    // 根据事件类型决定是否显示工号和姓名
-                    string displayEmployeeNumber = isPersonRelated ? (eventData.EmployeeNumber ?? string.Empty) : string.Empty;
-                    string displayEmployeeName = isPersonRelated ?
-                        (string.IsNullOrWhiteSpace(eventData.EmployeeName) ? "查询中..." : eventData.EmployeeName) :
-                        string.Empty;
-
-                    string eventTypeDisplay = string.IsNullOrWhiteSpace(eventData.EventTypeDisplay)
-                        ? TranslateEventType(eventData.EventTypeCode)
-                        : eventData.EventTypeDisplay;
-
-                    ListViewItem item = new ListViewItem(eventData.SequenceNumber.ToString());
-                    item.SubItems.Add(displayEmployeeNumber);        // 工号：人员事件显示，设备事件为空
-                    item.SubItems.Add(displayEmployeeName);          // 姓名：人员事件显示，设备事件为空
-                    item.SubItems.Add(eventData.DeviceNumber.ToString()); // 设备编号：始终显示
-                    item.SubItems.Add(eventData.DeviceName ?? string.Empty); // 设备名称：始终显示
-                    item.SubItems.Add(eventTypeDisplay);
-                    item.SubItems.Add(eventData.EventTime.ToString("yyyy-MM-dd HH:mm:ss"));
-                    item.SubItems.Add(eventData.RemoteHostAddress ?? string.Empty);
-
-                    // 将新事件插入到列表顶部（索引0），而不是添加到末尾
+                    // 将最新事件插入列表顶部
                     this.listViewEventos.Items.Insert(0, item);
 
-                    // 确保用户能看到最新事件（现在在顶部）
                     if (this.listViewEventos.Items.Count > 0)
                     {
                         this.listViewEventos.EnsureVisible(0);
-                        // 已移除自动选中功能：不再自动选中最新事件
                     }
 
-                    // 可选：限制列表项数量，避免内存占用过多
                     const int maxItems = 1000;
                     if (this.listViewEventos.Items.Count > maxItems)
                     {
-                        // 移除最旧的事件（现在在列表末尾）
                         for (int i = this.listViewEventos.Items.Count - 1; i >= maxItems; i--)
                         {
                             this.listViewEventos.Items.RemoveAt(i);
@@ -636,6 +655,40 @@ namespace ControlEntradaSalida
             {
                 Console.WriteLine($"[ERROR] UI 更新异常: {ex.Message}");
             }
+        }
+
+        private void PopulateHistoryEvents(List<EventDataQuick> historyEvents)
+        {
+            if (historyEvents == null || historyEvents.Count == 0)
+            {
+                return;
+            }
+
+            SafeUIUpdater.UpdateUI(this.listViewEventos, () =>
+            {
+                this.listViewEventos.BeginUpdate();
+                try
+                {
+                    this.listViewEventos.Items.Clear();
+                    foreach (EventDataQuick eventData in historyEvents)
+                    {
+                        ListViewItem item = CreateListViewItem(eventData, false);
+                        if (item != null)
+                        {
+                            this.listViewEventos.Items.Add(item);
+                        }
+                    }
+
+                    if (this.listViewEventos.Items.Count > 0)
+                    {
+                        this.listViewEventos.EnsureVisible(0);
+                    }
+                }
+                finally
+                {
+                    this.listViewEventos.EndUpdate();
+                }
+            });
         }
 
         /// <summary>
@@ -699,12 +752,11 @@ namespace ControlEntradaSalida
         {
             try
             {
-                // 订阅设备状态变化事件
                 DeviceConnectionManager.Instance.DeviceStatusChanged += OnDeviceStatusChanged;
-                
-                // 启动异步数据库写入器
+
+                await LoadRecentHistoryAsync();
                 await StartAsyncDatabaseWriter();
-                
+
                 Deploy();
             }
             catch (Exception ex)
@@ -716,6 +768,86 @@ namespace ControlEntradaSalida
         /// <summary>
         /// 启动异步数据库写入器
         /// </summary>
+        private async Task LoadRecentHistoryAsync()
+        {
+            try
+            {
+                Common cmn = new Common();
+                string connectionString = cmn.obtenerCadenaConexion();
+                if (string.IsNullOrWhiteSpace(connectionString))
+                {
+                    Console.WriteLine("[WARNING] 未找到数据库连接字符串，跳过历史记录加载");
+                    return;
+                }
+
+                using (MySqlConnection connection = new MySqlConnection(connectionString))
+                {
+                    await connection.OpenAsync();
+
+                    string query = @"SELECT sequence_number, employee_number, employee_name, device_number, device_name, event_type, event_time, remote_host_address
+FROM access_logs
+ORDER BY sequence_number DESC
+LIMIT 100";
+
+                    using (MySqlCommand command = new MySqlCommand(query, connection))
+                    using (MySqlDataReader reader = (MySqlDataReader)await command.ExecuteReaderAsync())
+                    {
+                        List<EventDataQuick> historyEvents = new List<EventDataQuick>();
+                        long maxSequence = 0;
+
+                        int sequenceOrdinal = reader.GetOrdinal("sequence_number");
+                        int employeeNumberOrdinal = reader.GetOrdinal("employee_number");
+                        int employeeNameOrdinal = reader.GetOrdinal("employee_name");
+                        int deviceNumberOrdinal = reader.GetOrdinal("device_number");
+                        int deviceNameOrdinal = reader.GetOrdinal("device_name");
+                        int eventTypeOrdinal = reader.GetOrdinal("event_type");
+                        int eventTimeOrdinal = reader.GetOrdinal("event_time");
+                        int remoteHostOrdinal = reader.GetOrdinal("remote_host_address");
+
+                        while (await reader.ReadAsync())
+                        {
+                            long sequenceNumber = reader.IsDBNull(sequenceOrdinal) ? 0L : reader.GetInt64(sequenceOrdinal);
+                            if (sequenceNumber > maxSequence)
+                            {
+                                maxSequence = sequenceNumber;
+                            }
+
+                            string eventTypeCode = reader.IsDBNull(eventTypeOrdinal) ? string.Empty : reader.GetString(eventTypeOrdinal);
+
+                            EventDataQuick eventData = new EventDataQuick
+                            {
+                                SequenceNumber = sequenceNumber,
+                                EmployeeNumber = reader.IsDBNull(employeeNumberOrdinal) ? string.Empty : reader.GetString(employeeNumberOrdinal),
+                                EmployeeName = reader.IsDBNull(employeeNameOrdinal) ? string.Empty : reader.GetString(employeeNameOrdinal),
+                                DeviceNumber = reader.IsDBNull(deviceNumberOrdinal) ? 0 : reader.GetInt32(deviceNumberOrdinal),
+                                DeviceName = reader.IsDBNull(deviceNameOrdinal) ? string.Empty : reader.GetString(deviceNameOrdinal),
+                                EventTypeCode = eventTypeCode,
+                                EventTypeDisplay = TranslateEventType(eventTypeCode),
+                                EventTime = reader.IsDBNull(eventTimeOrdinal) ? DateTime.Now : reader.GetDateTime(eventTimeOrdinal),
+                                RemoteHostAddress = reader.IsDBNull(remoteHostOrdinal) ? string.Empty : reader.GetString(remoteHostOrdinal)
+                            };
+
+                            historyEvents.Add(eventData);
+                        }
+
+                        if (maxSequence > 0)
+                        {
+                            System.Threading.Interlocked.Exchange(ref m_lLogNum, maxSequence);
+                        }
+
+                        if (historyEvents.Count > 0)
+                        {
+                            PopulateHistoryEvents(historyEvents);
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[WARNING] 加载历史记录失败: {ex.Message}");
+            }
+        }
+
         private async Task StartAsyncDatabaseWriter()
         {
             if (!_asyncComponentsInitialized || _asyncDatabaseWriter == null)
