@@ -43,7 +43,6 @@ namespace ControlEntradaSalida
             this.entradasYSalidasToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.eventosToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.Plantemplate = new System.Windows.Forms.ToolStripMenuItem();
-            this.webBrowserToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.menuStrip1.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -67,7 +66,6 @@ namespace ControlEntradaSalida
             this.gestiónDeDispositivosToolStripMenuItem,
             this.controldoor,
             this.Plantemplate,
-            this.webBrowserToolStripMenuItem,
             this.gestionDeEmpleadosToolStripMenuItem,
             this.CapturarEntradaSalidaToolStripMenuItem,
             this.toolStripMenuItem2,
@@ -160,12 +158,7 @@ namespace ControlEntradaSalida
             this.Plantemplate.Text = "计划管理";
             this.Plantemplate.Click += new System.EventHandler(this.Plantemplate_Click);
             // 
-            // webBrowserToolStripMenuItem
             // 
-            this.webBrowserToolStripMenuItem.Name = "webBrowserToolStripMenuItem";
-            this.webBrowserToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
-            this.webBrowserToolStripMenuItem.Text = "网页浏览";
-            this.webBrowserToolStripMenuItem.Click += new System.EventHandler(this.webBrowserToolStripMenuItem_Click);
             // 
             // MDIParent
             // 
@@ -205,7 +198,6 @@ namespace ControlEntradaSalida
         private System.Windows.Forms.ToolStripMenuItem entradasYSalidasToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem controldoor;
         private System.Windows.Forms.ToolStripMenuItem Plantemplate;
-        private System.Windows.Forms.ToolStripMenuItem webBrowserToolStripMenuItem;
     }
 }
 
