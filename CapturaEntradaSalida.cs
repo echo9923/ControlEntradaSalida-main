@@ -701,13 +701,10 @@ namespace ControlEntradaSalida
             {
                 // 订阅设备状态变化事件
                 DeviceConnectionManager.Instance.DeviceStatusChanged += OnDeviceStatusChanged;
-
+                
                 // 启动异步数据库写入器
                 await StartAsyncDatabaseWriter();
-
-                // 加载最近100条历史记录
-                await LoadRecentHistoryAsync();
-
+                
                 Deploy();
             }
             catch (Exception ex)
@@ -715,129 +712,7 @@ namespace ControlEntradaSalida
                 MessageBox.Show($"窗体初始化异常: {ex.Message}", "初始化错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
-
-        /// <summary>
-        /// 加载最近100条历史记录到实时监控界面
-        /// </summary>
-        private async Task LoadRecentHistoryAsync()
-        {
-            try
-            {
-                using (var connection = new MySqlConnection(ConfigurationManager.ConnectionStrings["mysql"].ConnectionString))
-                {
-                    await connection.OpenAsync();
-
-                    // 查询最近100条记录，按时间倒序
-                    string query = @"
-                        SELECT al.sequence_number, al.employee_number, al.device_number, 
-                               al.access_time, al.event_type, al.card_number,
-                               e.employee_name, d.device_name, d.device_location
-                        FROM access_logs al
-                        LEFT JOIN employees e ON al.employee_number = e.employee_number
-                        LEFT JOIN devices d ON al.device_number = d.device_number
-                        ORDER BY al.sequence_number DESC
-                        LIMIT 100";
-
-                    using (var command = new MySqlCommand(query, connection))
-                    using (var reader = await command.ExecuteReaderAsync())
-                    {
-                        var historyEvents = new List<EventDataQuick>();
-                        long maxSequenceNumber = 0;
-
-                        while (await reader.ReadAsync())
-                        {
-                            var sequenceNumber = reader.GetInt64("sequence_number");
-                            if (sequenceNumber > maxSequenceNumber)
-                                maxSequenceNumber = sequenceNumber;
-
-                            var eventData = new EventDataQuick
-                            {
-                                SequenceNumber = sequenceNumber,
-                                EmployeeNumber = reader.IsDBNull("employee_number") ? "" : reader.GetString("employee_number"),
-                                DeviceNumber = reader.IsDBNull("device_number") ? "" : reader.GetString("device_number"),
-                                AccessTime = reader.GetDateTime("access_time"),
-                                EventType = reader.IsDBNull("event_type") ? "" : reader.GetString("event_type"),
-                                CardNumber = reader.IsDBNull("card_number") ? "" : reader.GetString("card_number"),
-                                EmployeeName = reader.IsDBNull("employee_name") ? "未知员工" : reader.GetString("employee_name"),
-                                DeviceName = reader.IsDBNull("device_name") ? "未知设备" : reader.GetString("device_name"),
-                                DeviceLocation = reader.IsDBNull("device_location") ? "" : reader.GetString("device_location")
-                            };
-
-                            historyEvents.Add(eventData);
-                        }
-
-                        // 设置下一个序号从最大序号+1开始
-                        m_lLogNum = maxSequenceNumber + 1;
-
-                        // 将历史记录按时间正序添加到界面（最新的在最后）
-                        historyEvents.Reverse();
-
-                        // 在UI线程中更新界面
-                        if (InvokeRequired)
-                        {
-                            Invoke(new Action(() =>
-                            {
-                                foreach (var eventData in historyEvents)
-                                {
-                                    AddEventToListView(eventData);
-                                }
-                            }));
-                        }
-                        else
-                        {
-                            foreach (var eventData in historyEvents)
-                            {
-                                AddEventToListView(eventData);
-                            }
-                        }
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                // 记录错误但不阻止程序运行
-                Console.WriteLine($"加载历史记录失败: {ex.Message}");
-            }
-        }
-
-        /// <summary>
-        /// 将事件数据添加到ListView控件
-        /// </summary>
-        private void AddEventToListView(EventDataQuick eventData)
-        {
-            try
-            {
-                var item = new ListViewItem(eventData.SequenceNumber.ToString());
-                item.SubItems.Add(eventData.EmployeeNumber);
-                item.SubItems.Add(eventData.EmployeeName);
-                item.SubItems.Add(eventData.DeviceNumber);
-                item.SubItems.Add(eventData.DeviceName);
-                item.SubItems.Add(eventData.DeviceLocation);
-                item.SubItems.Add(eventData.AccessTime.ToString("yyyy-MM-dd HH:mm:ss"));
-                item.SubItems.Add(eventData.EventType);
-                item.SubItems.Add(eventData.CardNumber);
-
-                // 添加到列表末尾
-                listViewEventos.Items.Add(item);
-
-                // 保持最大1000条记录，删除最旧的
-                if (listViewEventos.Items.Count > 1000)
-                {
-                    listViewEventos.Items.RemoveAt(0);
-                }
-
-                // 自动滚动到最新记录
-                if (listViewEventos.Items.Count > 0)
-                {
-                    listViewEventos.Items[listViewEventos.Items.Count - 1].EnsureVisible();
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"添加事件到列表失败: {ex.Message}");
-            }
-        }
-
+        
         /// <summary>
         /// 启动异步数据库写入器
         /// </summary>
