@@ -54,6 +54,7 @@ namespace ControlEntradaSalida
         private ToolTip deviceToolTip;
         private DataChangeNotifier _notifier;
         private readonly object _statusUpdateLock = new object();
+        private bool _isClosingAsync = false;
         
         public bool IsFormVisible => this.Visible;
 
@@ -765,8 +766,16 @@ namespace ControlEntradaSalida
             });
         }
         //窗体关闭前的清理工作
-        private async void MDIParent_FormClosing(object sender, FormClosingEventArgs e)
+        private void MDIParent_FormClosing(object sender, FormClosingEventArgs e)
         {
+            // 如果正在进行异步关闭操作，则取消本次关闭
+            if (e.CloseReason == CloseReason.UserClosing && !_isClosingAsync)
+            {
+                e.Cancel = true;
+                PerformAsyncClose();
+                return;
+            }
+
             // 停止动画定时器
             if (animationTimer != null)
             {
@@ -788,15 +797,6 @@ namespace ControlEntradaSalida
             {
                 _notifier.DeviceDataChanged -= OnDeviceDataChanged;
                 _notifier.DoorControlStatusChanged -= OnDoorControlStatusChanged;
-            }
-
-            try
-            {
-                await AccessEventService.Instance.StopAsync();
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"[WARNING] 停止门禁事件服务失败: {ex.Message}");
             }
 
             // 断开所有设备连接
@@ -1073,6 +1073,84 @@ namespace ControlEntradaSalida
         /// 以置顶的拥有窗体方式显示子窗体，确保始终位于主界面之上
         /// </summary>
         /// <param name="form">要显示的窗体</param>
+        /// <summary>
+        /// 异步执行窗体关闭操作，确保所有服务正确停止
+        /// </summary>
+        private async void PerformAsyncClose()
+        {
+            if (_isClosingAsync) return; // 防止重复调用
+            _isClosingAsync = true;
+
+            try
+            {
+                // 停止动画定时器
+                if (animationTimer != null)
+                {
+                    animationTimer.Stop();
+                    animationTimer.Dispose();
+                    animationTimer = null;
+                }
+
+                // 释放工具提示资源
+                if (deviceToolTip != null)
+                {
+                    deviceToolTip.Dispose();
+                    deviceToolTip = null;
+                }
+
+                // 取消订阅设备状态变化事件
+                DeviceConnectionManager.Instance.DeviceStatusChanged -= OnDeviceStatusChanged;
+
+                // 取消订阅数据变化事件
+                if (_notifier != null)
+                {
+                    _notifier.DeviceDataChanged -= OnDeviceDataChanged;
+                    _notifier.DoorControlStatusChanged -= OnDoorControlStatusChanged;
+                    _notifier = null;
+                }
+
+                // 异步停止AccessEventService
+                try
+                {
+                    await AccessEventService.Instance.StopAsync();
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"停止AccessEventService时出现警告: {ex.Message}");
+                }
+
+                // 断开所有设备连接并释放资源
+                DeviceConnectionManager.Instance.DisconnectAllDevices();
+                DeviceConnectionManager.Instance.Dispose();
+
+                // 清理HCNetSDK
+                HCNetSDK.NET_DVR_Cleanup();
+
+                // 在UI线程上关闭窗体
+                if (this.InvokeRequired)
+                {
+                    this.Invoke(new Action(() => this.Close()));
+                }
+                else
+                {
+                    this.Close();
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"异步关闭过程中出现错误: {ex.Message}");
+                // 即使出现错误也要强制关闭
+                if (this.InvokeRequired)
+                {
+                    this.Invoke(new Action(() => this.Close()));
+                }
+                else
+                {
+                    this.Close();
+                }
+            }
+        }
+
         private void ShowOwnedTopMost(Form form)
         {
             if (form == null) return;
