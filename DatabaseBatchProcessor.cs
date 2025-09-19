@@ -337,6 +337,33 @@ namespace ControlEntradaSalida
         }
 
         /// <summary>
+        /// 获取数据库中最大的sequence_number值
+        /// </summary>
+        /// <returns>最大的sequence_number，如果表为空则返回0</returns>
+        public async Task<long> GetMaxSequenceNumberAsync()
+        {
+            try
+            {
+                using (var connection = new MySqlConnection(_connectionString))
+                {
+                    await connection.OpenAsync();
+                    
+                    const string query = "SELECT COALESCE(MAX(sequence_number), 0) FROM access_logs";
+                    using (var command = new MySqlCommand(query, connection))
+                    {
+                        var result = await command.ExecuteScalarAsync();
+                        return Convert.ToInt64(result);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ERROR] 获取最大序列号失败: {ex.Message}");
+                return 0;
+            }
+        }
+
+        /// <summary>
         /// 重置统计信息
         /// </summary>
         public void ResetStatistics()

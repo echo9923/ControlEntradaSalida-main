@@ -277,7 +277,7 @@ namespace ControlEntradaSalida
                         MaxDelayMs = 30000
                     };
 
-                    asyncDatabaseWriter = new AsyncDatabaseWriter(connectionString, eventQueue, eventDeduplicator, batchConfig, retryPolicy);
+                    asyncDatabaseWriter = new AsyncDatabaseWriter(connectionString, eventQueue, eventDeduplicator, this, batchConfig, retryPolicy);
                     componentsInitialized = true;
                     Console.WriteLine("[INIT] 门禁事件服务组件初始化完成");
                 }
@@ -422,9 +422,19 @@ namespace ControlEntradaSalida
                 employeeNumber = null;
             }
 
+            string remoteHostAddress = ResolveRemoteHostAddress(ref alarmInfo, ref alarmer, null);
+
             int userId = alarmer.lUserID;
-            DeviceConnectionInfo device = DeviceConnectionManager.Instance.GetAllDevices().FirstOrDefault(d => d.UserID == userId);
-            string remoteHostAddress = ResolveRemoteHostAddress(ref alarmInfo, ref alarmer, device);
+            DeviceConnectionInfo device = ResolveDeviceConnection(ref alarmer, remoteHostAddress, userId);
+
+            if (device == null)
+            {
+                string remoteInfo = string.IsNullOrWhiteSpace(remoteHostAddress) ? "未知" : remoteHostAddress;
+                Console.WriteLine($"[WARNING] 无法匹配报警来源到已登记设备，事件被忽略：UserID={userId}, RemoteIP={remoteInfo}");
+                return null;
+            }
+
+            remoteHostAddress = ResolveRemoteHostAddress(ref alarmInfo, ref alarmer, device);
 
             long sequence = Interlocked.Increment(ref sequenceNumber);
 
@@ -442,8 +452,8 @@ namespace ControlEntradaSalida
                 EventTime = eventTime,
                 EmployeeNumber = isPersonRelated ? (employeeNumber ?? string.Empty) : string.Empty,
                 EmployeeName = isPersonRelated ? employeeName : string.Empty,
-                DeviceNumber = device?.Id ?? 0,
-                DeviceName = device?.Name ?? string.Empty,
+                DeviceNumber = device.Id,
+                DeviceName = device.Name ?? string.Empty,
                 EventType = eventTypeCode,
                 EventTypeDisplay = AccessEventFormatter.TranslateEventType(eventTypeCode),
                 RemoteHostAddress = remoteHostAddress,
@@ -517,6 +527,90 @@ namespace ControlEntradaSalida
 
             string candidate = Encoding.ASCII.GetString(rawBytes).Trim('\0');
             return string.IsNullOrWhiteSpace(candidate) ? null : candidate;
+        }
+
+        private DeviceConnectionInfo ResolveDeviceConnection(ref HCNetSDK.NET_DVR_ALARMER alarmer, string remoteHostAddress, int userId)
+        {
+            List<DeviceConnectionInfo> devices = DeviceConnectionManager.Instance.GetAllDevices();
+
+            if (userId >= 0)
+            {
+                DeviceConnectionInfo matchedByUser = devices.FirstOrDefault(d => d.UserID == userId);
+                if (matchedByUser != null)
+                {
+                    return matchedByUser;
+                }
+            }
+
+            if (!string.IsNullOrWhiteSpace(remoteHostAddress))
+            {
+                DeviceConnectionInfo matchedByIp = devices.FirstOrDefault(d =>
+                    string.Equals(d.IpAddress, remoteHostAddress, StringComparison.OrdinalIgnoreCase));
+                if (matchedByIp != null)
+                {
+                    return matchedByIp;
+                }
+            }
+
+            string alarmerIp = SanitizeNativeString(alarmer.sDeviceIP);
+            if (string.IsNullOrWhiteSpace(alarmerIp))
+            {
+                alarmerIp = SanitizeNativeString(alarmer.sSocketIP);
+            }
+
+            if (!string.IsNullOrWhiteSpace(alarmerIp))
+            {
+                DeviceConnectionInfo matchedByAlarmerIp = devices.FirstOrDefault(d =>
+                    string.Equals(d.IpAddress, alarmerIp, StringComparison.OrdinalIgnoreCase));
+                if (matchedByAlarmerIp != null)
+                {
+                    return matchedByAlarmerIp;
+                }
+            }
+
+            string linkPort = null;
+            if (alarmer.byLinkPortValid == 1 && alarmer.wLinkPort > 0)
+            {
+                linkPort = alarmer.wLinkPort.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            }
+
+            if (!string.IsNullOrWhiteSpace(linkPort))
+            {
+                if (!string.IsNullOrWhiteSpace(remoteHostAddress))
+                {
+                    DeviceConnectionInfo matchedByRemoteAddr = devices.FirstOrDefault(d =>
+                        string.Equals(d.IpAddress, remoteHostAddress, StringComparison.OrdinalIgnoreCase) &&
+                        string.Equals(d.Port, linkPort, StringComparison.OrdinalIgnoreCase));
+                    if (matchedByRemoteAddr != null)
+                    {
+                        return matchedByRemoteAddr;
+                    }
+                }
+
+                if (!string.IsNullOrWhiteSpace(alarmerIp))
+                {
+                    DeviceConnectionInfo matchedByIpAndPort = devices.FirstOrDefault(d =>
+                        string.Equals(d.IpAddress, alarmerIp, StringComparison.OrdinalIgnoreCase) &&
+                        string.Equals(d.Port, linkPort, StringComparison.OrdinalIgnoreCase));
+                    if (matchedByIpAndPort != null)
+                    {
+                        return matchedByIpAndPort;
+                    }
+                }
+            }
+
+            return null;
+        }
+
+        private static string SanitizeNativeString(string value)
+        {
+            if (string.IsNullOrEmpty(value))
+            {
+                return null;
+            }
+
+            string sanitized = value.TrimEnd('\0').Trim();
+            return sanitized.Length == 0 ? null : sanitized;
         }
 
         private string FetchEmployeeName(string employeeNumber)

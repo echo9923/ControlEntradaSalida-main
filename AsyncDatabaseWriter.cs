@@ -82,6 +82,7 @@ namespace ControlEntradaSalida
         private readonly BatchConfiguration _batchConfig;
         private readonly RetryPolicy _retryPolicy;
         private readonly string _connectionString;
+        private readonly AccessEventService _accessEventService; // 新增：访问事件服务引用
         
         private Task _processingTask;
         private CancellationTokenSource _cancellationTokenSource;
@@ -102,12 +103,14 @@ namespace ControlEntradaSalida
         public AsyncDatabaseWriter(string connectionString, 
                                   AsyncEventQueue eventQueue, 
                                   EventDeduplicator deduplicator,
+                                  AccessEventService accessEventService, // 新增参数
                                   BatchConfiguration batchConfig = null, 
                                   RetryPolicy retryPolicy = null)
         {
             _connectionString = connectionString ?? throw new ArgumentNullException(nameof(connectionString));
             _eventQueue = eventQueue ?? throw new ArgumentNullException(nameof(eventQueue));
             _deduplicator = deduplicator ?? throw new ArgumentNullException(nameof(deduplicator));
+            _accessEventService = accessEventService ?? throw new ArgumentNullException(nameof(accessEventService));
             _batchConfig = batchConfig ?? new BatchConfiguration();
             _retryPolicy = retryPolicy ?? new RetryPolicy();
             
@@ -132,6 +135,22 @@ namespace ControlEntradaSalida
             if (!connectionOk)
             {
                 throw new InvalidOperationException("数据库连接测试失败，无法启动异步写入线程");
+            }
+
+            // 同步数据库最大序列号，防止主键冲突
+            try
+            {
+                long maxSequence = await _batchProcessor.GetMaxSequenceNumberAsync();
+                if (maxSequence > 0)
+                {
+                    _accessEventService.AlignSequenceNumber(maxSequence);
+                    Console.WriteLine($"[SYNC] 已同步序列号到数据库最大值: {maxSequence}");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[WARNING] 序列号同步失败: {ex.Message}");
+                // 不抛出异常，允许继续启动，但记录警告
             }
 
             _isRunning = true;
