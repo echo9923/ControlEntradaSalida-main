@@ -261,7 +261,7 @@ namespace ControlEntradaSalida
             struCond.dwSize = Marshal.SizeOf(struCond);
             struCond.dwFaceNum = 1;
             int.TryParse(numlectora, out struCond.dwEnableReaderNo);
-            byte[] byTemp = System.Text.Encoding.UTF8.GetBytes(numtarjeta);
+            byte[] byTemp = Encoding.UTF8.GetBytes(numtarjeta);
             for (int i = 0; i < byTemp.Length; i++)
             {
                 struCond.byCardNo[i] = byTemp[i];
@@ -282,69 +282,148 @@ namespace ControlEntradaSalida
             struRecord.init();
             struRecord.dwSize = Marshal.SizeOf(struRecord);
 
-            byte[] byRecordNo = System.Text.Encoding.UTF8.GetBytes(numtarjeta);
+            byte[] byRecordNo = Encoding.UTF8.GetBytes(numtarjeta);
             for (int i = 0; i < byRecordNo.Length; i++)
             {
                 struRecord.byCardNo[i] = byRecordNo[i];
             }
-            bool result = false;
-            result = LeerDatosImagen(ref struRecord);//加载图片数据
-            int dwInBuffSize = Marshal.SizeOf(struRecord);
-            int dwStatus = 0;
-            //下发人脸数据
-            HCNetSDK_Facial.NET_DVR_FACE_STATUS struStatus = new HCNetSDK_Facial.NET_DVR_FACE_STATUS();
-            struStatus.init();
-            struStatus.dwSize = Marshal.SizeOf(struStatus);
-            int dwOutBuffSize = Convert.ToInt32(struStatus.dwSize);
-            IntPtr ptrOutDataLen = Marshal.AllocHGlobal(sizeof(int));
-            bool Flag = true;
 
-            while (Flag)
+            bool result = LeerDatosImagen(ref struRecord);
+            if (!result)
             {
-                dwStatus = HCNetSDK_Facial.NET_DVR_SendWithRecvRemoteConfig(m_lSetFaceCfgHandle, ref struRecord, dwInBuffSize, ref struStatus, dwOutBuffSize, ptrOutDataLen);
-                switch (dwStatus)
+                HCNetSDK_Facial.NET_DVR_StopRemoteConfig(m_lSetFaceCfgHandle);
+                m_lSetFaceCfgHandle = -1;
+                Marshal.FreeHGlobal(ptrstruCond);
+                return retval;
+            }
+
+            bool remoteConfigStopped = false;
+            try
+            {
+                int dwInBuffSize = Marshal.SizeOf(struRecord);
+                int dwStatus = 0;
+                HCNetSDK_Facial.NET_DVR_FACE_STATUS struStatus = new HCNetSDK_Facial.NET_DVR_FACE_STATUS();
+                struStatus.init();
+                struStatus.dwSize = Marshal.SizeOf(struStatus);
+                int dwOutBuffSize = Convert.ToInt32(struStatus.dwSize);
+                IntPtr ptrOutDataLen = Marshal.AllocHGlobal(sizeof(int));
+                bool flag = true;
+
+                try
                 {
-                    case HCNetSDK_Facial.NET_SDK_GET_NEXT_STATUS_SUCCESS:
-                        ResultadoEnviarDatosImagen(ref struStatus, ref Flag);//判断下发状态
-                        if (Flag)
-                            retval = true;
-                        break;
-                    case HCNetSDK_Facial.NET_SDK_GET_NEXT_STATUS_NEED_WAIT:
-                        break;
-                    case HCNetSDK_Facial.NET_SDK_GET_NEXT_STATUS_FAILED:
-                        HCNetSDK_Facial.NET_DVR_StopRemoteConfig(m_lSetFaceCfgHandle);
-                        MessageBox.Show("NET_SDK_GET_NEXT_STATUS_FAILED" + HCNetSDK_Facial.NET_DVR_GetLastError().ToString());
-                        Flag = false;
-                        break;
-                    case HCNetSDK_Facial.NET_SDK_GET_NEXT_STATUS_FINISH:
-                        HCNetSDK_Facial.NET_DVR_StopRemoteConfig(m_lSetFaceCfgHandle);
-                        Flag = false;
-                        break;
-                    default:
-                        MessageBox.Show("NET_SDK_GET_NEXT_STATUS_UNKOWN" + HCNetSDK_Facial.NET_DVR_GetLastError().ToString());
-                        Flag = false;
-                        HCNetSDK_Facial.NET_DVR_StopRemoteConfig(m_lSetFaceCfgHandle);
-                        break;
+                    while (flag)
+                    {
+                        dwStatus = HCNetSDK_Facial.NET_DVR_SendWithRecvRemoteConfig(m_lSetFaceCfgHandle, ref struRecord, dwInBuffSize, ref struStatus, dwOutBuffSize, ptrOutDataLen);
+                        switch (dwStatus)
+                        {
+                            case HCNetSDK_Facial.NET_SDK_GET_NEXT_STATUS_SUCCESS:
+                                ResultadoEnviarDatosImagen(ref struStatus, ref flag);
+                                if (flag)
+                                {
+                                    retval = true;
+                                }
+                                break;
+                            case HCNetSDK_Facial.NET_SDK_GET_NEXT_STATUS_NEED_WAIT:
+                                break;
+                            case HCNetSDK_Facial.NET_SDK_GET_NEXT_STATUS_FAILED:
+                                HCNetSDK_Facial.NET_DVR_StopRemoteConfig(m_lSetFaceCfgHandle);
+                                remoteConfigStopped = true;
+                                m_lSetFaceCfgHandle = -1;
+                                MessageBox.Show("NET_SDK_GET_NEXT_STATUS_FAILED" + HCNetSDK_Facial.NET_DVR_GetLastError().ToString());
+                                flag = false;
+                                break;
+                            case HCNetSDK_Facial.NET_SDK_GET_NEXT_STATUS_FINISH:
+                                HCNetSDK_Facial.NET_DVR_StopRemoteConfig(m_lSetFaceCfgHandle);
+                                remoteConfigStopped = true;
+                                m_lSetFaceCfgHandle = -1;
+                                flag = false;
+                                break;
+                            default:
+                                HCNetSDK_Facial.NET_DVR_StopRemoteConfig(m_lSetFaceCfgHandle);
+                                remoteConfigStopped = true;
+                                m_lSetFaceCfgHandle = -1;
+                                MessageBox.Show("NET_SDK_GET_NEXT_STATUS_UNKOWN" + HCNetSDK_Facial.NET_DVR_GetLastError().ToString());
+                                flag = false;
+                                break;
+                        }
+                    }
+                }
+                finally
+                {
+                    Marshal.FreeHGlobal(ptrOutDataLen);
                 }
             }
-            Marshal.FreeHGlobal(ptrstruCond);
-            Marshal.FreeHGlobal(ptrOutDataLen);
+            finally
+            {
+                if (!remoteConfigStopped && m_lSetFaceCfgHandle != -1)
+                {
+                    HCNetSDK_Facial.NET_DVR_StopRemoteConfig(m_lSetFaceCfgHandle);
+                }
+
+                m_lSetFaceCfgHandle = -1;
+                Marshal.FreeHGlobal(ptrstruCond);
+                if (struRecord.pFaceBuffer != IntPtr.Zero)
+                {
+                    Marshal.FreeHGlobal(struRecord.pFaceBuffer);
+                    struRecord.pFaceBuffer = IntPtr.Zero;
+                }
+            }
+
             return retval;
         }
         //判断发送人脸数据是否成功
         private void ResultadoEnviarDatosImagen(ref HCNetSDK_Facial.NET_DVR_FACE_STATUS struStatus, ref bool flag)
         {
-            switch (struStatus.byRecvStatus)
+            if (struStatus.byRecvStatus == 1)
             {
-                case 1:
-                    //MessageBox.Show("SetFaceDataSuccessful"); 
-                    break;
-                default:
-                    flag = false;
-                    MessageBox.Show("NET_SDK_SET_Face_DATA_FAILED" + struStatus.byRecvStatus.ToString());
-                    break;
+                return;
             }
 
+            flag = false;
+
+            string message = ObtenerMensajeErrorEnvioRostro(struStatus.byRecvStatus, struStatus.byErrorMsg);
+            MessageBox.Show(message, "下发人脸数据失败", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+        }
+
+        private string ObtenerMensajeErrorEnvioRostro(byte statusCode, byte[] errorBuffer)
+        {
+            Dictionary<byte, string> statusMessages = new Dictionary<byte, string>
+            {
+                { 0, "设备处理失败" },
+                { 1, "下发成功" },
+                { 2, "请重试或更换清晰的人脸照片" },
+                { 3, "设备人脸存储空间已满" },
+                { 4, "该人员人脸已存在，建议先删除后再下发" },
+                { 5, "非法的人脸 ID" },
+                { 6, "设备算法建模失败" },
+                { 7, "未同步门禁权限，需先为人员下发门禁权限" },
+                { 8, "保留错误码" },
+                { 9, "人脸抓拍距离过近或过远" },
+                { 10, "图片数据长度小于 1KB" },
+                { 11, "图片格式不支持，请使用 jpg/png/bmp" },
+                { 12, "图片像素数量超过设备上限" },
+                { 13, "图片像素数量低于设备下限" },
+                { 14, "图片信息校验失败" },
+                { 15, "图片解码失败" },
+                { 16, "设备未检测到有效人脸" },
+                { 17, "人脸质量评分未达标" }
+            };
+
+            string baseMessage = statusMessages.ContainsKey(statusCode)
+                ? statusMessages[statusCode]
+                : "未知错误";
+
+            string deviceMessage = string.Empty;
+            if (errorBuffer != null)
+            {
+                string rawMessage = Encoding.UTF8.GetString(errorBuffer).TrimEnd('\0');
+                if (!string.IsNullOrWhiteSpace(rawMessage))
+                {
+                    deviceMessage = $"（设备提示：{rawMessage}）";
+                }
+            }
+
+            return $"设备返回代码 {statusCode}：{baseMessage}{deviceMessage}";
         }
         //检查图像是否存在；限制图片大小 ≤ 200KB；读取为字节数组并放入结构体中
         private bool LeerDatosImagen(ref HCNetSDK_Facial.NET_DVR_FACE_RECORD struRecord)
@@ -739,6 +818,145 @@ namespace ControlEntradaSalida
             return retval;
         }
 
+        private bool CrearInfoUsuarioDispositivo(string documento)
+        {
+            var connectedDevice = DeviceConnectionManager.Instance.GetAllDevices()
+                .FirstOrDefault(d => d.IsConnected);
+            if (connectedDevice == null)
+            {
+                MessageBox.Show("没有已连接的设备，无法同步人员数据。", "设备未连接", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return false;
+            }
+
+            int doorCount = connectedDevice.Capabilities?.MaxDoorCount ?? 1;
+            if (doorCount <= 0)
+            {
+                doorCount = 1;
+            }
+
+            string doorRightMask = new string('1', doorCount);
+            var rightPlans = Enumerable.Range(1, doorCount)
+                .Select(doorNo => new { doorNo, planTemplateNo = "1" })
+                .ToArray();
+
+            string nombrecompleto = this.textBoxNombreCompleto.Text;
+            if (nombrecompleto.Length > 30)
+            {
+                nombrecompleto = nombrecompleto.Substring(0, 29);
+            }
+
+            string fechainicio = "2022-01-01T00:00:00";
+            string fechafinal = "2031-01-01T23:59:00";
+
+            var payload = new
+            {
+                UserInfo = new
+                {
+                    employeeNo = documento,
+                    name = nombrecompleto,
+                    userType = "normal",
+                    Valid = new
+                    {
+                        enable = true,
+                        beginTime = fechainicio,
+                        endTime = fechafinal,
+                        timeType = "local"
+                    },
+                    doorRight = doorRightMask,
+                    RightPlan = rightPlans
+                }
+            };
+
+            string requestBody = JsonConvert.SerializeObject(payload);
+            string url = "POST /ISAPI/AccessControl/UserInfo/Record?format=json";
+
+            Common cmn = new Common();
+            bool result = cmn.ISAPIQuery(GetConnectedDeviceUserID(), url, requestBody, out string outputString, out string outputStatus);
+            if (!result)
+            {
+                MostrarErrorISAPI(outputStatus, "同步人员数据到设备失败");
+                return false;
+            }
+
+            try
+            {
+                dynamic dynamicData = JsonConvert.DeserializeObject(outputString);
+                string statusCode = dynamicData.statusCode;
+                string statusString = dynamicData.statusString;
+                string subStatusCode = dynamicData.subStatusCode;
+
+                if (statusCode == "1" && statusString == "OK" && subStatusCode == "ok")
+                {
+                    return true;
+                }
+
+                string errorMsg = dynamicData.errorMsg;
+                if (!string.IsNullOrWhiteSpace(errorMsg) && errorMsg.IndexOf("exist", StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    return true;
+                }
+
+                if (!string.IsNullOrWhiteSpace(statusString) && statusString.IndexOf("exist", StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    return true;
+                }
+
+                MostrarErrorISAPI(outputString, "同步人员数据到设备失败");
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("解析设备返回结果时出错：" + ex.Message, "设备返回异常", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+
+            return false;
+        }
+
+        private void MostrarErrorISAPI(string rawResponse, string caption)
+        {
+            if (string.IsNullOrWhiteSpace(rawResponse))
+            {
+                MessageBox.Show("设备未返回详细错误信息。", caption, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            try
+            {
+                dynamic errorData = JsonConvert.DeserializeObject(rawResponse);
+                List<string> detalles = new List<string>();
+                string statusCode = errorData.statusCode;
+                string statusString = errorData.statusString;
+                string subStatusCode = errorData.subStatusCode;
+                string errorMsg = errorData.errorMsg;
+
+                if (!string.IsNullOrWhiteSpace(statusCode))
+                {
+                    detalles.Add($"状态码: {statusCode}");
+                }
+
+                if (!string.IsNullOrWhiteSpace(statusString))
+                {
+                    detalles.Add($"状态描述: {statusString}");
+                }
+
+                if (!string.IsNullOrWhiteSpace(subStatusCode))
+                {
+                    detalles.Add($"子状态: {subStatusCode}");
+                }
+
+                if (!string.IsNullOrWhiteSpace(errorMsg))
+                {
+                    detalles.Add($"错误信息: {errorMsg}");
+                }
+
+                string message = detalles.Count > 0 ? string.Join("\n", detalles) : rawResponse;
+                MessageBox.Show(message, caption, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+            catch
+            {
+                MessageBox.Show(rawResponse, caption, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+        }
+
         // 验证文档号
         private bool ValidarDocumento()
         {
@@ -848,12 +1066,10 @@ namespace ControlEntradaSalida
             string msg;
             bool retval;
             Common cmn = new Common();
-            // 获取当前连接的设备信息
             var connectedDevices = DeviceConnectionManager.Instance.GetAllDevices()
                 .Where(d => d.IsConnected).ToList();
             if (connectedDevices.Count > 0)
             {
-                // 使用第一个连接的设备
                 var device = connectedDevices[0];
                 retval = cmn.Login(device.IpAddress, device.Port, device.Username, device.Password, out int userID, out msg);
             }
@@ -867,26 +1083,34 @@ namespace ControlEntradaSalida
                 bool resultenviar = false;
                 string nombrecompleto = this.textBoxNombreCompleto.Text;
                 if (nombrecompleto.Length > 30)
-                    nombrecompleto = nombrecompleto.Substring(0, 29);
-
-                
-
-                if (nuevo)//如果是新增员工
                 {
+                    nombrecompleto = nombrecompleto.Substring(0, 29);
+                }
+
+                if (nuevo)
+                {
+                    bool sincronizado = CrearInfoUsuarioDispositivo(this.textBoxDocumento.Text);
+                    if (!sincronizado)
+                    {
+                        return;
+                    }
 
                     if (this.pictureBoxUsuario.Image != null)
-                        resultenviar = EnviarImagen("1", this.textBoxDocumento.Text);//上传人脸图片
+                    {
+                        resultenviar = EnviarImagen("1", this.textBoxDocumento.Text);
+                    }
                     else
+                    {
                         resultenviar = true;
+                    }
 
                     if (resultenviar)
                     {
-                        InsertarUsuario();// 插入数据库
-                        AddUserToListView();//更新 UI界面列表
+                        InsertarUsuario();
+                        AddUserToListView();
                         LimpiarControles(false);
                         url_imagen = null;
-                        
-                        // 通知其他界面员工数据已变更
+
                         _notifier?.NotifyEmployeeDataChanged(
                             this.textBoxDocumento.Text,
                             this.textBoxNombreCompleto.Text,
@@ -894,26 +1118,35 @@ namespace ControlEntradaSalida
                             this.GetType().Name);
                     }
                 }
-                if (!nuevo)//更新已有员工
+                if (!nuevo)
                 {
-                    bool resultactbd = false; ;
-                    bool resultactdispo = ActualizarInfoUsuarioDispositivo(this.textBoxDocumento.Text);// 更新设备信息（通过 ISAPI）
+                    bool resultactbd = false;
+                    bool resultactdispo = ActualizarInfoUsuarioDispositivo(this.textBoxDocumento.Text);
 
                     if (this.pictureBoxUsuario.Image != null)
+                    {
                         resultenviar = EnviarImagen("1", this.textBoxDocumento.Text);
+                    }
                     else
+                    {
                         resultenviar = true;
+                    }
 
                     if (resultactdispo && resultenviar)
-                        resultactbd = ActualizarInfoUsuarioBD(this.textBoxDocumento.Text);//更新本地数据库
+                    {
+                        resultactbd = ActualizarInfoUsuarioBD(this.textBoxDocumento.Text);
+                    }
 
                     if (!resultactdispo || !resultenviar)
+                    {
                         MessageBox.Show("无法在设备上更新用户（信息和/或照片）", "更新错误", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    }
 
                     if (!resultactbd)
+                    {
                         MessageBox.Show("无法在本地数据库中更新用户", "更新错误", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                    
-                    // 如果更新成功，通知其他界面
+                    }
+
                     if (resultactbd)
                     {
                         _notifier?.NotifyEmployeeDataChanged(
@@ -922,7 +1155,7 @@ namespace ControlEntradaSalida
                             EmployeeChangeType.Updated,
                             this.GetType().Name);
                     }
-                    
+
                     LimpiarControles(false);
                 }
             }
