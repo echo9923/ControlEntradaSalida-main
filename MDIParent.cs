@@ -713,7 +713,7 @@ namespace ControlEntradaSalida
             ShowOwnedTopMost(frmParamInformeEventos);
         }
         //窗体加载时的初始化
-        private void MDIParent_Load(object sender, EventArgs e)
+        private async void MDIParent_Load(object sender, EventArgs e)
         {
             if (!Common.InicializarSDKHikVision())//SDK初始化
                 MessageBox.Show("海康威视SDK初始化失败", "初始化错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
@@ -725,6 +725,15 @@ namespace ControlEntradaSalida
 
             // 初始化设备状态显示
             InitializeDeviceStatusDisplay();
+
+            try
+            {
+                await AccessEventService.Instance.EnsureStartedAsync();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[WARNING] 启动门禁事件服务失败: {ex.Message}");
+            }
         }
 
         // 初始化设备状态显示
@@ -756,7 +765,7 @@ namespace ControlEntradaSalida
             });
         }
         //窗体关闭前的清理工作
-        private void MDIParent_FormClosing(object sender, FormClosingEventArgs e)
+        private async void MDIParent_FormClosing(object sender, FormClosingEventArgs e)
         {
             // 停止动画定时器
             if (animationTimer != null)
@@ -779,6 +788,15 @@ namespace ControlEntradaSalida
             {
                 _notifier.DeviceDataChanged -= OnDeviceDataChanged;
                 _notifier.DoorControlStatusChanged -= OnDoorControlStatusChanged;
+            }
+
+            try
+            {
+                await AccessEventService.Instance.StopAsync();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[WARNING] 停止门禁事件服务失败: {ex.Message}");
             }
 
             // 断开所有设备连接
