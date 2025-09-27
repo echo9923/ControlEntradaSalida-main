@@ -22,12 +22,6 @@ namespace ControlEntradaSalida
         /// </summary>
         void RefreshEmployeeData();
 
-        /// <summary>
-        /// 刷新门状态
-        /// </summary>
-        /// <param name="deviceId">设备ID</param>
-        /// <param name="status">门状态</param>
-        void RefreshDoorStatus(string deviceId, DoorStatus status);
 
         /// <summary>
         /// 窗体是否可见

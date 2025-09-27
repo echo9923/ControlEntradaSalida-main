@@ -74,16 +74,4 @@ namespace ControlEntradaSalida
         Offline             // 离线
     }
 
-    /// <summary>
-    /// 远程控门命令枚举 - 基于NET_DVR_ControlGateway的dwStatic参数
-    /// 参考：设备网络SDK编程指南（明眸-以人为中心）
-    /// </summary>
-    public enum GatewayControlCommand : uint
-    {
-        Close = 0,          // 关门
-        Open = 1,           // 开门
-        AlwaysOpen = 2,     // 常开（自由通行）
-        AlwaysClose = 3,    // 常关（禁止通行）
-        Restore = 4         // 恢复（恢复为普通状态）
-    }
 }

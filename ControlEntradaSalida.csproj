@@ -182,19 +182,7 @@
   <ItemGroup>
     <Compile Include="AcsDemoPublic.cs" />
     <Compile Include="BaseDatosMySQL.cs" />
-    <Compile Include="CapturaEntradaSalida.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="CapturaEntradaSalida.designer.cs">
-      <DependentUpon>CapturaEntradaSalida.cs</DependentUpon>
-    </Compile>
     <Compile Include="Common.cs" />
-    <Compile Include="controldoor.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="controldoor.designer.cs">
-      <DependentUpon>controldoor.cs</DependentUpon>
-    </Compile>
     <Compile Include="GestionUsuariosDispositivo.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -237,7 +225,6 @@
       <DependentUpon>Resources.resx</DependentUpon>
     </Compile>
     <Compile Include="SqlServerTypes\Loader.cs" />
-    <Compile Include="TypeMap.cs" />
     <Compile Include="IRefreshableForm.cs" />
     <Compile Include="DataChangeNotifier.cs" />
     <Compile Include="SafeUIUpdater.cs" />
@@ -245,17 +232,6 @@
     <Compile Include="ReconnectManager.cs" />
     <Compile Include="TimeSegmentHelper.cs" />
     <!-- 寮傛鏁版嵁搴撳鐞嗙粍浠?- 娴峰悍濞佽SDK缂栫▼鎸囧崡浼樺寲 -->
-    <Compile Include="AsyncEventQueue.cs" />
-    <Compile Include="EventDeduplicator.cs" />
-    <Compile Include="DatabaseBatchProcessor.cs" />
-    <Compile Include="AccessEventService.cs" />
-    <Compile Include="AsyncDatabaseWriter.cs" />
-    <EmbeddedResource Include="CapturaEntradaSalida.resx">
-      <DependentUpon>CapturaEntradaSalida.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="controldoor.resx">
-      <DependentUpon>controldoor.cs</DependentUpon>
-    </EmbeddedResource>
     <EmbeddedResource Include="GestionUsuariosDispositivo.resx">
       <DependentUpon>GestionUsuariosDispositivo.cs</DependentUpon>
     </EmbeddedResource>

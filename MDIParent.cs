@@ -310,7 +310,6 @@ namespace ControlEntradaSalida
         {
             _notifier = DataChangeNotifier.Instance;
             _notifier.DeviceDataChanged += OnDeviceDataChanged;
-            _notifier.DoorControlStatusChanged += OnDoorControlStatusChanged;
         }
 
         // 设备状态改变事件处理
@@ -695,12 +694,6 @@ namespace ControlEntradaSalida
             GestionEmpleados frmGestionEmpleados = new GestionEmpleados();
             ShowOwnedTopMost(frmGestionEmpleados);
         }
-        //进出记录采集窗口
-        private void CapturarEntradaSalidaToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            CapturaEntradaSalida frmCapturaEntradaSalida = new CapturaEntradaSalida();
-            ShowOwnedTopMost(frmCapturaEntradaSalida);
-        }
         //程序退出
         private void salirToolStripMenuItem_Click(object sender, EventArgs e)
         {
@@ -723,14 +716,6 @@ namespace ControlEntradaSalida
             // 初始化设备状态显示
             InitializeDeviceStatusDisplay();
 
-            try
-            {
-                await AccessEventService.Instance.EnsureStartedAsync();
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"[WARNING] 启动门禁事件服务失败: {ex.Message}");
-            }
         }
 
         // 初始化设备状态显示
@@ -792,7 +777,6 @@ namespace ControlEntradaSalida
             if (_notifier != null)
             {
                 _notifier.DeviceDataChanged -= OnDeviceDataChanged;
-                _notifier.DoorControlStatusChanged -= OnDoorControlStatusChanged;
             }
 
             // 断开所有设备连接
@@ -816,11 +800,6 @@ namespace ControlEntradaSalida
 
         }
 
-        private void controldoor_Click(object sender, EventArgs e)
-        {
-            controldoor frmGestionUsuariosDispositivo = new controldoor();
-            ShowOwnedTopMost(frmGestionUsuariosDispositivo);
-        }
 
         
         
@@ -890,18 +869,6 @@ namespace ControlEntradaSalida
             // 主界面不需要刷新员工数据
         }
         
-        /// <summary>
-        /// 刷新门状态
-        /// </summary>
-        /// <param name="deviceId">设备ID</param>
-        /// <param name="status">门状态</param>
-        public void RefreshDoorStatus(string deviceId, DoorStatus status)
-        {
-            SafeUIUpdater.UpdateUI(this, () => 
-            {
-                UpdateDoorStatusInCards(deviceId, status);
-            });
-        }
         
         #endregion
         
@@ -926,16 +893,6 @@ namespace ControlEntradaSalida
             }
         }
         
-        /// <summary>
-        /// 处理门控状态变更事件
-        /// </summary>
-        private void OnDoorControlStatusChanged(object sender, DoorControlStatusChangedEventArgs e)
-        {
-            if (this.IsFormVisible)
-            {
-                RefreshDoorStatus(e.DeviceId, e.Status);
-            }
-        }
         
         /// <summary>
         /// 更新设备状态卡片中的门状态显示
@@ -1093,19 +1050,9 @@ namespace ControlEntradaSalida
                 if (_notifier != null)
                 {
                     _notifier.DeviceDataChanged -= OnDeviceDataChanged;
-                    _notifier.DoorControlStatusChanged -= OnDoorControlStatusChanged;
-                    _notifier = null;
+                        _notifier = null;
                 }
 
-                // 异步停止AccessEventService
-                try
-                {
-                    await AccessEventService.Instance.StopAsync();
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"停止AccessEventService时出现警告: {ex.Message}");
-                }
 
                 // 断开所有设备连接并释放资源
                 DeviceConnectionManager.Instance.DisconnectAllDevices();

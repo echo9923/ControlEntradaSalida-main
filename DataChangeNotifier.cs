@@ -58,24 +58,6 @@ namespace ControlEntradaSalida
     }
 
     /// <summary>
-    /// 门控状态变更事件参数
-    /// </summary>
-    public class DoorControlStatusChangedEventArgs : DataChangeEventArgs
-    {
-        public string DeviceId { get; }
-        public DoorStatus Status { get; }
-        public string Operation { get; }
-
-        public DoorControlStatusChangedEventArgs(string deviceId, DoorStatus status,
-            string operation, string source) : base(source)
-        {
-            DeviceId = deviceId;
-            Status = status;
-            Operation = operation;
-        }
-    }
-
-    /// <summary>
     /// 设备变更类型枚举
     /// </summary>
     public enum DeviceChangeType
@@ -124,9 +106,6 @@ namespace ControlEntradaSalida
 
         // 员工数据变更事件
         public event EventHandler<EmployeeDataChangedEventArgs> EmployeeDataChanged;
-
-        // 门控状态变更事件
-        public event EventHandler<DoorControlStatusChangedEventArgs> DoorControlStatusChanged;
 
         private readonly object _eventLock = new object();
 
@@ -178,31 +157,6 @@ namespace ControlEntradaSalida
                 {
                     // 记录异常但不中断程序运行
                     System.Diagnostics.Debug.WriteLine($"员工数据变更通知异常: {ex.Message}");
-                }
-            }
-        }
-
-        /// <summary>
-        /// 通知门控状态变更
-        /// </summary>
-        /// <param name="deviceId">设备ID</param>
-        /// <param name="status">门状态</param>
-        /// <param name="operation">操作描述</param>
-        /// <param name="source">变更来源（调用者类名）</param>
-        public void NotifyDoorControlStatusChanged(string deviceId, DoorStatus status,
-            string operation, string source)
-        {
-            lock (_eventLock)
-            {
-                try
-                {
-                    DoorControlStatusChanged?.Invoke(this,
-                        new DoorControlStatusChangedEventArgs(deviceId, status, operation, source));
-                }
-                catch (Exception ex)
-                {
-                    // 记录异常但不中断程序运行
-                    System.Diagnostics.Debug.WriteLine($"门控状态变更通知异常: {ex.Message}");
                 }
             }
         }

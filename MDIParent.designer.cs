@@ -32,14 +32,11 @@ namespace ControlEntradaSalida
             this.menuStrip1 = new System.Windows.Forms.MenuStrip();
             this.generalToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.gesti\u00f3nDeDispositivosToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.controldoor = new System.Windows.Forms.ToolStripMenuItem();
             this.gestionDeEmpleadosToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.CapturarEntradaSalidaToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripMenuItem2 = new System.Windows.Forms.ToolStripSeparator();
             this.consultarDatosDispositivoToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripMenuItem3 = new System.Windows.Forms.ToolStripSeparator();
             this.salirToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.menuStrip1.SuspendLayout();
             this.SuspendLayout();
             // 
             // menuStrip1
@@ -59,9 +56,7 @@ namespace ControlEntradaSalida
             // 
             this.generalToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.gesti\u00f3nDeDispositivosToolStripMenuItem,
-            this.controldoor,
             this.gestionDeEmpleadosToolStripMenuItem,
-            this.CapturarEntradaSalidaToolStripMenuItem,
             this.toolStripMenuItem2,
             this.consultarDatosDispositivoToolStripMenuItem,
             this.toolStripMenuItem3,
@@ -77,12 +72,6 @@ namespace ControlEntradaSalida
             this.gesti\u00f3nDeDispositivosToolStripMenuItem.Text = "\u8bbe\u5907\u7ba1\u7406";
             this.gesti\u00f3nDeDispositivosToolStripMenuItem.Click += new System.EventHandler(this.gesti\u00f3nDeDispositivosToolStripMenuItem_Click);
             // 
-            // controldoor
-            // 
-            this.controldoor.Name = "controldoor";
-            this.controldoor.Size = new System.Drawing.Size(180, 22);
-            this.controldoor.Text = "\u8fdc\u7a0b\u63a7\u95e8";
-            this.controldoor.Click += new System.EventHandler(this.controldoor_Click);
             // 
             // gestionDeEmpleadosToolStripMenuItem
             // 
@@ -90,13 +79,6 @@ namespace ControlEntradaSalida
             this.gestionDeEmpleadosToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
             this.gestionDeEmpleadosToolStripMenuItem.Text = "\u5458\u5de5\u7ba1\u7406";
             this.gestionDeEmpleadosToolStripMenuItem.Click += new System.EventHandler(this.gestionDeEmpleadosToolStripMenuItem_Click);
-            // 
-            // CapturarEntradaSalidaToolStripMenuItem
-            // 
-            this.CapturarEntradaSalidaToolStripMenuItem.Name = "CapturarEntradaSalidaToolStripMenuItem";
-            this.CapturarEntradaSalidaToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
-            this.CapturarEntradaSalidaToolStripMenuItem.Text = "\u5b9e\u65f6\u76d1\u63a7";
-            this.CapturarEntradaSalidaToolStripMenuItem.Click += new System.EventHandler(this.CapturarEntradaSalidaToolStripMenuItem_Click);
             // 
             // toolStripMenuItem2
             // 
@@ -150,12 +132,10 @@ namespace ControlEntradaSalida
         private System.Windows.Forms.ToolStripMenuItem generalToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem gestiónDeDispositivosToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem gestionDeEmpleadosToolStripMenuItem;
-        private System.Windows.Forms.ToolStripMenuItem CapturarEntradaSalidaToolStripMenuItem;
-        private System.Windows.Forms.ToolStripMenuItem salirToolStripMenuItem;
         private System.Windows.Forms.ToolStripSeparator toolStripMenuItem2;
         private System.Windows.Forms.ToolStripMenuItem consultarDatosDispositivoToolStripMenuItem;
         private System.Windows.Forms.ToolStripSeparator toolStripMenuItem3;
-        private System.Windows.Forms.ToolStripMenuItem controldoor;
+        private System.Windows.Forms.ToolStripMenuItem salirToolStripMenuItem;
     }
 }
 

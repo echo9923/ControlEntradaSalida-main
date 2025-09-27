@@ -1048,33 +1048,6 @@ namespace ControlEntradaSalida
         }
 
 
-        //Alarm protection structure parameters
-        [StructLayoutAttribute(LayoutKind.Sequential)]
-        public struct NET_DVR_SETUPALARM_PARAM
-        {
-            public uint dwSize;
-            public byte byLevel;  //Arming priority: 0-high, 1-middle, 2-low
-            public byte byAlarmInfoType;//Upload alarm information types（Intelligent traffic camera support）：0- old（NET_DVR_PLATE_RESULT），1- new(NET_ITS_PLATE_RESULT)
-            public byte byRetAlarmTypeV40; //0- Ret NET_DVR_ALARMINFO_V30 or Older, 1- if Device Support NET_DVR_ALARMINFO_V40,  Ret NET_DVR_ALARMINFO_V40, else Ret NET_DVR_ALARMINFO_V30 Or NET_DVR_ALARMINFO
-            public byte byRetDevInfoVersion; //CVR alarm 0-COMM_ALARM_DEVICE, 1-COMM_ALARM_DEVICE_V40
-            public byte byRetVQDAlarmType; //Exptected VQD alarm type,0-upload NET_DVR_VQD_DIAGNOSE_INFO,1-upload NET_DVR_VQD_ALARM
-                                           //1-(INTER_FACE_DETECTION),0-(INTER_FACESNAP_RESULT)
-            public byte byFaceAlarmDetection;
-            //Bit0 - indicates whether the secondary protection to upload pictures: 0 - upload, 1 - do not upload 
-            //Bit1 - said open data upload confirmation mechanism; 0 - don't open, 1 - to open
-            public byte bySupport;
-            //broken Net Http 
-            //bit0-Vehicle Detection(IPC) (0 - not continuingly, 1 - continuingly)
-            //bit1-PDC(IPC)  (0 - not continuingly, 1 - continuingly)
-            //bit2-HeatMap(IPC)  (0 - not continuingly, 1 - continuingly)
-            public byte byBrokenNetHttp;
-            public ushort wTaskNo;//Tasking number and the (field dwTaskNo corresponding data upload NET_DVR_VEHICLE_RECOG_RESULT the same time issued a task structure NET_DVR_VEHICLE_RECOG_COND corresponding fields in dwTaskNo
-            public byte byDeployType;//deploy type:0-client deploy,1-real time deploy
-            [MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = 3, ArraySubType = UnmanagedType.I1)]
-            public byte[] byRes1;
-            public byte byAlarmTypeURL;//bit0-(NET_DVR_FACESNAP_RESULT),0-binary,1-URL
-            public byte byCustomCtrl;//Bit0- Support the copilot face picture upload: 0-Upload,1-Do not upload
-        }
 
         #endregion
 
@@ -3077,12 +3050,6 @@ namespace ControlEntradaSalida
             public byte[] byCardReaderAntiDismantleStatus; //card reader anti dismantle status, 0-close 1-open
             [MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = MAX_CARD_READER_NUM_512, ArraySubType = UnmanagedType.I1)]
             public byte[] byCardReaderVerifyMode; //card reader verify mode, 1-swipe 2-swipe+password 3-swipe card 4-swipe card or password
-            [MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = MAX_ALARMHOST_ALARMIN_NUM, ArraySubType = UnmanagedType.I1)]
-            public byte[] bySetupAlarmStatus;//alarm in setup alarm status,0- alarm in disarm status, 1 - alarm in arm status
-            [MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = MAX_ALARMHOST_ALARMIN_NUM, ArraySubType = UnmanagedType.I1)]
-            public byte[] byAlarmInStatus; //alarm in status, 0-alarm in no alarm, 1-alarm in has alarm 
-            [MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = MAX_ALARMHOST_ALARMOUT_NUM, ArraySubType = UnmanagedType.I1)]
-            public byte[] byAlarmOutStatus; //alarm out status, 0-alarm out no alarm, 1-alarm out has alarm 
             public uint dwCardNum; //add card number
             public byte byFireAlarmStatus; //Fire alarm status is displayed: 0 - normal, short-circuit alarm 1 -, 2 - disconnect the alarm 
             [MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = 123, ArraySubType = UnmanagedType.I1)]
@@ -3097,9 +3064,6 @@ namespace ControlEntradaSalida
                 byCardReaderOnlineStatus = new byte[MAX_CARD_READER_NUM_512];
                 byCardReaderAntiDismantleStatus = new byte[MAX_CARD_READER_NUM_512];
                 byCardReaderVerifyMode = new byte[MAX_CARD_READER_NUM_512];
-                bySetupAlarmStatus = new byte[MAX_ALARMHOST_ALARMIN_NUM];
-                byAlarmInStatus = new byte[MAX_ALARMHOST_ALARMIN_NUM];
-                byAlarmOutStatus = new byte[MAX_ALARMHOST_ALARMOUT_NUM];
                 byRes2 = new byte[123];
             }
         }
@@ -3433,21 +3397,6 @@ namespace ControlEntradaSalida
         [DllImport(@".\HCNetSDK.dll")]
         public static extern int NET_DVR_RealPlay_V40(int lUserID, ref NET_DVR_PREVIEWINFO lpPreviewInfo, RealDataCallBack fRealDataCallBack_V30, IntPtr pUser);
 
-        // alarm
-
-        /* Set up alarm upload channel, to obtain the information such as alarm*/
-        [DllImport(@".\HCNetSDK.dll")]
-        public static extern int NET_DVR_SetupAlarmChan(int lUserID);
-        [DllImport(@".\HCNetSDK.dll")]
-        public static extern int NET_DVR_SetupAlarmChan_V30(int lUserID);
-        [DllImport(@".\HCNetSDK.dll")]
-        public static extern int NET_DVR_SetupAlarmChan_V41(int lUserID, ref NET_DVR_SETUPALARM_PARAM lpSetupParam);
-
-        /* shut down alarm upload channel, to obtain the information such as alarm*/
-        [DllImport(@".\HCNetSDK.dll")]
-        public static extern bool NET_DVR_CloseAlarmChan(int lAlarmHandle);
-        [DllImport(@".\HCNetSDK.dll")]
-        public static extern bool NET_DVR_CloseAlarmChan_V30(int lAlarmHandle);
 
 
         /* Alarm information callback function
@@ -3491,13 +3440,6 @@ namespace ControlEntradaSalida
         [DllImport(@".\HCNetSDK.dll")]
         public static extern uint NET_DVR_GetSDKBuildVersion();
 
-        /** remote control gateway
-         * [in] lUserID - NET_DVR_Login_V40 return value
-         * [in] lGatewayIndex - 1-begin 0xffffffff-all
-         * [in] dwStaic - : 0-close，1-open，2-always open，3-always close
-         */
-        [DllImport(@".\HCNetSDK.dll")]
-        public static extern bool NET_DVR_ControlGateway(int lUserID, int lGatewayIndex, uint dwStaic);
 
 
         [DllImport(@".\HCNetSDK.dll")]
