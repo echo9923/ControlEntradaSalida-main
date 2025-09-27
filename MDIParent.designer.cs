@@ -31,7 +31,7 @@ namespace ControlEntradaSalida
         {
             this.menuStrip1 = new System.Windows.Forms.MenuStrip();
             this.generalToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.gestiónDeDispositivosToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.gesti\u00f3nDeDispositivosToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.controldoor = new System.Windows.Forms.ToolStripMenuItem();
             this.gestionDeEmpleadosToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.CapturarEntradaSalidaToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -39,10 +39,6 @@ namespace ControlEntradaSalida
             this.consultarDatosDispositivoToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripMenuItem3 = new System.Windows.Forms.ToolStripSeparator();
             this.salirToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.informesToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.entradasYSalidasToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.eventosToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.Plantemplate = new System.Windows.Forms.ToolStripMenuItem();
             this.menuStrip1.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -50,22 +46,20 @@ namespace ControlEntradaSalida
             // 
             this.menuStrip1.ImageScalingSize = new System.Drawing.Size(20, 20);
             this.menuStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.generalToolStripMenuItem,
-            this.informesToolStripMenuItem});
+            this.generalToolStripMenuItem});
             this.menuStrip1.Location = new System.Drawing.Point(0, 0);
             this.menuStrip1.Name = "menuStrip1";
             this.menuStrip1.Padding = new System.Windows.Forms.Padding(4, 2, 0, 2);
             this.menuStrip1.Size = new System.Drawing.Size(800, 25);
             this.menuStrip1.TabIndex = 1;
-            this.menuStrip1.Text = "主菜单";
+            this.menuStrip1.Text = "\u4e3b\u83dc\u5355";
             this.menuStrip1.ItemClicked += new System.Windows.Forms.ToolStripItemClickedEventHandler(this.menuStrip1_ItemClicked);
             // 
             // generalToolStripMenuItem
             // 
             this.generalToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.gestiónDeDispositivosToolStripMenuItem,
+            this.gesti\u00f3nDeDispositivosToolStripMenuItem,
             this.controldoor,
-            this.Plantemplate,
             this.gestionDeEmpleadosToolStripMenuItem,
             this.CapturarEntradaSalidaToolStripMenuItem,
             this.toolStripMenuItem2,
@@ -74,34 +68,34 @@ namespace ControlEntradaSalida
             this.salirToolStripMenuItem});
             this.generalToolStripMenuItem.Name = "generalToolStripMenuItem";
             this.generalToolStripMenuItem.Size = new System.Drawing.Size(44, 21);
-            this.generalToolStripMenuItem.Text = "系统管理";
+            this.generalToolStripMenuItem.Text = "\u7cfb\u7edf\u7ba1\u7406";
             // 
-            // gestiónDeDispositivosToolStripMenuItem
+            // gesti\u00f3nDeDispositivosToolStripMenuItem
             // 
-            this.gestiónDeDispositivosToolStripMenuItem.Name = "gestiónDeDispositivosToolStripMenuItem";
-            this.gestiónDeDispositivosToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
-            this.gestiónDeDispositivosToolStripMenuItem.Text = "设备管理";
-            this.gestiónDeDispositivosToolStripMenuItem.Click += new System.EventHandler(this.gestiónDeDispositivosToolStripMenuItem_Click);
+            this.gesti\u00f3nDeDispositivosToolStripMenuItem.Name = "gesti\u00f3nDeDispositivosToolStripMenuItem";
+            this.gesti\u00f3nDeDispositivosToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            this.gesti\u00f3nDeDispositivosToolStripMenuItem.Text = "\u8bbe\u5907\u7ba1\u7406";
+            this.gesti\u00f3nDeDispositivosToolStripMenuItem.Click += new System.EventHandler(this.gesti\u00f3nDeDispositivosToolStripMenuItem_Click);
             // 
             // controldoor
             // 
             this.controldoor.Name = "controldoor";
             this.controldoor.Size = new System.Drawing.Size(180, 22);
-            this.controldoor.Text = "远程控门";
+            this.controldoor.Text = "\u8fdc\u7a0b\u63a7\u95e8";
             this.controldoor.Click += new System.EventHandler(this.controldoor_Click);
             // 
             // gestionDeEmpleadosToolStripMenuItem
             // 
             this.gestionDeEmpleadosToolStripMenuItem.Name = "gestionDeEmpleadosToolStripMenuItem";
             this.gestionDeEmpleadosToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
-            this.gestionDeEmpleadosToolStripMenuItem.Text = "员工管理";
+            this.gestionDeEmpleadosToolStripMenuItem.Text = "\u5458\u5de5\u7ba1\u7406";
             this.gestionDeEmpleadosToolStripMenuItem.Click += new System.EventHandler(this.gestionDeEmpleadosToolStripMenuItem_Click);
             // 
             // CapturarEntradaSalidaToolStripMenuItem
             // 
             this.CapturarEntradaSalidaToolStripMenuItem.Name = "CapturarEntradaSalidaToolStripMenuItem";
             this.CapturarEntradaSalidaToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
-            this.CapturarEntradaSalidaToolStripMenuItem.Text = "实时监控";
+            this.CapturarEntradaSalidaToolStripMenuItem.Text = "\u5b9e\u65f6\u76d1\u63a7";
             this.CapturarEntradaSalidaToolStripMenuItem.Click += new System.EventHandler(this.CapturarEntradaSalidaToolStripMenuItem_Click);
             // 
             // toolStripMenuItem2
@@ -113,7 +107,7 @@ namespace ControlEntradaSalida
             // 
             this.consultarDatosDispositivoToolStripMenuItem.Name = "consultarDatosDispositivoToolStripMenuItem";
             this.consultarDatosDispositivoToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
-            this.consultarDatosDispositivoToolStripMenuItem.Text = "权限管理";
+            this.consultarDatosDispositivoToolStripMenuItem.Text = "\u6743\u9650\u7ba1\u7406";
             this.consultarDatosDispositivoToolStripMenuItem.Click += new System.EventHandler(this.consultarDatosDispositivoToolStripMenuItem_Click);
             // 
             // toolStripMenuItem3
@@ -125,40 +119,8 @@ namespace ControlEntradaSalida
             // 
             this.salirToolStripMenuItem.Name = "salirToolStripMenuItem";
             this.salirToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
-            this.salirToolStripMenuItem.Text = "退出";
+            this.salirToolStripMenuItem.Text = "\u9000\u51fa";
             this.salirToolStripMenuItem.Click += new System.EventHandler(this.salirToolStripMenuItem_Click);
-            // 
-            // informesToolStripMenuItem
-            // 
-            this.informesToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.entradasYSalidasToolStripMenuItem,
-            this.eventosToolStripMenuItem});
-            this.informesToolStripMenuItem.Name = "informesToolStripMenuItem";
-            this.informesToolStripMenuItem.Size = new System.Drawing.Size(44, 21);
-            this.informesToolStripMenuItem.Text = "报表查询";
-            // 
-            // entradasYSalidasToolStripMenuItem
-            // 
-            this.entradasYSalidasToolStripMenuItem.Name = "entradasYSalidasToolStripMenuItem";
-            this.entradasYSalidasToolStripMenuItem.Size = new System.Drawing.Size(124, 22);
-            this.entradasYSalidasToolStripMenuItem.Text = "进出记录报表";
-            this.entradasYSalidasToolStripMenuItem.Click += new System.EventHandler(this.entradasYSalidasToolStripMenuItem_Click);
-            // 
-            // eventosToolStripMenuItem
-            // 
-            this.eventosToolStripMenuItem.Name = "eventosToolStripMenuItem";
-            this.eventosToolStripMenuItem.Size = new System.Drawing.Size(124, 22);
-            this.eventosToolStripMenuItem.Text = "事件日志报表";
-            this.eventosToolStripMenuItem.Click += new System.EventHandler(this.eventosToolStripMenuItem_Click);
-            // 
-            // Plantemplate
-            // 
-            this.Plantemplate.Name = "Plantemplate";
-            this.Plantemplate.Size = new System.Drawing.Size(180, 22);
-            this.Plantemplate.Text = "计划管理";
-            this.Plantemplate.Click += new System.EventHandler(this.Plantemplate_Click);
-            // 
-            // 
             // 
             // MDIParent
             // 
@@ -171,7 +133,7 @@ namespace ControlEntradaSalida
             this.MainMenuStrip = this.menuStrip1;
             this.Name = "MDIParent";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
-            this.Text = "门禁系统";
+            this.Text = "\u95e8\u7981\u7cfb\u7edf";
             this.WindowState = System.Windows.Forms.FormWindowState.Maximized;
             this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.MDIParent_FormClosing);
             this.Load += new System.EventHandler(this.MDIParent_Load);
@@ -191,13 +153,9 @@ namespace ControlEntradaSalida
         private System.Windows.Forms.ToolStripMenuItem CapturarEntradaSalidaToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem salirToolStripMenuItem;
         private System.Windows.Forms.ToolStripSeparator toolStripMenuItem2;
-        private System.Windows.Forms.ToolStripMenuItem informesToolStripMenuItem;
-        private System.Windows.Forms.ToolStripMenuItem eventosToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem consultarDatosDispositivoToolStripMenuItem;
         private System.Windows.Forms.ToolStripSeparator toolStripMenuItem3;
-        private System.Windows.Forms.ToolStripMenuItem entradasYSalidasToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem controldoor;
-        private System.Windows.Forms.ToolStripMenuItem Plantemplate;
     }
 }
 

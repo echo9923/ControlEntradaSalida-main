@@ -708,11 +708,7 @@ namespace ControlEntradaSalida
         }
 
         //事件报表参数窗口
-        private void eventosToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            ParamInformeEventos frmParamInformeEventos = new ParamInformeEventos();
-            ShowOwnedTopMost(frmParamInformeEventos);
-        }
+        
         //窗体加载时的初始化
         private async void MDIParent_Load(object sender, EventArgs e)
         {
@@ -813,11 +809,7 @@ namespace ControlEntradaSalida
 
         }
         //进出记录报表窗口
-        private void entradasYSalidasToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            ParamInformeEntradaSalida frmParamInformeEntradaSalida = new ParamInformeEntradaSalida();
-            ShowOwnedTopMost(frmParamInformeEntradaSalida);
-        }
+        
 
         private void menuStrip1_ItemClicked(object sender, ToolStripItemClickedEventArgs e)
         {
@@ -830,11 +822,7 @@ namespace ControlEntradaSalida
             ShowOwnedTopMost(frmGestionUsuariosDispositivo);
         }
 
-        private void Plantemplate_Click(object sender, EventArgs e)
-        {
-            Plantemplate frmGestionUsuariosDispositivo = new Plantemplate();
-            ShowOwnedTopMost(frmGestionUsuariosDispositivo);
-        }
+        
         
         private void webBrowserToolStripMenuItem_Click(object sender, EventArgs e)
         {

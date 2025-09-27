@@ -189,12 +189,6 @@
       <DependentUpon>CapturaEntradaSalida.cs</DependentUpon>
     </Compile>
     <Compile Include="Common.cs" />
-    <Compile Include="Plantemplate.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="Plantemplate.designer.cs">
-      <DependentUpon>Plantemplate.cs</DependentUpon>
-    </Compile>
     <Compile Include="controldoor.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -206,12 +200,6 @@
     </Compile>
     <Compile Include="GestionUsuariosDispositivo.designer.cs">
       <DependentUpon>GestionUsuariosDispositivo.cs</DependentUpon>
-    </Compile>
-    <Compile Include="Informe.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="Informe.Designer.cs">
-      <DependentUpon>Informe.cs</DependentUpon>
     </Compile>
     <Compile Include="GestionDispositivos.cs">
       <SubType>Form</SubType>
@@ -229,8 +217,6 @@
     </Compile>
     <Compile Include="HCNetSDK.cs" />
     <Compile Include="HCNetSDK_Facial.cs" />
-    <Compile Include="InformeEntradaSalida.cs" />
-    <Compile Include="InformeEventos.cs" />
     <Compile Include="LoginDevice.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -242,42 +228,6 @@
     </Compile>
     <Compile Include="MDIParent.designer.cs">
       <DependentUpon>MDIParent.cs</DependentUpon>
-    </Compile>
-    <Compile Include="ParamInformeEntradaSalida.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="ParamInformeEntradaSalida.designer.cs">
-      <DependentUpon>ParamInformeEntradaSalida.cs</DependentUpon>
-    </Compile>
-    <Compile Include="ParamInformeEventos.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="ParamInformeEventos.designer.cs">
-      <DependentUpon>ParamInformeEventos.cs</DependentUpon>
-    </Compile>
-    <Compile Include="ProductAcs\HolidayPlan.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="ProductAcs\HolidayPlan.designer.cs">
-      <DependentUpon>HolidayPlan.cs</DependentUpon>
-    </Compile>
-    <Compile Include="ProductAcs\HolidayGroupPlan.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="ProductAcs\HolidayGroupPlan.designer.cs">
-      <DependentUpon>HolidayGroupPlan.cs</DependentUpon>
-    </Compile>
-    <Compile Include="ProductAcs\PlanTemplateM.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="ProductAcs\PlanTemplateM.designer.cs">
-      <DependentUpon>PlanTemplateM.cs</DependentUpon>
-    </Compile>
-    <Compile Include="ProductAcs\WeekPlan.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="ProductAcs\WeekPlan.designer.cs">
-      <DependentUpon>WeekPlan.cs</DependentUpon>
     </Compile>
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
@@ -303,17 +253,11 @@
     <EmbeddedResource Include="CapturaEntradaSalida.resx">
       <DependentUpon>CapturaEntradaSalida.cs</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="Plantemplate.resx">
-      <DependentUpon>Plantemplate.cs</DependentUpon>
-    </EmbeddedResource>
     <EmbeddedResource Include="controldoor.resx">
       <DependentUpon>controldoor.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="GestionUsuariosDispositivo.resx">
       <DependentUpon>GestionUsuariosDispositivo.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Informe.resx">
-      <DependentUpon>Informe.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="GestionDispositivos.resx">
       <DependentUpon>GestionDispositivos.cs</DependentUpon>
@@ -321,39 +265,17 @@
     <EmbeddedResource Include="GestionEmpleados.resx">
       <DependentUpon>GestionEmpleados.cs</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="InformeEntradaSalida.rdlc" />
     <EmbeddedResource Include="LoginDevice.resx">
       <DependentUpon>LoginDevice.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="MDIParent.resx">
       <DependentUpon>MDIParent.cs</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="ParamInformeEntradaSalida.resx">
-      <DependentUpon>ParamInformeEntradaSalida.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="ParamInformeEventos.resx">
-      <DependentUpon>ParamInformeEventos.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="InformeEventos.rdlc" />
-    <EmbeddedResource Include="ProductAcs\HolidayPlan.resx">
-      <DependentUpon>HolidayPlan.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="ProductAcs\HolidayGroupPlan.resx">
-      <DependentUpon>HolidayGroupPlan.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="ProductAcs\PlanTemplateM.resx">
-      <DependentUpon>PlanTemplateM.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="ProductAcs\WeekPlan.resx">
-      <DependentUpon>WeekPlan.cs</DependentUpon>
-    </EmbeddedResource>
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
     </EmbeddedResource>
     <None Include="packages.config" />
-    <None Include="Properties\DataSources\InformeEntradaSalida.datasource" />
-    <None Include="Properties\DataSources\InformeEventos.datasource" />
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
