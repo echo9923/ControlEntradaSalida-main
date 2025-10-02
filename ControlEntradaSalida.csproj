@@ -180,7 +180,6 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="AcsDemoPublic.cs" />
     <Compile Include="BaseDatosMySQL.cs" />
     <Compile Include="Common.cs" />
     <Compile Include="GestionUsuariosDispositivo.cs">
@@ -230,7 +229,6 @@
     <Compile Include="SafeUIUpdater.cs" />
     <Compile Include="DeviceStatusEngine.cs" />
     <Compile Include="ReconnectManager.cs" />
-    <Compile Include="TimeSegmentHelper.cs" />
     <!-- 寮傛鏁版嵁搴撳鐞嗙粍浠?- 娴峰悍濞佽SDK缂栫▼鎸囧崡浼樺寲 -->
     <EmbeddedResource Include="GestionUsuariosDispositivo.resx">
       <DependentUpon>GestionUsuariosDispositivo.cs</DependentUpon>
