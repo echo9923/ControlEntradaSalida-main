@@ -45,15 +45,14 @@ namespace ControlEntradaSalida
             this.Activate();
             this.BringToFront();
             this.Focus();
-            
-            if (this.id != null && this.nombre != null && this.ip != null && this.puerto != null && this.usuario != null && this.password != null )
+
+            if (this.nombre != null && this.ip != null && this.puerto != null && this.usuario != null && this.password != null)
             {
-                this.textBoxID.Text = this.id.ToString();
                 this.textBoxNombre.Text = this.nombre.ToString();
                 if (this.descripcion != null)
                 {
-                    string categoria = this.descripcion.ToString().ToUpper();
-                    // 尝试在下拉框中选择对应的类别
+                    string categoria = this.descripcion.ToString();
+                    // 尝试在下拉框中选择对应的区域
                     int index = this.comboBoxCategoria.FindStringExact(categoria);
                     if (index >= 0)
                         this.comboBoxCategoria.SelectedIndex = index;
@@ -64,20 +63,12 @@ namespace ControlEntradaSalida
                 {
                     this.comboBoxCategoria.SelectedIndex = 0; // 默认选择第一个
                 }
-                if (this.activo.ToString() == "1")
-                    this.checkBoxEstado.Checked = true;
-                if (this.predeterminado.ToString() == "1")
-                    this.checkBoxPredeterminado.Checked = true;
 
-                
-                
                 this.txtDireccionIP.Text = this.ip.ToString();
                 this.txtPuerto.Text = this.puerto.ToString();
                 this.txtUsuario.Text = this.usuario.ToString();
                 this.txtContrasena.Text = this.password.ToString();
-
-            } 
-       
+            }
         }
 
         //添加新设备到数据库,保存设备的所有字段,添加当前时间为 created 和 lastimeused 字段
@@ -97,20 +88,13 @@ namespace ControlEntradaSalida
                     "@username, @password, @status, @is_default, @last_used_time, @created_at)";//SQL语句，插入数据库
                 try
                 {
-                    int status = 0;
+                    // 新增设备默认启用状态为1，默认设备为0
+                    int status = 1;
                     int isDefault = 0;
-                    if (this.checkBoxEstado.Checked)
-                        status = 1;
-                    if (this.checkBoxPredeterminado.Checked)
-                    {
-                        isDefault = 1;
-                        UpdateDefaultDevice();
-                    }
-
 
                     MySqlCommand cmd = new MySqlCommand(sql, bd.conn);
                     cmd.Parameters.AddWithValue("@device_name", this.textBoxNombre.Text);//名称
-                    cmd.Parameters.AddWithValue("@description", this.comboBoxCategoria.Text);//类别
+                    cmd.Parameters.AddWithValue("@description", this.comboBoxCategoria.Text);//区域
                     cmd.Parameters.AddWithValue("@ip_address", this.txtDireccionIP.Text);//IP
                     cmd.Parameters.AddWithValue("@port", this.txtPuerto.Text);//端口
                     cmd.Parameters.AddWithValue("@username", this.txtUsuario.Text);//用户
@@ -183,35 +167,21 @@ namespace ControlEntradaSalida
                     "port =  @port, " +
                     "username = @username, " +
                     "password = @password," +
-                    "status = @status, " +
-                    "is_default = @is_default, " +
                     "updated_at = @updated_at," +
                     "last_used_time = @last_used_time " +
                     "WHERE device_id = @device_id";
                 try
                 {
-                    int status = 0;
-                    int isDefault = 0;
-                    if (this.checkBoxEstado.Checked)
-                        status = 1;
-                    if (this.checkBoxPredeterminado.Checked)
-                    {
-                        isDefault = 1;
-                        UpdateDefaultDevice();
-                    }
-
                     MySqlCommand cmd = new MySqlCommand(sql, bd.conn);
                     cmd.Parameters.AddWithValue("@device_name", this.textBoxNombre.Text);//名称
-                    cmd.Parameters.AddWithValue("@description", this.comboBoxCategoria.Text);//类别
+                    cmd.Parameters.AddWithValue("@description", this.comboBoxCategoria.Text);//区域
                     cmd.Parameters.AddWithValue("@ip_address", this.txtDireccionIP.Text);//IP
                     cmd.Parameters.AddWithValue("@port", this.txtPuerto.Text);//端口
                     cmd.Parameters.AddWithValue("@username", this.txtUsuario.Text);//用户
                     cmd.Parameters.AddWithValue("@password", this.txtContrasena.Text);//密码
-                    cmd.Parameters.AddWithValue("@status", status);//状态
-                    cmd.Parameters.AddWithValue("@is_default", isDefault);//是否默认
                     cmd.Parameters.AddWithValue("@updated_at", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
                     cmd.Parameters.AddWithValue("@last_used_time", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));//最后登录时间
-                    cmd.Parameters.AddWithValue("@device_id", this.textBoxID.Text);//编号
+                    cmd.Parameters.AddWithValue("@device_id", deviceId);//编号
                     cmd.ExecuteNonQuery();
                     bd.desconectarMySQL();
 
@@ -325,7 +295,7 @@ namespace ControlEntradaSalida
             else
             {
                 bool loginSuccess = login(out userID);
-                operationSucceeded = UpdateDevice(this.textBoxID.Text);
+                operationSucceeded = UpdateDevice(this.id);
 
                 // 修复：更新设备后重新建立连接
                 if (operationSucceeded)
@@ -366,7 +336,7 @@ namespace ControlEntradaSalida
                 if (operationSucceeded)
                 {
                     DataChangeNotifier.Instance.NotifyDeviceDataChanged(
-                        this.textBoxID.Text,
+                        this.id,
                         deviceInfo,
                         DeviceChangeType.Updated,
                         this.GetType().Name);
@@ -381,7 +351,26 @@ namespace ControlEntradaSalida
 
         private void txtPuerto_Enter(object sender, EventArgs e)
         {
-            
+
+        }
+
+        /// <summary>
+        /// 密码显示/隐藏切换按钮点击事件
+        /// </summary>
+        private void btnTogglePassword_Click(object sender, EventArgs e)
+        {
+            if (txtContrasena.PasswordChar == '*')
+            {
+                // 显示密码
+                txtContrasena.PasswordChar = '\0';
+                btnTogglePassword.Text = "🔒";
+            }
+            else
+            {
+                // 隐藏密码
+                txtContrasena.PasswordChar = '*';
+                btnTogglePassword.Text = "👁";
+            }
         }
     }
 }
