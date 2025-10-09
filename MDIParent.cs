@@ -55,7 +55,9 @@ namespace ControlEntradaSalida
         private DataChangeNotifier _notifier;
         private readonly object _statusUpdateLock = new object();
         private bool _isClosingAsync = false;
-        
+        private readonly PermissionRefreshManager permissionRefreshManager = new PermissionRefreshManager();
+        private bool isRefreshingPermissions;
+
         public bool IsFormVisible => this.Visible;
 
         //初始化窗体和控件
@@ -792,8 +794,74 @@ namespace ControlEntradaSalida
             ShowOwnedTopMost(frmGestionUsuariosDispositivo);
 
         }
+
+        private async void refreshPermissionsToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            await RefreshPermissionsAsync();
+        }
+
+        private async Task RefreshPermissionsAsync()
+        {
+            if (isRefreshingPermissions)
+            {
+                MessageBox.Show("权限刷新正在进行，请稍候。", "刷新权限", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+
+            isRefreshingPermissions = true;
+
+            try
+            {
+                PermissionRefreshSummary summary = await Task.Run(() => permissionRefreshManager.RefreshAllPermissions());
+                ShowPermissionRefreshSummary(summary);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("刷新权限过程中发生异常：" + ex.Message, "刷新失败", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+            finally
+            {
+                isRefreshingPermissions = false;
+            }
+        }
+
+        private void ShowPermissionRefreshSummary(PermissionRefreshSummary summary)
+        {
+            if (summary == null)
+            {
+                MessageBox.Show("未获取到刷新结果。", "刷新权限", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            StringBuilder messageBuilder = new StringBuilder();
+            messageBuilder.AppendLine($"总用户数: {summary.TotalUsers}");
+            messageBuilder.AppendLine($"已更新: {summary.UsersUpdated}");
+            messageBuilder.AppendLine($"无变更: {summary.UsersSkipped}");
+            messageBuilder.AppendLine($"失败: {summary.UsersFailed}");
+
+            if (summary.Errors.Count > 0)
+            {
+                messageBuilder.AppendLine().AppendLine("错误详情:");
+                foreach (string error in summary.Errors.Take(5))
+                {
+                    messageBuilder.AppendLine("- " + error);
+                }
+
+                if (summary.Errors.Count > 5)
+                {
+                    messageBuilder.AppendLine($"... 共 {summary.Errors.Count} 条错误信息");
+                }
+
+                MessageBox.Show(messageBuilder.ToString(), "刷新完成（存在错误）", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+            else
+            {
+                MessageBox.Show(messageBuilder.ToString(), "刷新完成", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+        }
+
         //进出记录报表窗口
-        
+
 
         private void menuStrip1_ItemClicked(object sender, ToolStripItemClickedEventArgs e)
         {

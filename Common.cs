@@ -19,58 +19,129 @@ namespace ControlEntradaSalida
         //使用海康威视 SDK 向设备发送 ISAPI（XML 配置）请求并接收结果
         public bool ISAPIQuery(int userID, string requestURL, string inputParam, out string outputResult, out string outputStatus)
         {
-            bool retval = true;
-
             outputResult = null;
             outputStatus = null;
 
             if (userID < 0)
             {
                 outputResult = "设备未连接";
-                retval = false;
+                return false;
             }
-            else
+
+            HCNetSDK.NET_DVR_XML_CONFIG_INPUT inputStruct = new HCNetSDK.NET_DVR_XML_CONFIG_INPUT
             {
-                HCNetSDK.NET_DVR_XML_CONFIG_INPUT pInputXml = new HCNetSDK.NET_DVR_XML_CONFIG_INPUT();
-                Int32 nInSize = Marshal.SizeOf(pInputXml);
-                pInputXml.dwSize = (uint)nInSize;
+                byRes = new byte[32],
+                dwSize = (uint)Marshal.SizeOf(typeof(HCNetSDK.NET_DVR_XML_CONFIG_INPUT))
+            };
 
-                string strRequestUrl = requestURL;
-                uint dwRequestUrlLen = (uint)strRequestUrl.Length;
-                pInputXml.lpRequestUrl = Marshal.StringToHGlobalAnsi(strRequestUrl);
-                pInputXml.dwRequestUrlLen = dwRequestUrlLen;
+            HCNetSDK.NET_DVR_XML_CONFIG_OUTPUT outputStruct = new HCNetSDK.NET_DVR_XML_CONFIG_OUTPUT
+            {
+                byRes = new byte[32],
+                dwSize = (uint)Marshal.SizeOf(typeof(HCNetSDK.NET_DVR_XML_CONFIG_OUTPUT))
+            };
 
-                string strInputParam = inputParam;
+            string url = requestURL ?? string.Empty;
+            byte[] urlBytes = Encoding.UTF8.GetBytes(url);
 
-                pInputXml.lpInBuffer = Marshal.StringToHGlobalAnsi(strInputParam);
-                pInputXml.dwInBufferSize = (uint)strInputParam.Length;
+            string payload = inputParam ?? string.Empty;
+            byte[] payloadBytes = Encoding.UTF8.GetBytes(payload);
 
-                HCNetSDK.NET_DVR_XML_CONFIG_OUTPUT pOutputXml = new HCNetSDK.NET_DVR_XML_CONFIG_OUTPUT();
-                pOutputXml.dwSize = (uint)Marshal.SizeOf(pInputXml);
-                pOutputXml.lpOutBuffer = Marshal.AllocHGlobal(3 * 1024 * 1024);
-                pOutputXml.dwOutBufferSize = 3 * 1024 * 1024;
-                pOutputXml.lpStatusBuffer = Marshal.AllocHGlobal(4096 * 4);
-                pOutputXml.dwStatusSize = 4096 * 4;
+            IntPtr urlPtr = IntPtr.Zero;
+            IntPtr payloadPtr = IntPtr.Zero;
+            IntPtr outputPtr = IntPtr.Zero;
+            IntPtr statusPtr = IntPtr.Zero;
 
-                if (!HCNetSDK.NET_DVR_STDXMLConfig(userID, ref pInputXml, ref pOutputXml))
+            try
+            {
+                urlPtr = Marshal.AllocHGlobal(urlBytes.Length + 1);
+                if (urlBytes.Length > 0)
+                {
+                    Marshal.Copy(urlBytes, 0, urlPtr, urlBytes.Length);
+                }
+                Marshal.WriteByte(urlPtr, urlBytes.Length, 0);
+
+                inputStruct.lpRequestUrl = urlPtr;
+                inputStruct.dwRequestUrlLen = (uint)urlBytes.Length;
+
+                payloadPtr = Marshal.AllocHGlobal(payloadBytes.Length + 1);
+                if (payloadBytes.Length > 0)
+                {
+                    Marshal.Copy(payloadBytes, 0, payloadPtr, payloadBytes.Length);
+                }
+                Marshal.WriteByte(payloadPtr, payloadBytes.Length, 0);
+
+                inputStruct.lpInBuffer = payloadPtr;
+                inputStruct.dwInBufferSize = (uint)payloadBytes.Length;
+
+                int outBufferSize = 3 * 1024 * 1024;
+                int statusBufferSize = 4096 * 4;
+
+                outputPtr = Marshal.AllocHGlobal(outBufferSize);
+                statusPtr = Marshal.AllocHGlobal(statusBufferSize);
+
+                outputStruct.lpOutBuffer = outputPtr;
+                outputStruct.dwOutBufferSize = (uint)outBufferSize;
+                outputStruct.lpStatusBuffer = statusPtr;
+                outputStruct.dwStatusSize = (uint)statusBufferSize;
+
+                bool success = HCNetSDK.NET_DVR_STDXMLConfig(userID, ref inputStruct, ref outputStruct);
+                if (!success)
                 {
                     iLastErr = HCNetSDK.NET_DVR_GetLastError();
+                    outputStatus = PtrToStringUtf8(statusPtr);
                     outputResult = "NET_DVR_STDXMLConfig failed, error code= " + iLastErr;
-                    retval = false;
+                    return false;
                 }
-                else
-                {
-                    string strOutputParam = Marshal.PtrToStringAnsi(pOutputXml.lpOutBuffer);
-                    outputResult = Encoding.ASCII.GetString(Encoding.ASCII.GetBytes(strOutputParam));
-                    outputStatus = Marshal.PtrToStringAnsi(pOutputXml.lpStatusBuffer);
 
+                outputResult = PtrToStringUtf8(outputPtr);
+                outputStatus = PtrToStringUtf8(statusPtr);
+                return true;
+            }
+            finally
+            {
+                if (urlPtr != IntPtr.Zero)
+                {
+                    Marshal.FreeHGlobal(urlPtr);
                 }
-                Marshal.FreeHGlobal(pInputXml.lpRequestUrl);
-                Marshal.FreeHGlobal(pOutputXml.lpOutBuffer);
-                Marshal.FreeHGlobal(pOutputXml.lpStatusBuffer);
+
+                if (payloadPtr != IntPtr.Zero)
+                {
+                    Marshal.FreeHGlobal(payloadPtr);
+                }
+
+                if (outputPtr != IntPtr.Zero)
+                {
+                    Marshal.FreeHGlobal(outputPtr);
+                }
+
+                if (statusPtr != IntPtr.Zero)
+                {
+                    Marshal.FreeHGlobal(statusPtr);
+                }
+            }
+        }
+
+        private string PtrToStringUtf8(IntPtr ptr)
+        {
+            if (ptr == IntPtr.Zero)
+            {
+                return null;
             }
 
-            return retval;
+            int length = 0;
+            while (Marshal.ReadByte(ptr, length) != 0)
+            {
+                length++;
+            }
+
+            if (length == 0)
+            {
+                return string.Empty;
+            }
+
+            byte[] buffer = new byte[length];
+            Marshal.Copy(ptr, buffer, 0, length);
+            return Encoding.UTF8.GetString(buffer);
         }
 
 

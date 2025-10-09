@@ -129,6 +129,45 @@ COLLATE=utf8mb4_unicode_ci
 COMMENT='员工信息表';
 
 -- =====================================================
+-- 表: user_permissions (用户权限定义表)
+-- =====================================================
+-- 用途: 存储员工的权限级别以及最后同步到设备的状态
+-- 权限级别说明:
+--   0 - 禁止访问所有区域
+--   1 - 仅生产区域
+--   2 - 仅办公区域
+--   3 - 生产与办公区域
+-- =====================================================
+DROP TABLE IF EXISTS `access_control_system`.`user_permissions`;
+
+CREATE TABLE IF NOT EXISTS `access_control_system`.`user_permissions` (
+  `employee_id` VARCHAR(30) NOT NULL
+    COMMENT '员工编号(关联 employees 表)',
+
+  `permission_level` TINYINT NOT NULL DEFAULT 0
+    COMMENT '目标权限级别(0-3)',
+
+  `last_synced_level` TINYINT NULL DEFAULT NULL
+    COMMENT '最近一次同步到设备的权限级别',
+
+  `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+    COMMENT '权限级别更新时间',
+
+  `last_synced_at` DATETIME NULL DEFAULT NULL
+    COMMENT '最近一次同步到设备的时间',
+
+  PRIMARY KEY (`employee_id`),
+  CONSTRAINT `fk_user_permissions_employee`
+    FOREIGN KEY (`employee_id`) REFERENCES `access_control_system`.`employees`(`employee_id`)
+    ON DELETE CASCADE ON UPDATE CASCADE,
+  INDEX `idx_permission_level` (`permission_level` ASC)
+)
+ENGINE=InnoDB
+DEFAULT CHARSET=utf8mb4
+COLLATE=utf8mb4_unicode_ci
+COMMENT='员工权限级别与同步状态表';
+
+-- =====================================================
 -- 表: device_users_backup (设备用户备份表)
 -- =====================================================
 -- 用途: 备份从设备下载的用户数据和照片

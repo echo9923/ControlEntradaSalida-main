@@ -35,6 +35,7 @@ namespace ControlEntradaSalida
             this.gestionDeEmpleadosToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripMenuItem2 = new System.Windows.Forms.ToolStripSeparator();
             this.consultarDatosDispositivoToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.refreshPermissionsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripMenuItem3 = new System.Windows.Forms.ToolStripSeparator();
             this.salirToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.SuspendLayout();
@@ -59,6 +60,7 @@ namespace ControlEntradaSalida
             this.gestionDeEmpleadosToolStripMenuItem,
             this.toolStripMenuItem2,
             this.consultarDatosDispositivoToolStripMenuItem,
+            this.refreshPermissionsToolStripMenuItem,
             this.toolStripMenuItem3,
             this.salirToolStripMenuItem});
             this.generalToolStripMenuItem.Name = "generalToolStripMenuItem";
@@ -91,6 +93,13 @@ namespace ControlEntradaSalida
             this.consultarDatosDispositivoToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
             this.consultarDatosDispositivoToolStripMenuItem.Text = "\u6743\u9650\u7ba1\u7406";
             this.consultarDatosDispositivoToolStripMenuItem.Click += new System.EventHandler(this.consultarDatosDispositivoToolStripMenuItem_Click);
+            // 
+            // refreshPermissionsToolStripMenuItem
+            // 
+            this.refreshPermissionsToolStripMenuItem.Name = "refreshPermissionsToolStripMenuItem";
+            this.refreshPermissionsToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            this.refreshPermissionsToolStripMenuItem.Text = "\u5237\u65b0\u7528\u6237\u6743\u9650";
+            this.refreshPermissionsToolStripMenuItem.Click += new System.EventHandler(this.refreshPermissionsToolStripMenuItem_Click);
             // 
             // toolStripMenuItem3
             // 
@@ -134,6 +143,7 @@ namespace ControlEntradaSalida
         private System.Windows.Forms.ToolStripMenuItem gestionDeEmpleadosToolStripMenuItem;
         private System.Windows.Forms.ToolStripSeparator toolStripMenuItem2;
         private System.Windows.Forms.ToolStripMenuItem consultarDatosDispositivoToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem refreshPermissionsToolStripMenuItem;
         private System.Windows.Forms.ToolStripSeparator toolStripMenuItem3;
         private System.Windows.Forms.ToolStripMenuItem salirToolStripMenuItem;
     }

@@ -6,7 +6,6 @@ using System.Drawing;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 using MySql.Data.MySqlClient;
 using Newtonsoft.Json;
@@ -23,13 +22,12 @@ namespace ControlEntradaSalida
     public partial class GestionUsuariosDispositivo : Form
     {
         private uint iLastErr = 0;
-        
         //初始化窗体
         public GestionUsuariosDispositivo()
         {
             InitializeComponent();
         }
-        
+
         // 获取当前连接设备的UserID
         private int GetConnectedDeviceUserID()
         {
