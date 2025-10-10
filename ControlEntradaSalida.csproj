@@ -183,12 +183,6 @@
     <Compile Include="BaseDatosMySQL.cs" />
     <Compile Include="Common.cs" />
     <Compile Include="PermissionRefreshManager.cs" />
-    <Compile Include="GestionUsuariosDispositivo.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="GestionUsuariosDispositivo.designer.cs">
-      <DependentUpon>GestionUsuariosDispositivo.cs</DependentUpon>
-    </Compile>
     <Compile Include="GestionDispositivos.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -196,12 +190,6 @@
     <Compile Include="SynchronizationHelper.cs" />
     <Compile Include="GestionDispositivos.designer.cs">
       <DependentUpon>GestionDispositivos.cs</DependentUpon>
-    </Compile>
-    <Compile Include="GestionEmpleados.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="GestionEmpleados.designer.cs">
-      <DependentUpon>GestionEmpleados.cs</DependentUpon>
     </Compile>
     <Compile Include="HCNetSDK.cs" />
     <Compile Include="HCNetSDK_Facial.cs" />
@@ -231,14 +219,8 @@
     <Compile Include="DeviceStatusEngine.cs" />
     <Compile Include="ReconnectManager.cs" />
     <!-- 寮傛鏁版嵁搴撳鐞嗙粍浠?- 娴峰悍濞佽SDK缂栫▼鎸囧崡浼樺寲 -->
-    <EmbeddedResource Include="GestionUsuariosDispositivo.resx">
-      <DependentUpon>GestionUsuariosDispositivo.cs</DependentUpon>
-    </EmbeddedResource>
     <EmbeddedResource Include="GestionDispositivos.resx">
       <DependentUpon>GestionDispositivos.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="GestionEmpleados.resx">
-      <DependentUpon>GestionEmpleados.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="LoginDevice.resx">
       <DependentUpon>LoginDevice.cs</DependentUpon>

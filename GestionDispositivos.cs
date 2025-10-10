@@ -416,14 +416,6 @@ namespace ControlEntradaSalida
         }
         
         /// <summary>
-        /// 刷新员工数据（设备管理界面不需要）
-        /// </summary>
-        public void RefreshEmployeeData()
-        {
-            // 设备管理界面不需要刷新员工数据
-        }
-        
-        /// <summary>
         /// 刷新门状态（在设备列表中更新状态显示）
         /// </summary>
         /// <param name="deviceId">设备ID</param>

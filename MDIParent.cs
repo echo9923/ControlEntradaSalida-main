@@ -771,12 +771,6 @@ namespace ControlEntradaSalida
             GestionDispositivos frmGestionDispositivos = new GestionDispositivos();
             ShowOwnedTopMost(frmGestionDispositivos);
         }
-        //员工管理窗口
-        private void gestionDeEmpleadosToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            GestionEmpleados frmGestionEmpleados = new GestionEmpleados();
-            ShowOwnedTopMost(frmGestionEmpleados);
-        }
         //程序退出
         private void salirToolStripMenuItem_Click(object sender, EventArgs e)
         {
@@ -867,13 +861,6 @@ namespace ControlEntradaSalida
             DeviceConnectionManager.Instance.Dispose();
 
             HCNetSDK.NET_DVR_Cleanup();
-        }
-        //设备用户信息窗口
-        private void consultarDatosDispositivoToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            GestionUsuariosDispositivo frmGestionUsuariosDispositivo = new GestionUsuariosDispositivo();
-            ShowOwnedTopMost(frmGestionUsuariosDispositivo);
-
         }
 
         private async void refreshPermissionsToolStripMenuItem_Click(object sender, EventArgs e)
@@ -1010,13 +997,6 @@ namespace ControlEntradaSalida
             });
         }
         
-        /// <summary>
-        /// 刷新员工数据（主界面不需要）
-        /// </summary>
-        public void RefreshEmployeeData()
-        {
-            // 主界面不需要刷新员工数据
-        }
         
         
         #endregion

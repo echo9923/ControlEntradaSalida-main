@@ -17,11 +17,6 @@ namespace ControlEntradaSalida
         /// </summary>
         void RefreshDeviceData();
 
-        /// <summary>
-        /// 刷新员工数据
-        /// </summary>
-        void RefreshEmployeeData();
-
 
         /// <summary>
         /// 窗体是否可见
