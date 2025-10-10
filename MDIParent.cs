@@ -45,9 +45,11 @@ namespace ControlEntradaSalida
 
     public partial class MDIParent : Form, IRefreshableForm
     {
+        private const string DefaultAreaName = "未分配区域";
+
         // 设备状态面板
         private Panel mainDevicePanel;
-        private Dictionary<string, BufferedFlowLayoutPanel> categoryPanels;
+        private Dictionary<string, BufferedFlowLayoutPanel> areaPanels;
         private Dictionary<int, Panel> deviceStatusCards;
         private Timer animationTimer;
         private Dictionary<int, DateTime> lastUpdateTimes;
@@ -193,19 +195,20 @@ namespace ControlEntradaSalida
             // 创建主设备面板
             mainDevicePanel = new Panel();
             mainDevicePanel.Dock = DockStyle.Top;
-            mainDevicePanel.Height = 600; // 增加高度以容纳所有类别面板
+            mainDevicePanel.Height = 600; // 增加高度以容纳所有区域面板
             mainDevicePanel.BackColor = Color.FromArgb(248, 249, 250);
             mainDevicePanel.AutoScroll = true;
             mainDevicePanel.Padding = new Padding(15, 10, 15, 10);
 
             // 初始化字典
             deviceStatusCards = new Dictionary<int, Panel>();
-            categoryPanels = new Dictionary<string, BufferedFlowLayoutPanel>();
+            areaPanels = new Dictionary<string, BufferedFlowLayoutPanel>();
 
-            // 创建类别面板
-            CreateCategoryPanels();
+            // 不在这里创建区域面板,而是在加载设备时动态创建
+            // 这样可以确保从数据库读取到最新的区域数据
+            // CreateAreaPanels(); // 移除此行
 
-            // 将面板添加到窗体中，放在菜单栏下方
+            // 将面板添加到窗体中,放在菜单栏下方
             this.Controls.Add(mainDevicePanel);
             mainDevicePanel.BringToFront();
 
@@ -213,10 +216,10 @@ namespace ControlEntradaSalida
             DeviceConnectionManager.Instance.DeviceStatusChanged += OnDeviceStatusChanged;
         }
         
-        // 获取设备类别
-        private string GetDeviceCategory(int deviceId)
+        // 获取设备所属区域
+        private string GetDeviceArea(int deviceId)
         {
-            string category = "类别1"; // 默认类别
+            string area = DefaultAreaName;
             Common cmn = new Common();
             string connstr = cmn.obtenerCadenaConexion();
             BaseDatosMySQL bd = new BaseDatosMySQL();
@@ -234,17 +237,17 @@ namespace ControlEntradaSalida
                     if (rdr.HasRows && rdr.Read())
                     {
                         string description = rdr["description"].ToString();
-                        if (!string.IsNullOrEmpty(description))
+                        if (!string.IsNullOrWhiteSpace(description))
                         {
-                            category = description;
+                            area = description.Trim();
                         }
                     }
                     rdr.Close();
                 }
                 catch (Exception ex)
                 {
-                    // 记录错误但使用默认类别
-                    Console.WriteLine($"获取设备类别时出错: {ex.Message}");
+                    // 记录错误但使用默认区域
+                    Console.WriteLine($"获取设备区域时出错: {ex.Message}");
                 }
                 finally
                 {
@@ -252,53 +255,138 @@ namespace ControlEntradaSalida
                 }
             }
             
-            return category;
+            if (string.IsNullOrWhiteSpace(area))
+            {
+                area = DefaultAreaName;
+            }
+
+            return area;
         }
 
-        // 创建类别面板
-        private void CreateCategoryPanels()
+        // 创建区域面板
+        private void CreateAreaPanels()
         {
-            string[] categories = { "类别1", "类别2", "类别3" };
-            int yPosition = 0;
+            mainDevicePanel.Controls.Clear();
+            areaPanels.Clear();
 
-            foreach (string category in categories)
+            List<string> areas = GetDistinctDeviceAreas();
+            foreach (string area in areas)
             {
-                // 创建类别标题标签
-                Label categoryLabel = new Label();
-                categoryLabel.Text = category;
-                categoryLabel.Font = new Font("Microsoft YaHei", 10, FontStyle.Bold);
-                categoryLabel.ForeColor = Color.FromArgb(52, 58, 64);
-                categoryLabel.AutoSize = true;
-                categoryLabel.Location = new Point(5, yPosition);
-                mainDevicePanel.Controls.Add(categoryLabel);
-
-                yPosition += 25;
-
-                // 创建类别设备面板
-                BufferedFlowLayoutPanel categoryPanel = new BufferedFlowLayoutPanel();
-                categoryPanel.Location = new Point(0, yPosition);
-                categoryPanel.Width = mainDevicePanel.Width - 30;
-                categoryPanel.Height = 150; // 增加高度以容纳更多卡片
-                categoryPanel.BackColor = Color.Transparent;
-                categoryPanel.WrapContents = true;
-                categoryPanel.FlowDirection = FlowDirection.LeftToRight;
-                categoryPanel.Padding = new Padding(5, 0, 5, 0);
-                categoryPanel.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
-                categoryPanel.AutoSize = true; // 启用自动调整大小
-                categoryPanel.AutoSizeMode = AutoSizeMode.GrowAndShrink; // 根据内容自动增长和收缩
-
-                categoryPanels[category] = categoryPanel;
-                mainDevicePanel.Controls.Add(categoryPanel);
-
-                yPosition += 170; // 调整间距以适应新的面板高度
+                AddAreaSection(area);
             }
+        }
+
+        private void AddAreaSection(string areaName)
+        {
+            string displayName = string.IsNullOrWhiteSpace(areaName) ? DefaultAreaName : areaName;
+
+            // 创建区域标题标签
+            Label areaLabel = new Label();
+            areaLabel.Text = displayName;
+            areaLabel.Font = new Font("Microsoft YaHei", 10, FontStyle.Bold);
+            areaLabel.ForeColor = Color.FromArgb(52, 58, 64);
+            areaLabel.AutoSize = true;
+            areaLabel.Dock = DockStyle.Top; // 使用 Dock 自动堆叠
+            areaLabel.Padding = new Padding(5, 10, 5, 5); // 增加上下间距
+            areaLabel.BackColor = Color.Transparent;
+
+            // 创建区域设备面板
+            BufferedFlowLayoutPanel areaPanel = new BufferedFlowLayoutPanel();
+            areaPanel.Dock = DockStyle.Top; // 使用 Dock 自动堆叠
+            areaPanel.BackColor = Color.Transparent;
+            areaPanel.WrapContents = true;
+            areaPanel.FlowDirection = FlowDirection.LeftToRight;
+            areaPanel.Padding = new Padding(5, 5, 5, 10);
+            areaPanel.AutoSize = true; // 启用自动调整大小
+            areaPanel.AutoSizeMode = AutoSizeMode.GrowAndShrink; // 根据内容自动增长和收缩
+            areaPanel.MinimumSize = new Size(0, 50); // 设置最小高度,即使没有设备也保持可见
+
+            areaPanels[displayName] = areaPanel;
+            
+            // 重要:先添加面板,再添加标签,这样标签会显示在面板上方
+            mainDevicePanel.Controls.Add(areaPanel);
+            mainDevicePanel.Controls.Add(areaLabel);
+            
+            // 使用 Dock 后不再需要手动计算位置
+            // nextAreaSectionTop 变量可以保留用于其他目的,但不用于位置计算
+        }
+
+        private BufferedFlowLayoutPanel EnsureAreaPanelExists(string areaName)
+        {
+            string key = string.IsNullOrWhiteSpace(areaName) ? DefaultAreaName : areaName.Trim();
+
+            if (!areaPanels.ContainsKey(key))
+            {
+                AddAreaSection(key);
+            }
+
+            return areaPanels[key];
+        }
+
+        private List<string> GetDistinctDeviceAreas()
+        {
+            var areas = new List<string>();
+            var uniqueAreas = new HashSet<string>(StringComparer.CurrentCulture);
+
+            Common cmn = new Common();
+            string connstr = cmn.obtenerCadenaConexion();
+            BaseDatosMySQL bd = new BaseDatosMySQL();
+            bd.conectarMySQL(connstr);
+
+            if (bd.conn != null)
+            {
+                string sql = "SELECT DISTINCT description FROM devices";
+                try
+                {
+                    MySqlCommand cmd = new MySqlCommand(sql, bd.conn);
+                    MySqlDataReader rdr = cmd.ExecuteReader();
+
+                    while (rdr.Read())
+                    {
+                        string area = rdr.IsDBNull(0) ? DefaultAreaName : rdr.GetString(0).Trim();
+                        if (string.IsNullOrWhiteSpace(area))
+                        {
+                            area = DefaultAreaName;
+                        }
+
+                        if (uniqueAreas.Add(area))
+                        {
+                            areas.Add(area);
+                        }
+                    }
+                    rdr.Close();
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"获取设备区域列表时出错: {ex.Message}");
+                }
+                finally
+                {
+                    bd.desconectarMySQL();
+                }
+            }
+
+            if (!uniqueAreas.Contains(DefaultAreaName))
+            {
+                areas.Add(DefaultAreaName);
+                uniqueAreas.Add(DefaultAreaName);
+            }
+
+            areas.Sort(StringComparer.CurrentCulture);
+
+            if (areas.Remove(DefaultAreaName))
+            {
+                areas.Insert(0, DefaultAreaName);
+            }
+
+            return areas;
         }
 
         // 清理所有设备状态卡片
         private void ClearAllDeviceStatusCards()
         {
-            // 从所有类别面板中移除控件
-            foreach (var panel in categoryPanels.Values)
+            // 从所有区域面板中移除控件
+            foreach (var panel in areaPanels.Values)
             {
                 panel.Controls.Clear();
             }
@@ -550,20 +638,13 @@ namespace ControlEntradaSalida
                                $"点击查看详细信息";
             deviceToolTip.SetToolTip(cardPanel, tooltipText);
 
-            // 获取设备类别并添加到对应的类别面板
-            string deviceCategory = GetDeviceCategory(device.Id);
-            
-            // 如果类别不存在于预定义类别中，使用默认类别
-            if (!categoryPanels.ContainsKey(deviceCategory))
-            {
-                deviceCategory = "类别1";
-            }
-            
-            // 将卡片面板添加到对应的类别面板和字典中
-            if (categoryPanels.ContainsKey(deviceCategory))
-            {
-                categoryPanels[deviceCategory].Controls.Add(cardPanel);
-            }
+            // 获取设备所属区域并添加到对应的区域面板
+            string deviceArea = GetDeviceArea(device.Id);
+            BufferedFlowLayoutPanel targetPanel = EnsureAreaPanelExists(deviceArea);
+            targetPanel.Controls.Add(cardPanel);
+            cardPanel.AccessibleDescription = string.IsNullOrWhiteSpace(deviceArea) ? DefaultAreaName : deviceArea;
+
+            // 将卡片面板添加到对应的字典中
             deviceStatusCards.Add(device.Id, cardPanel);
         }
 
