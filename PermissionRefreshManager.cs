@@ -188,13 +188,13 @@ namespace ControlEntradaSalida
 
             try
             {
-                string sql = @"SELECT e.employee_id,
-                                      e.full_name,
-                                      p.permission_level,
-                                      p.last_synced_level
-                               FROM employees e
-                               LEFT JOIN user_permissions p ON p.employee_id = e.employee_id
-                               ORDER BY e.employee_id";
+                // 直接从 employees 表查询，权限信息已合并到此表
+                string sql = @"SELECT employee_id,
+                                      full_name,
+                                      permission_level,
+                                      last_synced_level
+                               FROM employees
+                               ORDER BY employee_id";
 
                 MySqlCommand cmd = new MySqlCommand(sql, bd.conn);
                 MySqlDataReader reader = cmd.ExecuteReader();
@@ -204,6 +204,7 @@ namespace ControlEntradaSalida
                     string employeeId = reader["employee_id"].ToString();
                     string fullName = reader["full_name"] == DBNull.Value ? string.Empty : reader["full_name"].ToString();
 
+                    // 权限级别现在有默认值 0，不会是 NULL
                     int permissionLevel = reader["permission_level"] != DBNull.Value
                         ? Convert.ToInt32(reader["permission_level"])
                         : 0;
@@ -211,11 +212,6 @@ namespace ControlEntradaSalida
                     int? lastSynced = reader["last_synced_level"] != DBNull.Value
                         ? Convert.ToInt32(reader["last_synced_level"])
                         : (int?)null;
-
-                    if (reader["permission_level"] == DBNull.Value)
-                    {
-                        missingRecords.Add(employeeId);
-                    }
 
                     users.Add(new UserPermissionRecord
                     {
@@ -238,47 +234,10 @@ namespace ControlEntradaSalida
 
         private void InsertDefaultPermissionRecords(IEnumerable<string> employeeIds)
         {
-            List<string> distinctIds = employeeIds.Distinct().ToList();
-            if (distinctIds.Count == 0)
-            {
-                return;
-            }
-
-            string connStr = commonHelper.obtenerCadenaConexion();
-            BaseDatosMySQL bd = new BaseDatosMySQL();
-            bd.conectarMySQL(connStr);
-            if (bd.conn == null)
-            {
-                return;
-            }
-
-            MySqlTransaction tx = null;
-            try
-            {
-                tx = bd.conn.BeginTransaction();
-
-                foreach (string employeeId in distinctIds)
-                {
-                    string insertSql = @"INSERT INTO user_permissions (employee_id, permission_level, last_synced_level, updated_at, last_synced_at)
-                                          VALUES (@employee_id, 0, NULL, CURRENT_TIMESTAMP, NULL)
-                                          ON DUPLICATE KEY UPDATE permission_level = permission_level";
-
-                    MySqlCommand insertCmd = new MySqlCommand(insertSql, bd.conn, tx);
-                    insertCmd.Parameters.AddWithValue("@employee_id", employeeId);
-                    insertCmd.ExecuteNonQuery();
-                }
-
-                tx.Commit();
-            }
-            catch
-            {
-                tx?.Rollback();
-                throw;
-            }
-            finally
-            {
-                bd.desconectarMySQL();
-            }
+            // 注意：权限信息已合并到 employees 表，且 permission_level 字段有默认值 0
+            // 新增员工时会自动设置默认权限，此方法不再需要执行任何操作
+            // 保留此方法以维持代码兼容性
+            return;
         }
 
         private RefreshResult ApplyPermissionToDevices(UserPermissionRecord user, List<DeviceAreaInfo> devices)
@@ -496,7 +455,8 @@ namespace ControlEntradaSalida
 
             try
             {
-                string sql = @"UPDATE user_permissions
+                // 直接更新 employees 表中的同步状态字段
+                string sql = @"UPDATE employees
                                SET last_synced_level = @level,
                                    last_synced_at = CURRENT_TIMESTAMP
                                WHERE employee_id = @employee_id";

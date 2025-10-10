@@ -8,7 +8,7 @@
 --
 -- 核心功能:
 -- 1. 设备管理 - 门禁设备的注册、配置和连接管理
--- 2. 员工管理 - 员工信息和门禁权限管理
+-- 2. 员工管理 - 员工信息和门禁权限管理(已合并权限信息)
 -- 3. 数据备份 - 设备用户数据的备份功能
 -- =====================================================
 
@@ -112,6 +112,18 @@ CREATE TABLE IF NOT EXISTS `access_control_system`.`employees` (
   `status` ENUM('ACTIVE', 'INACTIVE') NOT NULL DEFAULT 'ACTIVE'
     COMMENT '员工状态: ACTIVE=在职 INACTIVE=离职',
 
+  `permission_level` TINYINT NOT NULL DEFAULT 0
+    COMMENT '权限级别: 0=禁止访问所有区域 1=仅生产区域 2=仅办公区域 3=生产与办公区域',
+
+  `last_synced_level` TINYINT NULL DEFAULT NULL
+    COMMENT '最近一次同步到设备的权限级别',
+
+  `permission_updated_at` DATETIME NULL DEFAULT NULL
+    COMMENT '权限级别最后更新时间',
+
+  `last_synced_at` DATETIME NULL DEFAULT NULL
+    COMMENT '权限最近一次同步到设备的时间',
+
   `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
     COMMENT '创建时间',
 
@@ -121,51 +133,13 @@ CREATE TABLE IF NOT EXISTS `access_control_system`.`employees` (
   PRIMARY KEY (`employee_id`),
   UNIQUE KEY `uk_card_number` (`card_number`) COMMENT '卡号唯一约束',
   INDEX `idx_status` (`status` ASC) COMMENT '快速筛选在职/离职员工',
-  INDEX `idx_full_name` (`full_name` ASC) COMMENT '通过姓名搜索员工'
+  INDEX `idx_full_name` (`full_name` ASC) COMMENT '通过姓名搜索员工',
+  INDEX `idx_permission_level` (`permission_level` ASC) COMMENT '按权限级别筛选员工'
 )
 ENGINE=InnoDB
 DEFAULT CHARSET=utf8mb4
 COLLATE=utf8mb4_unicode_ci
-COMMENT='员工信息表';
-
--- =====================================================
--- 表: user_permissions (用户权限定义表)
--- =====================================================
--- 用途: 存储员工的权限级别以及最后同步到设备的状态
--- 权限级别说明:
---   0 - 禁止访问所有区域
---   1 - 仅生产区域
---   2 - 仅办公区域
---   3 - 生产与办公区域
--- =====================================================
-DROP TABLE IF EXISTS `access_control_system`.`user_permissions`;
-
-CREATE TABLE IF NOT EXISTS `access_control_system`.`user_permissions` (
-  `employee_id` VARCHAR(30) NOT NULL
-    COMMENT '员工编号(关联 employees 表)',
-
-  `permission_level` TINYINT NOT NULL DEFAULT 0
-    COMMENT '目标权限级别(0-3)',
-
-  `last_synced_level` TINYINT NULL DEFAULT NULL
-    COMMENT '最近一次同步到设备的权限级别',
-
-  `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
-    COMMENT '权限级别更新时间',
-
-  `last_synced_at` DATETIME NULL DEFAULT NULL
-    COMMENT '最近一次同步到设备的时间',
-
-  PRIMARY KEY (`employee_id`),
-  CONSTRAINT `fk_user_permissions_employee`
-    FOREIGN KEY (`employee_id`) REFERENCES `access_control_system`.`employees`(`employee_id`)
-    ON DELETE CASCADE ON UPDATE CASCADE,
-  INDEX `idx_permission_level` (`permission_level` ASC)
-)
-ENGINE=InnoDB
-DEFAULT CHARSET=utf8mb4
-COLLATE=utf8mb4_unicode_ci
-COMMENT='员工权限级别与同步状态表';
+COMMENT='员工信息表(包含权限信息)';
 
 -- =====================================================
 -- 表: device_users_backup (设备用户备份表)
@@ -237,11 +211,11 @@ INSERT INTO devices (device_name, description, ip_address, port, username, passw
 ('主入口设备', '生产区域', '192.168.1.100', '8000', 'admin', 'SXSSF1314te', 1, 1),
 ('副入口设备', '办公区域', '192.168.1.101', '8000', 'admin', 'SXSSF1314te', 1, 0);
 
--- 插入示例员工
-INSERT INTO employees (employee_id, card_number, full_name, status) VALUES
-('EMP001', 'EMP001', '张三', 'ACTIVE'),
-('EMP002', 'EMP002', '李四', 'ACTIVE'),
-('EMP003', 'EMP003', '王五', 'INACTIVE');
+-- 插入示例员工(包含权限信息)
+INSERT INTO employees (employee_id, card_number, full_name, status, permission_level) VALUES
+('EMP001', 'EMP001', '张三', 'ACTIVE', 3),
+('EMP002', 'EMP002', '李四', 'ACTIVE', 1),
+('EMP003', 'EMP003', '王五', 'INACTIVE', 0);
 */
 
 -- =====================================================
@@ -259,7 +233,7 @@ SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS;
 --
 -- 已创建核心表:
 -- 1. devices (门禁设备表) - 存储设备配置和连接信息
--- 2. employees (员工信息表) - 存储员工基本信息和状态
+-- 2. employees (员工信息表) - 存储员工基本信息、状态和权限信息
 -- 3. device_users_backup (备份表) - 存储设备用户数据备份
 --
 -- 已创建存储过程:
@@ -267,6 +241,7 @@ SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS;
 --
 -- 优化说明:
 -- - 所有表字段与代码实际使用完全一致
+-- - 已将 user_permissions 表合并到 employees 表中,简化查询
 -- - 移除了未使用的access_logs表和相关存储过程
 -- - 字段注释清晰说明了用途和默认值
 -- - 索引优化,提高查询性能
