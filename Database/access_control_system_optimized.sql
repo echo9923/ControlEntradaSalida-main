@@ -113,7 +113,7 @@ CREATE TABLE IF NOT EXISTS `access_control_system`.`employees` (
     COMMENT '员工状态: ACTIVE=在职 INACTIVE=离职',
 
   `permission_level` TINYINT NOT NULL DEFAULT 0
-    COMMENT '权限级别: 0=禁止访问所有区域 1=仅生产区域 2=仅办公区域 3=生产与办公区域',
+    COMMENT '权限级别: 0=无任何权限 1=仅可进入办公区域 2=可进入办公和生产区域',
 
   `last_synced_level` TINYINT NULL DEFAULT NULL
     COMMENT '最近一次同步到设备的权限级别',
@@ -213,7 +213,7 @@ INSERT INTO devices (device_name, description, ip_address, port, username, passw
 
 -- 插入示例员工(包含权限信息)
 INSERT INTO employees (employee_id, card_number, full_name, status, permission_level) VALUES
-('EMP001', 'EMP001', '张三', 'ACTIVE', 3),
+('EMP001', 'EMP001', '张三', 'ACTIVE', 2),
 ('EMP002', 'EMP002', '李四', 'ACTIVE', 1),
 ('EMP003', 'EMP003', '王五', 'INACTIVE', 0);
 */

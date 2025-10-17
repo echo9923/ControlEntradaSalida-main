@@ -55,11 +55,11 @@ namespace ControlEntradaSalida
 
             foreach (UserPermissionRecord user in users)
             {
-                if (user.PermissionLevel < 0 || user.PermissionLevel > 3)
+                if (user.PermissionLevel < 0 || user.PermissionLevel > 2)
                 {
                     summary.UsersFailed++;
                     summary.Errors.Add(string.Format(CultureInfo.InvariantCulture,
-                        "用户 {0} 的权限级别 {1} 无效，应为 0-3。", user.EmployeeId, user.PermissionLevel));
+                        "用户 {0} 的权限级别 {1} 无效，应为 0-2。", user.EmployeeId, user.PermissionLevel));
                     continue;
                 }
 
@@ -271,11 +271,12 @@ namespace ControlEntradaSalida
                 case 0:
                     return false;
                 case 1:
-                    return area == DeviceArea.Production;
-                case 2:
                     return area == DeviceArea.Office;
-                case 3:
-                    return area == DeviceArea.Production || area == DeviceArea.Office || area == DeviceArea.Other;
+                case 2:
+                    // 最高权限可通行所有已识别区域，包括未明确标注的其他区域
+                    return area == DeviceArea.Office
+                        || area == DeviceArea.Production
+                        || area == DeviceArea.Other;
                 default:
                     return false;
             }
