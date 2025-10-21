@@ -15,6 +15,7 @@ namespace ControlEntradaSalida
 
         private readonly DeviceConnectionManager deviceManager;
         private readonly Common commonHelper;
+        private readonly object refreshLock = new object();
 
         public PermissionRefreshManager()
         {
@@ -24,69 +25,171 @@ namespace ControlEntradaSalida
 
         public PermissionRefreshSummary RefreshAllPermissions()
         {
-            PermissionRefreshSummary summary = new PermissionRefreshSummary();
-
-            EnsureDevicesLoaded();
-
-            List<DeviceAreaInfo> devices = LoadActiveDevices();
-            if (devices.Count == 0)
+            lock (refreshLock)
             {
-                summary.Errors.Add("未找到可用的门禁设备，无法刷新权限。");
-                return summary;
-            }
+                PermissionRefreshSummary summary = new PermissionRefreshSummary();
 
-            List<UserPermissionRecord> users = LoadUserPermissions(out List<string> newlyCreatedRecords);
-            summary.TotalUsers = users.Count;
+                EnsureDevicesLoaded();
 
-            if (newlyCreatedRecords.Count > 0)
-            {
-                try
+                List<DeviceAreaInfo> devices = LoadActiveDevices();
+                if (devices.Count == 0)
                 {
-                    InsertDefaultPermissionRecords(newlyCreatedRecords);
-                }
-                catch (Exception ex)
-                {
-                    summary.Errors.Add(string.Format(CultureInfo.InvariantCulture,
-                        "初始化权限记录时发生错误：{0}", ex.Message));
-                    summary.UsersFailed = summary.TotalUsers;
+                    summary.Errors.Add("未找到可用的门禁设备，无法刷新权限。");
                     return summary;
                 }
-            }
 
-            foreach (UserPermissionRecord user in users)
-            {
-                if (user.PermissionLevel < 0 || user.PermissionLevel > 2)
+                List<UserPermissionRecord> users = LoadUserPermissions(out List<string> newlyCreatedRecords);
+                summary.TotalUsers = users.Count;
+
+                if (newlyCreatedRecords.Count > 0)
                 {
-                    summary.UsersFailed++;
-                    summary.Errors.Add(string.Format(CultureInfo.InvariantCulture,
-                        "用户 {0} 的权限级别 {1} 无效，应为 0-2。", user.EmployeeId, user.PermissionLevel));
-                    continue;
+                    try
+                    {
+                        InsertDefaultPermissionRecords(newlyCreatedRecords);
+                    }
+                    catch (Exception ex)
+                    {
+                        summary.Errors.Add(string.Format(CultureInfo.InvariantCulture,
+                            "初始化权限记录时发生错误：{0}", ex.Message));
+                        summary.UsersFailed = summary.TotalUsers;
+                        return summary;
+                    }
                 }
 
-                if (user.LastSyncedLevel.HasValue && user.LastSyncedLevel.Value == user.PermissionLevel)
+                foreach (UserPermissionRecord user in users)
                 {
-                    summary.UsersSkipped++;
-                    continue;
-                }
-
-                RefreshResult result = ApplyPermissionToDevices(user, devices);
-                if (result.Success)
-                {
-                    bool updated = UpdateSyncedLevel(user.EmployeeId, user.PermissionLevel);
-                    if (!updated)
+                    if (user.PermissionLevel < 0 || user.PermissionLevel > 2)
                     {
                         summary.UsersFailed++;
                         summary.Errors.Add(string.Format(CultureInfo.InvariantCulture,
-                            "更新用户 {0} 的同步状态失败。", user.EmployeeId));
+                            "用户 {0} 的权限级别 {1} 无效，应为 0-2。", user.EmployeeId, user.PermissionLevel));
                         continue;
                     }
 
-                    summary.UsersUpdated++;
+                    if (user.LastSyncedLevel.HasValue && user.LastSyncedLevel.Value == user.PermissionLevel)
+                    {
+                        summary.UsersSkipped++;
+                        continue;
+                    }
+
+                    RefreshResult result = ApplyPermissionToDevices(user, devices);
+                    if (result.Success)
+                    {
+                        bool updated = UpdateSyncedLevel(user.EmployeeId, user.PermissionLevel);
+                        if (!updated)
+                        {
+                            summary.UsersFailed++;
+                            summary.Errors.Add(string.Format(CultureInfo.InvariantCulture,
+                                "更新用户 {0} 的同步状态失败。", user.EmployeeId));
+                            continue;
+                        }
+
+                        summary.UsersUpdated++;
+                    }
+                    else
+                    {
+                        summary.UsersFailed++;
+                        summary.Errors.AddRange(result.Errors);
+                    }
                 }
-                else
+
+                return summary;
+            }
+        }
+
+        public PermissionRefreshSummary RefreshPermissionsForEmployees(IEnumerable<PermissionUpdateInfo> updates)
+        {
+            if (updates == null)
+            {
+                throw new ArgumentNullException(nameof(updates));
+            }
+
+            List<PermissionUpdateInfo> distinctUpdates = updates
+                .GroupBy(u => u.EmployeeId, StringComparer.OrdinalIgnoreCase)
+                .Select(g => g.Last())
+                .ToList();
+
+            PermissionRefreshSummary summary = new PermissionRefreshSummary
+            {
+                TotalUsers = distinctUpdates.Count
+            };
+
+            if (distinctUpdates.Count == 0)
+            {
+                summary.Errors.Add("未提供任何需要更新的员工。");
+                summary.UsersFailed = 0;
+                return summary;
+            }
+
+            lock (refreshLock)
+            {
+                EnsureDevicesLoaded();
+
+                List<DeviceAreaInfo> devices = LoadActiveDevices();
+                if (devices.Count == 0)
                 {
-                    summary.UsersFailed++;
-                    summary.Errors.AddRange(result.Errors);
+                    summary.Errors.Add("未找到可用的门禁设备，无法刷新权限。");
+                    summary.UsersFailed = summary.TotalUsers;
+                    return summary;
+                }
+
+                foreach (PermissionUpdateInfo update in distinctUpdates)
+                {
+                    if (update.PermissionCode < 0 || update.PermissionCode > 2)
+                    {
+                        summary.UsersFailed++;
+                        summary.Errors.Add(string.Format(CultureInfo.InvariantCulture,
+                            "用户 {0} 的权限级别 {1} 无效，应为 0-2。",
+                            update.EmployeeId, update.PermissionCode));
+                        continue;
+                    }
+
+                    bool permissionStored = UpdatePermissionLevel(update.EmployeeId, update.PermissionCode);
+                    if (!permissionStored)
+                    {
+                        summary.UsersFailed++;
+                        summary.Errors.Add(string.Format(CultureInfo.InvariantCulture,
+                            "更新员工 {0} 在数据库中的权限失败，可能不存在该员工。", update.EmployeeId));
+                        continue;
+                    }
+
+                    UserPermissionRecord userRecord = LoadUserPermission(update.EmployeeId);
+                    if (userRecord == null)
+                    {
+                        summary.UsersFailed++;
+                        summary.Errors.Add(string.Format(CultureInfo.InvariantCulture,
+                            "未找到员工 {0} 的详细信息。", update.EmployeeId));
+                        continue;
+                    }
+
+                    userRecord.PermissionLevel = update.PermissionCode;
+
+                    if (userRecord.LastSyncedLevel.HasValue &&
+                        userRecord.LastSyncedLevel.Value == update.PermissionCode)
+                    {
+                        summary.UsersSkipped++;
+                        continue;
+                    }
+
+                    RefreshResult result = ApplyPermissionToDevices(userRecord, devices);
+                    if (result.Success)
+                    {
+                        bool synced = UpdateSyncedLevel(userRecord.EmployeeId, update.PermissionCode);
+                        if (!synced)
+                        {
+                            summary.UsersFailed++;
+                            summary.Errors.Add(string.Format(CultureInfo.InvariantCulture,
+                                "更新用户 {0} 的同步状态失败。", userRecord.EmployeeId));
+                            continue;
+                        }
+
+                        summary.UsersUpdated++;
+                    }
+                    else
+                    {
+                        summary.UsersFailed++;
+                        summary.Errors.AddRange(result.Errors);
+                    }
                 }
             }
 
@@ -230,6 +333,86 @@ namespace ControlEntradaSalida
             }
 
             return users;
+        }
+
+        private UserPermissionRecord LoadUserPermission(string employeeId)
+        {
+            string connStr = commonHelper.obtenerCadenaConexion();
+            BaseDatosMySQL bd = new BaseDatosMySQL();
+            bd.conectarMySQL(connStr);
+            if (bd.conn == null)
+            {
+                return null;
+            }
+
+            try
+            {
+                string sql = @"SELECT employee_id,
+                                      full_name,
+                                      permission_level,
+                                      last_synced_level
+                               FROM employees
+                               WHERE employee_id = @employee_id
+                               LIMIT 1";
+
+                MySqlCommand cmd = new MySqlCommand(sql, bd.conn);
+                cmd.Parameters.AddWithValue("@employee_id", employeeId);
+
+                MySqlDataReader reader = cmd.ExecuteReader();
+                if (reader.Read())
+                {
+                    UserPermissionRecord record = new UserPermissionRecord
+                    {
+                        EmployeeId = reader["employee_id"].ToString(),
+                        FullName = reader["full_name"] == DBNull.Value ? string.Empty : reader["full_name"].ToString(),
+                        PermissionLevel = reader["permission_level"] != DBNull.Value
+                            ? Convert.ToInt32(reader["permission_level"])
+                            : 0,
+                        LastSyncedLevel = reader["last_synced_level"] != DBNull.Value
+                            ? Convert.ToInt32(reader["last_synced_level"])
+                            : (int?)null
+                    };
+
+                    reader.Close();
+                    return record;
+                }
+
+                reader.Close();
+                return null;
+            }
+            finally
+            {
+                bd.desconectarMySQL();
+            }
+        }
+
+        private bool UpdatePermissionLevel(string employeeId, int permissionLevel)
+        {
+            string connStr = commonHelper.obtenerCadenaConexion();
+            BaseDatosMySQL bd = new BaseDatosMySQL();
+            bd.conectarMySQL(connStr);
+            if (bd.conn == null)
+            {
+                return false;
+            }
+
+            try
+            {
+                string sql = @"UPDATE employees
+                               SET permission_level = @level
+                               WHERE employee_id = @employee_id";
+
+                MySqlCommand cmd = new MySqlCommand(sql, bd.conn);
+                cmd.Parameters.AddWithValue("@level", permissionLevel);
+                cmd.Parameters.AddWithValue("@employee_id", employeeId);
+
+                int affected = cmd.ExecuteNonQuery();
+                return affected > 0;
+            }
+            finally
+            {
+                bd.desconectarMySQL();
+            }
         }
 
         private void InsertDefaultPermissionRecords(IEnumerable<string> employeeIds)
