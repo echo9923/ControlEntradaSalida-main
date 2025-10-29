@@ -9,7 +9,6 @@ using System.Timers;
 using MySql.Data.MySqlClient;
 using System.Runtime.InteropServices;
 using System.Diagnostics;
-using ControlEntradaSalida.Configuration;
 
 namespace ControlEntradaSalida
 {
@@ -165,7 +164,6 @@ namespace ControlEntradaSalida
         private const int MAX_CONCURRENT_CONNECTIONS = 10; // 最大并发连接数
         
         private volatile bool _disposed = false;
-        private ServiceConfiguration serviceConfiguration;
         
         #endregion
 
@@ -256,7 +254,12 @@ namespace ControlEntradaSalida
         /// <param name="configuration">服务配置对象</param>
         public void ApplyConfiguration(ServiceConfiguration configuration)
         {
-            serviceConfiguration = configuration;
+            if (configuration == null)
+            {
+                throw new ArgumentNullException(nameof(configuration));
+            }
+
+            // 目前仅使用配置中的其他全局参数（例如日志目录、端口），设备列表统一从数据库加载。
         }
         
         #endregion
@@ -264,50 +267,20 @@ namespace ControlEntradaSalida
         #region 设备管理方法
         
         /// <summary>
-        /// 加载所有设备信息
+        /// 加载所有设备信息（完全依赖数据库数据）
         /// </summary>
         public void LoadAllDevices()
         {
             while (_devices.TryTake(out _)) { }
 
-            bool loadedFromConfig = false;
-
-            if (serviceConfiguration?.Devices != null && serviceConfiguration.Devices.Count > 0)
-            {
-                foreach (DeviceElement element in serviceConfiguration.Devices)
-                {
-                    var device = new DeviceConnectionInfo
-                    {
-                        Id = element.Id,
-                        Name = element.Name,
-                        IpAddress = element.IpAddress,
-                        Port = element.Port,
-                        Username = element.Username,
-                        Password = element.Password,
-                        IsEnabled = element.Enabled,
-                        LastUsed = DateTime.MinValue
-                    };
-
-                    _connectionSemaphores.TryAdd(device.Id,
-                        SynchronizationHelper.CreateSemaphore(1, 1, $"Device-{device.Id}-Connection"));
-
-                    _devices.Add(device);
-                }
-
-                loadedFromConfig = _devices.Count > 0;
-                ServiceLogger.Info($"已从配置文件加载 {GetAllDevices().Count} 台设备。");
-            }
-
-            if (!loadedFromConfig)
-            {
-                LoadDevicesFromDatabase();
-            }
+            LoadDevicesFromDatabase();
 
             Task.Run(async () => { await InitializeDeviceConnectionsAsync(); });
         }
 
-        private void LoadDevicesFromDatabase()
+        private int LoadDevicesFromDatabase()
         {
+            int newDevices = 0;
             Common cmn = new Common();
             string connstr = cmn.obtenerCadenaConexion();
             BaseDatosMySQL bd = new BaseDatosMySQL();
@@ -316,21 +289,29 @@ namespace ControlEntradaSalida
             if (bd.conn == null)
             {
                 ServiceLogger.Warn("数据库连接失败，无法加载设备列表。");
-                return;
+                return newDevices;
             }
 
             string sql = "SELECT device_id, device_name, ip_address, port, username, password, status, last_used_time FROM devices";
 
             try
             {
+                HashSet<int> knownDeviceIds = new HashSet<int>(_devices.Select(d => d.Id));
+
                 using (MySqlCommand cmd = new MySqlCommand(sql, bd.conn))
                 using (MySqlDataReader rdr = cmd.ExecuteReader())
                 {
                     while (rdr.Read())
                     {
+                        int deviceId = Convert.ToInt32(rdr["device_id"]);
+                        if (!knownDeviceIds.Add(deviceId))
+                        {
+                            continue;
+                        }
+
                         DeviceConnectionInfo device = new DeviceConnectionInfo
                         {
-                            Id = Convert.ToInt32(rdr["device_id"]),
+                            Id = deviceId,
                             Name = rdr["device_name"].ToString(),
                             IpAddress = rdr["ip_address"].ToString(),
                             Port = rdr["port"].ToString(),
@@ -344,10 +325,18 @@ namespace ControlEntradaSalida
                             SynchronizationHelper.CreateSemaphore(1, 1, $"Device-{device.Id}-Connection"));
 
                         _devices.Add(device);
+                        newDevices++;
                     }
                 }
 
-                ServiceLogger.Info($"已从数据库加载 {GetAllDevices().Count} 台设备。");
+                if (newDevices > 0)
+                {
+                    ServiceLogger.Info($"数据库查询完成，共加载 {newDevices} 台设备。");
+                }
+                else
+                {
+                    ServiceLogger.Warn("数据库查询完成，但未找到任何设备记录。");
+                }
             }
             catch (Exception ex)
             {
@@ -358,6 +347,8 @@ namespace ControlEntradaSalida
             {
                 bd.desconectarMySQL();
             }
+
+            return newDevices;
         }
 
         /// <summary>

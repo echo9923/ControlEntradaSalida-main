@@ -54,14 +54,14 @@
     </dependentAssembly>
   </dependency>
   <dependency>
-    <dependentAssembly dependencyType="install" allowDelayedBinding="true" codebase="ControlEntradaSalida.exe" size="157200">
+    <dependentAssembly dependencyType="install" allowDelayedBinding="true" codebase="ControlEntradaSalida.exe" size="154112">
       <assemblyIdentity name="ControlEntradaSalida" version="1.0.0.0" language="neutral" processorArchitecture="msil" />
       <hash>
         <dsig:Transforms>
           <dsig:Transform Algorithm="urn:schemas-microsoft-com:HashTransforms.Identity" />
         </dsig:Transforms>
         <dsig:DigestMethod Algorithm="http://www.w3.org/2000/09/xmldsig#sha256" />
-        <dsig:DigestValue>HDZpWYSTl1909ygH1Gp4rrQS98sauOhLdPGpm1HZ3BY=</dsig:DigestValue>
+        <dsig:DigestValue>CRsrREUPxNFh8zULLjs+jhEM9+1EBY4SNsXjBBD0pLI=</dsig:DigestValue>
       </hash>
     </dependentAssembly>
   </dependency>
@@ -293,13 +293,13 @@
       </hash>
     </dependentAssembly>
   </dependency>
-  <file name="ControlEntradaSalida.exe.config" size="2129">
+  <file name="ControlEntradaSalida.exe.config" size="1621">
     <hash>
       <dsig:Transforms>
         <dsig:Transform Algorithm="urn:schemas-microsoft-com:HashTransforms.Identity" />
       </dsig:Transforms>
       <dsig:DigestMethod Algorithm="http://www.w3.org/2000/09/xmldsig#sha256" />
-      <dsig:DigestValue>uu+Q9azzhhIO73JjLVHMtyM9bKLiqc20XcArU0/S5Lc=</dsig:DigestValue>
+      <dsig:DigestValue>pKQL4HlbCZXW0YjiJPGOwaijjFG32U/K1UaXcOL0LO8=</dsig:DigestValue>
     </hash>
   </file>
   <file name="SqlServerTypes\readme.htm" size="2369">

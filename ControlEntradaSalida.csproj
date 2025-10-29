@@ -102,7 +102,7 @@
     <GenerateManifests>true</GenerateManifests>
   </PropertyGroup>
   <PropertyGroup>
-    <SignManifests>true</SignManifests>
+    <SignManifests>false</SignManifests>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="BouncyCastle.Cryptography, Version=2.0.0.0, Culture=neutral, PublicKeyToken=072edcf4a5328938, processorArchitecture=MSIL">
@@ -183,7 +183,6 @@
   <ItemGroup>
     <Compile Include="BaseDatosMySQL.cs" />
     <Compile Include="Common.cs" />
-    <Compile Include="Configuration\DeviceSettingsSection.cs" />
     <Compile Include="ControlEntradaSalidaService.cs" />
     <Compile Include="DeviceConnectionManager.cs" />
     <Compile Include="DeviceStatusEngine.cs" />
@@ -246,15 +245,6 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Include="packages\Grpc.Core.2.46.6\runtimes\win-x86\native\grpc_csharp_ext.x86.dll">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <!-- Optional: copy into runtimes structure under bin for probing -->
-    <None Include="packages\Grpc.Core.2.46.6\runtimes\win-x64\native\grpc_csharp_ext.x64.dll">
-      <Link>runtimes\win-x64\native\grpc_csharp_ext.x64.dll</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="packages\Grpc.Core.2.46.6\runtimes\win-x86\native\grpc_csharp_ext.x86.dll">
-      <Link>runtimes\win-x86\native\grpc_csharp_ext.x86.dll</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>
