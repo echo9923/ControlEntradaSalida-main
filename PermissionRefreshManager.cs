@@ -164,13 +164,6 @@ namespace ControlEntradaSalida
 
                     userRecord.PermissionLevel = update.PermissionCode;
 
-                    if (userRecord.LastSyncedLevel.HasValue &&
-                        userRecord.LastSyncedLevel.Value == update.PermissionCode)
-                    {
-                        summary.UsersSkipped++;
-                        continue;
-                    }
-
                     RefreshResult result = ApplyPermissionToDevices(userRecord, devices);
                     if (result.Success)
                     {
@@ -493,7 +486,7 @@ namespace ControlEntradaSalida
 
             string payload = BuildUserInfoPayload(user, connection, enable);
             bool queryResult = commonHelper.ISAPIQuery(connection.UserID,
-                "PUT /ISAPI/AccessControl/UserInfo/Modify?format=json",
+                "PUT /ISAPI/AccessControl/UserInfo/SetUp?format=json",
                 payload,
                 out string outputResult,
                 out string outputStatus);
