@@ -9,6 +9,7 @@ using System.Timers;
 using MySql.Data.MySqlClient;
 using System.Runtime.InteropServices;
 using System.Diagnostics;
+using ControlEntradaSalida.Configuration;
 
 namespace ControlEntradaSalida
 {
@@ -158,13 +159,13 @@ namespace ControlEntradaSalida
         private System.Timers.Timer _statusCheckTimer;
         private readonly ReconnectManager _reconnectManager;
         private readonly DeviceStatusEngine _statusEngine;
-        private readonly SafeUIUpdater _uiUpdater;
         
         private const int STATUS_CHECK_INTERVAL = 30000; // 30秒检查一次设备状态
         private const int CONNECTION_TIMEOUT = 5000; // 5秒连接超时
         private const int MAX_CONCURRENT_CONNECTIONS = 10; // 最大并发连接数
         
         private volatile bool _disposed = false;
+        private ServiceConfiguration serviceConfiguration;
         
         #endregion
 
@@ -199,7 +200,6 @@ namespace ControlEntradaSalida
             _devices = new ConcurrentBag<DeviceConnectionInfo>();
             _connectionSemaphores = new ConcurrentDictionary<int, SemaphoreSlim>();
             _statusEngine = new DeviceStatusEngine();
-            _uiUpdater = new SafeUIUpdater();
             
             // 初始化重连管理器
             _reconnectManager = new ReconnectManager();
@@ -248,7 +248,15 @@ namespace ControlEntradaSalida
             _statusCheckTimer = new System.Timers.Timer(STATUS_CHECK_INTERVAL);
             _statusCheckTimer.Elapsed += async (sender, e) => await CheckAllDeviceStatusAsync();
             _statusCheckTimer.AutoReset = true;
-            _statusCheckTimer.Start();
+        }
+
+        /// <summary>
+        /// 应用服务配置内容，供设备加载使用。
+        /// </summary>
+        /// <param name="configuration">服务配置对象</param>
+        public void ApplyConfiguration(ServiceConfiguration configuration)
+        {
+            serviceConfiguration = configuration;
         }
         
         #endregion
@@ -260,23 +268,64 @@ namespace ControlEntradaSalida
         /// </summary>
         public void LoadAllDevices()
         {
-            // 清空现有设备列表
             while (_devices.TryTake(out _)) { }
 
+            bool loadedFromConfig = false;
+
+            if (serviceConfiguration?.Devices != null && serviceConfiguration.Devices.Count > 0)
+            {
+                foreach (DeviceElement element in serviceConfiguration.Devices)
+                {
+                    var device = new DeviceConnectionInfo
+                    {
+                        Id = element.Id,
+                        Name = element.Name,
+                        IpAddress = element.IpAddress,
+                        Port = element.Port,
+                        Username = element.Username,
+                        Password = element.Password,
+                        IsEnabled = element.Enabled,
+                        LastUsed = DateTime.MinValue
+                    };
+
+                    _connectionSemaphores.TryAdd(device.Id,
+                        SynchronizationHelper.CreateSemaphore(1, 1, $"Device-{device.Id}-Connection"));
+
+                    _devices.Add(device);
+                }
+
+                loadedFromConfig = _devices.Count > 0;
+                ServiceLogger.Info($"已从配置文件加载 {GetAllDevices().Count} 台设备。");
+            }
+
+            if (!loadedFromConfig)
+            {
+                LoadDevicesFromDatabase();
+            }
+
+            Task.Run(async () => { await InitializeDeviceConnectionsAsync(); });
+        }
+
+        private void LoadDevicesFromDatabase()
+        {
             Common cmn = new Common();
             string connstr = cmn.obtenerCadenaConexion();
             BaseDatosMySQL bd = new BaseDatosMySQL();
             bd.conectarMySQL(connstr);
 
-            if (bd.conn != null)
+            if (bd.conn == null)
             {
-                // 修改SQL查询，加载所有设备并获取其启用状态
-                string sql = "SELECT device_id, device_name, ip_address, port, username, password, status, last_used_time FROM devices";
-                try
-                {
-                    MySqlCommand cmd = new MySqlCommand(sql, bd.conn);
-                    MySqlDataReader rdr = cmd.ExecuteReader();
+                ServiceLogger.Warn("数据库连接失败，无法加载设备列表。");
+                return;
+            }
 
+            string sql = "SELECT device_id, device_name, ip_address, port, username, password, status, last_used_time FROM devices";
+
+            try
+            {
+                using (MySqlCommand cmd = new MySqlCommand(sql, bd.conn))
+                using (MySqlDataReader rdr = cmd.ExecuteReader())
+                {
                     while (rdr.Read())
                     {
                         DeviceConnectionInfo device = new DeviceConnectionInfo
@@ -287,36 +336,27 @@ namespace ControlEntradaSalida
                             Port = rdr["port"].ToString(),
                             Username = rdr["username"].ToString(),
                             Password = rdr["password"].ToString(),
-                            // 设置设备启用状态（状态为1表示启用，其他值表示禁用）
                             IsEnabled = Convert.ToInt32(rdr["status"]) == 1,
                             LastUsed = rdr["last_used_time"] != DBNull.Value ? Convert.ToDateTime(rdr["last_used_time"]) : DateTime.MinValue
                         };
 
-                        // 初始化设备信号量
                         _connectionSemaphores.TryAdd(device.Id,
                             SynchronizationHelper.CreateSemaphore(1, 1, $"Device-{device.Id}-Connection"));
 
                         _devices.Add(device);
                     }
+                }
 
-                    rdr.Close();
-
-                    // 修复：设备加载完成后，异步检查和建立连接
-                    Task.Run(async () =>
-                    {
-                        await InitializeDeviceConnectionsAsync();
-                    });
-                }
-                catch (Exception ex)
-                {
-                    // 记录错误日志
-                    Console.WriteLine($"加载设备信息时出错: {ex.Message}");
-                    OnDeviceError(new DeviceErrorEventArgs(null, 0, $"加载设备信息失败: {ex.Message}", ex, "Database"));
-                }
-                finally
-                {
-                    bd.desconectarMySQL();
-                }
+                ServiceLogger.Info($"已从数据库加载 {GetAllDevices().Count} 台设备。");
+            }
+            catch (Exception ex)
+            {
+                ServiceLogger.Error("加载设备信息失败。", ex);
+                OnDeviceError(new DeviceErrorEventArgs(null, 0, $"加载设备信息失败: {ex.Message}", ex, "Database"));
+            }
+            finally
+            {
+                bd.desconectarMySQL();
             }
         }
 
@@ -329,7 +369,7 @@ namespace ControlEntradaSalida
 
             if (enabledDevices.Count == 0) return;
 
-            Console.WriteLine($"开始初始化 {enabledDevices.Count} 个启用设备的连接状态");
+            ServiceLogger.Info($"开始初始化 {enabledDevices.Count} 个启用设备的连接状态。");
 
             // 并行检查所有启用设备的连接状态
             var options = new ParallelOptions
@@ -343,28 +383,28 @@ namespace ControlEntradaSalida
                 {
                     try
                     {
-                        Console.WriteLine($"检查设备 {device.Id}({device.Name}) 的连接状态");
+                        ServiceLogger.Debug($"检查设备 {device.Id}({device.Name}) 的连接状态。");
 
                         // 尝试连接设备并更新状态
                         bool connected = ConnectToDevice(device);
 
                         if (connected)
                         {
-                            Console.WriteLine($"设备 {device.Id}({device.Name}) 连接成功");
+                            ServiceLogger.Info($"设备 {device.Id}({device.Name}) 连接成功。");
                         }
                         else
                         {
-                            Console.WriteLine($"设备 {device.Id}({device.Name}) 连接失败: {device.StatusMessage}");
+                            ServiceLogger.Warn($"设备 {device.Id}({device.Name}) 连接失败: {device.StatusMessage}");
                         }
                     }
                     catch (Exception ex)
                     {
-                        Console.WriteLine($"初始化设备 {device.Id}({device.Name}) 连接时发生异常: {ex.Message}");
+                        ServiceLogger.Error($"初始化设备 {device.Id}({device.Name}) 连接时发生异常。", ex);
                     }
                 });
             });
 
-            Console.WriteLine("设备连接初始化完成");
+            ServiceLogger.Info("设备连接初始化完成。");
         }
 
         /// <summary>
@@ -638,6 +678,33 @@ namespace ControlEntradaSalida
             });
         }
 
+        /// <summary>
+        /// 暂停设备状态监控。
+        /// </summary>
+        public void SuspendMonitoring()
+        {
+            if (_statusCheckTimer != null)
+            {
+                _statusCheckTimer.Stop();
+            }
+        }
+
+        /// <summary>
+        /// 恢复设备状态监控。
+        /// </summary>
+        public void ResumeMonitoring()
+        {
+            if (_statusCheckTimer == null)
+            {
+                InitializeTimer();
+            }
+
+            if (_statusCheckTimer != null && !_statusCheckTimer.Enabled)
+            {
+                _statusCheckTimer.Start();
+            }
+        }
+        
         #endregion
         
         #region 状态检测方法
@@ -696,7 +763,7 @@ namespace ControlEntradaSalida
                         // 修复：对于最近连接成功的设备，增加容错机制
                         if (isRecentlyConnected && previousConnectionState)
                         {
-                            Console.WriteLine($"[容错机制] 设备 {device.Id}({device.Name}) 最近连接成功，忽略此次状态检查失败");
+                            ServiceLogger.Debug($"[容错机制] 设备 {device.Id}({device.Name}) 最近连接成功，忽略此次状态检查失败。");
                             // 保持连接状态不变，不触发重连
                             return true;
                         }
@@ -714,12 +781,12 @@ namespace ControlEntradaSalida
                             var reconnectState = _reconnectManager.GetReconnectState(device.Id);
                             if (reconnectState == null || reconnectState.NextRetry == DateTime.MinValue)
                             {
-                                Console.WriteLine($"[状态检查] 设备 {device.Id}({device.Name}) 连接丢失，安排重连");
+                                ServiceLogger.Warn($"[状态检查] 设备 {device.Id}({device.Name}) 连接丢失，安排重连。");
                                 _reconnectManager.ScheduleReconnect(device.Id, "设备状态检查失败");
                             }
                             else
                             {
-                                Console.WriteLine($"[状态检查] 设备 {device.Id}({device.Name}) 已在重连队列中，跳过重复调度");
+                                ServiceLogger.Debug($"[状态检查] 设备 {device.Id}({device.Name}) 已在重连队列中，跳过重复调度。");
                             }
                         }
                     }
@@ -754,12 +821,12 @@ namespace ControlEntradaSalida
                 var reconnectState = _reconnectManager.GetReconnectState(device.Id);
                 if (reconnectState == null || reconnectState.NextRetry == DateTime.MinValue)
                 {
-                    Console.WriteLine($"[异常处理] 设备 {device.Id}({device.Name}) 状态检查异常，安排重连");
+                    ServiceLogger.Error($"[异常处理] 设备 {device.Id}({device.Name}) 状态检查异常，安排重连。", ex);
                     _reconnectManager.ScheduleReconnect(device.Id, $"状态检查异常: {ex.Message}");
                 }
                 else
                 {
-                    Console.WriteLine($"[异常处理] 设备 {device.Id}({device.Name}) 已在重连队列中，跳过重复调度");
+                    ServiceLogger.Debug($"[异常处理] 设备 {device.Id}({device.Name}) 已在重连队列中，跳过重复调度。");
                 }
 
                 // 如果状态发生改变，触发事件
@@ -828,7 +895,7 @@ namespace ControlEntradaSalida
             catch (Exception ex)
             {
                 // 出现异常，返回离线
-                Console.WriteLine($"获取设备详细状态时出错: {ex.Message}");
+                ServiceLogger.Error("获取设备详细状态时出错。", ex);
                 return DeviceStatus.Offline;
             }
         }
@@ -880,14 +947,14 @@ namespace ControlEntradaSalida
                         }
                         catch (Exception ex)
                         {
-                            Console.WriteLine($"检查设备 {device.Name} 状态时发生异常: {ex.Message}");
+                            ServiceLogger.Error($"检查设备 {device.Name} 状态时发生异常。", ex);
                         }
                     });
                 });
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"检查所有设备状态时发生异常: {ex.Message}");
+                ServiceLogger.Error("检查所有设备状态时发生异常。", ex);
             }
         }
         
@@ -932,13 +999,13 @@ namespace ControlEntradaSalida
                     }
                     catch (Exception ex)
                     {
-                        Console.WriteLine($"处理设备 {deviceId} 重连时发生异常: {ex.Message}");
+                        ServiceLogger.Error($"处理设备 {deviceId} 重连时发生异常。", ex);
                     }
                 });
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"处理待重连设备时发生异常: {ex.Message}");
+                ServiceLogger.Error("处理待重连设备时发生异常。", ex);
             }
         }
         
@@ -976,7 +1043,7 @@ namespace ControlEntradaSalida
             catch (Exception ex)
             {
                 // 记录错误但不中断流程
-                Console.WriteLine($"更新设备最后使用时间时出错: {ex.Message}");
+                ServiceLogger.Error("更新设备最后使用时间时出错。", ex);
             }
         }
         
@@ -995,7 +1062,7 @@ namespace ControlEntradaSalida
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"触发设备状态改变事件时发生异常: {ex.Message}");
+                ServiceLogger.Error("触发设备状态改变事件时发生异常。", ex);
             }
         }
         
@@ -1010,7 +1077,7 @@ namespace ControlEntradaSalida
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"触发设备连接状态改变事件时发生异常: {ex.Message}");
+                ServiceLogger.Error("触发设备连接状态改变事件时发生异常。", ex);
             }
         }
         
@@ -1025,7 +1092,7 @@ namespace ControlEntradaSalida
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"触发设备重连事件时发生异常: {ex.Message}");
+                ServiceLogger.Error("触发设备重连事件时发生异常。", ex);
             }
         }
         
@@ -1040,7 +1107,7 @@ namespace ControlEntradaSalida
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"触发设备错误事件时发生异常: {ex.Message}");
+                ServiceLogger.Error("触发设备错误事件时发生异常。", ex);
             }
         }
         
@@ -1050,23 +1117,23 @@ namespace ControlEntradaSalida
         
         private void OnReconnectAttemptStarted(object sender, DeviceReconnectEventArgs e)
         {
-            Console.WriteLine($"设备 {e.DeviceId} 开始第 {e.Attempts} 次重连尝试，下次延迟: {e.NextDelay.TotalSeconds} 秒");
+            ServiceLogger.Info($"设备 {e.DeviceId} 开始第 {e.Attempts} 次重连尝试，下次延迟: {e.NextDelay.TotalSeconds} 秒。");
             OnDeviceReconnectAttempt(e);
         }
         
         private void OnReconnectSucceeded(object sender, DeviceReconnectEventArgs e)
         {
-            Console.WriteLine($"设备 {e.DeviceId} 重连成功");
+            ServiceLogger.Info($"设备 {e.DeviceId} 重连成功。");
         }
         
         private void OnReconnectFailed(object sender, DeviceReconnectEventArgs e)
         {
-            Console.WriteLine($"设备 {e.DeviceId} 第 {e.Attempts} 次重连失败: {e.Reason}");
+            ServiceLogger.Warn($"设备 {e.DeviceId} 第 {e.Attempts} 次重连失败: {e.Reason}");
         }
         
         private void OnPermanentFailure(object sender, DeviceReconnectEventArgs e)
         {
-            Console.WriteLine($"设备 {e.DeviceId} 达到最大重连次数，进入冷却期");
+            ServiceLogger.Warn($"设备 {e.DeviceId} 达到最大重连次数，进入冷却期。");
             
             var device = GetDeviceById(e.DeviceId);
             if (device != null)
@@ -1099,6 +1166,7 @@ namespace ControlEntradaSalida
                 {
                     _statusCheckTimer?.Stop();
                     _statusCheckTimer?.Dispose();
+                    _statusCheckTimer = null;
                     
                     DisconnectAllDevices();
                     
@@ -1112,10 +1180,14 @@ namespace ControlEntradaSalida
                     _connectionSemaphores.Clear();
                     
                     _disposed = true;
+                    lock (_lock)
+                    {
+                        _instance = null;
+                    }
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"清理资源时发生异常: {ex.Message}");
+                    ServiceLogger.Error("清理资源时发生异常。", ex);
                 }
             }
         }

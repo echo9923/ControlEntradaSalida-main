@@ -1,59 +1,39 @@
 ﻿using System;
-using System.Diagnostics;
-using System.Windows.Forms;
+using System.ServiceProcess;
 
 namespace ControlEntradaSalida
 {
-    static class Program
+    internal static class Program
     {
-        private static PermissionUpdateGrpcServer permissionServer;
-
         /// <summary>
-        /// 应用程序的主要入口点
+        /// 应用程序入口点，支持服务模式与交互式调试模式。
         /// </summary>
-        static void Main()
+        private static void Main(string[] args)
         {
-            Application.EnableVisualStyles();
-            Application.SetCompatibleTextRenderingDefault(false);
-
-            Application.ApplicationExit += OnApplicationExit;
-            InitializeBackgroundServices();
-
-            Application.Run(new MDIParent());
-        }
-
-        private static void InitializeBackgroundServices()
-        {
-            try
+            if (Environment.UserInteractive || Array.Exists(args, a => string.Equals(a, "--console", StringComparison.OrdinalIgnoreCase)))
             {
-                PermissionRefreshManager refreshManager = new PermissionRefreshManager();
-                permissionServer = new PermissionUpdateGrpcServer(refreshManager);
-                permissionServer.Start();
+                RunAsConsole(args);
             }
-            catch (Exception ex)
+            else
             {
-                Trace.TraceError($"启动权限GRPC服务失败: {ex}");
+                RunAsService();
             }
         }
 
-        private static void OnApplicationExit(object sender, EventArgs e)
+        private static void RunAsService()
         {
-            if (permissionServer == null)
-            {
-                return;
-            }
+            ServiceBase.Run(new ControlEntradaSalidaService());
+        }
 
-            try
+        private static void RunAsConsole(string[] args)
+        {
+            Console.Title = "ControlEntradaSalida 门禁服务（调试模式）";
+            using (var service = new ControlEntradaSalidaService())
             {
-                permissionServer.Dispose();
-            }
-            catch (Exception ex)
-            {
-                Trace.TraceError($"停止权限GRPC服务失败: {ex}");
-            }
-            finally
-            {
-                permissionServer = null;
+                service.StartInteractive(args);
+                Console.WriteLine("服务已在交互模式下启动，按任意键停止...");
+                Console.ReadKey();
+                service.StopInteractive();
             }
         }
     }

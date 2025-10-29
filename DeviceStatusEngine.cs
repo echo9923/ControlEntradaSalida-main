@@ -84,7 +84,7 @@ namespace ControlEntradaSalida
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"验证连接时发生异常: {ex.Message}");
+                ServiceLogger.Error("验证设备连接时发生异常。", ex);
                 return false;
             }
         }
@@ -187,7 +187,7 @@ namespace ControlEntradaSalida
             {
                 workStatus.StatusMessage = $"获取设备状态时发生异常: {ex.Message}";
                 workStatus.Status = DeviceStatus.Unknown;
-                Console.WriteLine($"获取设备工作状态时发生异常: {ex.Message}");
+                ServiceLogger.Error("获取设备工作状态时发生异常。", ex);
             }
 
             return workStatus;
@@ -255,7 +255,7 @@ namespace ControlEntradaSalida
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"获取设备能力时发生异常: {ex.Message}");
+                ServiceLogger.Error("获取设备能力时发生异常。", ex);
             }
 
             return capabilities;
@@ -302,7 +302,7 @@ namespace ControlEntradaSalida
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"测试设备连通性时发生异常: {ex.Message}");
+                ServiceLogger.Error("测试设备连通性时发生异常。", ex);
                 return false;
             }
         }
@@ -351,7 +351,7 @@ namespace ControlEntradaSalida
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"解析设备状态时发生异常: {ex.Message}");
+                ServiceLogger.Error("解析设备状态时发生异常。", ex);
                 return (DeviceStatus.Unknown, $"状态解析异常: {ex.Message}");
             }
         }

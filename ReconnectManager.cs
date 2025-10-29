@@ -150,14 +150,14 @@ namespace ControlEntradaSalida
                 // 修复：检查是否在冷却期或已有待执行的重连任务
                 if (state.IsInCooldown && DateTime.Now < state.CooldownUntil)
                 {
-                    Console.WriteLine($"[重连管理器] 设备 {deviceId} 在冷却期内，跳过重连调度");
+                    ServiceLogger.Debug($"[重连管理器] 设备 {deviceId} 在冷却期内，跳过重连调度。");
                     return; // 还在冷却期，不处理
                 }
 
                 // 修复：检查是否已有待执行的重连任务（避免重复调度）
                 if (state.NextRetry != DateTime.MinValue && DateTime.Now < state.NextRetry)
                 {
-                    Console.WriteLine($"[重连管理器] 设备 {deviceId} 已有待执行重连任务，跳过重复调度");
+                    ServiceLogger.Debug($"[重连管理器] 设备 {deviceId} 已有待执行重连任务，跳过重复调度。");
                     return; // 已有待执行的重连任务，不重复调度
                 }
 
@@ -173,7 +173,7 @@ namespace ControlEntradaSalida
                         state.IsInCooldown = true;
                         state.CooldownUntil = DateTime.Now.AddMilliseconds(PERMANENT_FAILURE_COOLDOWN_MS);
 
-                        Console.WriteLine($"[重连管理器] 设备 {deviceId} 达到最大重连次数，进入冷却期");
+                        ServiceLogger.Warn($"[重连管理器] 设备 {deviceId} 达到最大重连次数，进入冷却期。");
                         OnPermanentFailure(new DeviceReconnectEventArgs(
                             deviceId, state.Attempts, TimeSpan.Zero, true,
                             $"已达到最大重连次数({MAX_RECONNECT_ATTEMPTS})，进入冷却期"));
@@ -188,7 +188,7 @@ namespace ControlEntradaSalida
                 state.Attempts++;
                 state.LastAttempt = DateTime.Now;
 
-                Console.WriteLine($"[重连管理器] 设备 {deviceId} 安排第 {state.Attempts} 次重连，延迟 {delay.TotalSeconds} 秒");
+                ServiceLogger.Info($"[重连管理器] 设备 {deviceId} 安排第 {state.Attempts} 次重连，延迟 {delay.TotalSeconds} 秒。");
 
                 // 触发重连尝试开始事件
                 OnReconnectAttemptStarted(new DeviceReconnectEventArgs(
@@ -209,7 +209,7 @@ namespace ControlEntradaSalida
                 {
                     var wasInFailure = state.IsPermanentFailure || state.Attempts > 0;
 
-                    Console.WriteLine($"[重连管理器] 重置设备 {deviceId} 重连状态 - 之前尝试次数: {state.Attempts}");
+                    ServiceLogger.Info($"[重连管理器] 重置设备 {deviceId} 重连状态 - 之前尝试次数: {state.Attempts}。");
 
                     state.Attempts = 0;
                     state.IsPermanentFailure = false;
@@ -220,7 +220,7 @@ namespace ControlEntradaSalida
 
                     if (wasInFailure)
                     {
-                        Console.WriteLine($"[重连管理器] 设备 {deviceId} 连接恢复成功");
+                        ServiceLogger.Info($"[重连管理器] 设备 {deviceId} 连接恢复成功。");
                         OnReconnectSucceeded(new DeviceReconnectEventArgs(
                             deviceId, 0, TimeSpan.Zero, false, "连接恢复成功"));
                     }
@@ -228,7 +228,7 @@ namespace ControlEntradaSalida
                 else
                 {
                     // 修复：即使状态不存在，也要确保创建一个干净的状态记录
-                    Console.WriteLine($"[重连管理器] 为设备 {deviceId} 创建新的重连状态记录");
+                    ServiceLogger.Debug($"[重连管理器] 为设备 {deviceId} 创建新的重连状态记录。");
                     _reconnectStates.TryAdd(deviceId, new ReconnectState
                     {
                         DeviceId = deviceId,
@@ -360,7 +360,7 @@ namespace ControlEntradaSalida
             catch (Exception ex)
             {
                 // 记录错误但不中断定时器
-                Console.WriteLine($"重连定时器处理异常: {ex.Message}");
+                ServiceLogger.Error("重连定时器处理异常。", ex);
             }
         }
 

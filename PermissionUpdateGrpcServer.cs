@@ -104,9 +104,7 @@ namespace ControlEntradaSalida
                 }
                 catch (Exception ex)
                 {
-                    System.Diagnostics.Trace.TraceError(
-                        string.Format(CultureInfo.InvariantCulture,
-                            "停止权限GRPC服务时发生异常：{0}", ex));
+                    ServiceLogger.Error("停止权限GRPC服务时发生异常。", ex);
                 }
 
                 if (threadToJoin != null && threadToJoin.IsAlive)
@@ -140,24 +138,21 @@ namespace ControlEntradaSalida
 
                 grpcServer.Start();
 
-                System.Diagnostics.Trace.TraceInformation(
-                    string.Format(CultureInfo.InvariantCulture,
-                        "权限GRPC服务已启动，端口：{0}", listenPort));
+                ServiceLogger.Info(string.Format(CultureInfo.InvariantCulture,
+                    "权限GRPC服务已启动，端口：{0}。", listenPort));
 
                 CancellationToken token = shutdownTokenSource.Token;
                 token.WaitHandle.WaitOne();
             }
             catch (IOException ex)
             {
-                System.Diagnostics.Trace.TraceError(
+                ServiceLogger.Error(
                     string.Format(CultureInfo.InvariantCulture,
-                        "权限GRPC服务启动失败，可能端口被占用：{0}", ex.Message));
+                        "权限GRPC服务启动失败，可能端口被占用：{0}", ex.Message), ex);
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Trace.TraceError(
-                    string.Format(CultureInfo.InvariantCulture,
-                        "权限GRPC服务运行异常：{0}", ex));
+                ServiceLogger.Error("权限GRPC服务运行异常。", ex);
             }
         }
 
@@ -194,9 +189,7 @@ namespace ControlEntradaSalida
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Trace.TraceError(
-                    string.Format(CultureInfo.InvariantCulture,
-                        "处理权限更新时发生异常：{0}", ex));
+                ServiceLogger.Error("处理权限更新时发生异常。", ex);
                 throw new RpcException(new Status(StatusCode.Internal, "处理权限更新时发生未知错误。"));
             }
         }
