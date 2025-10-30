@@ -24,17 +24,56 @@ namespace ControlEntradaSalida
 
         public void Connect(string connectionString)
         {
-            Connection = new SqlConnection(connectionString);
+            ErrorMessage = null;
+            ErrorNumber = null;
+
+            SqlConnection connection = null;
+
             try
             {
-                Connection.Open();
+                connection = new SqlConnection(connectionString);
+                connection.Open();
+                Connection = connection;
             }
             catch (SqlException ex)
             {
                 ErrorMessage = ex.Message;
                 ErrorNumber = ex.Number.ToString();
+                LogConnectionFailure("SQL 异常", ex);
+                DisposeConnection(connection);
                 Connection = null;
             }
+            catch (Exception ex)
+            {
+                ErrorMessage = ex.Message;
+                ErrorNumber = null;
+                LogConnectionFailure("非 SQL 异常", ex);
+                DisposeConnection(connection);
+                Connection = null;
+            }
+        }
+
+        private static void DisposeConnection(SqlConnection connection)
+        {
+            if (connection == null)
+            {
+                return;
+            }
+
+            try
+            {
+                connection.Dispose();
+            }
+            catch
+            {
+                // 忽略释放阶段的异常
+            }
+        }
+
+        private static void LogConnectionFailure(string category, Exception ex)
+        {
+            string message = $"数据库连接失败（{category}）: {ex.Message}";
+            ServiceLogger.Error(message, ex);
         }
 
         public SqlCommand CreateCommand(string sql)

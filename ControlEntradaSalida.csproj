@@ -25,7 +25,8 @@
     <UpdatePeriodically>false</UpdatePeriodically>
     <UpdateRequired>false</UpdateRequired>
     <MapFileExtensions>true</MapFileExtensions>
-    <ApplicationRevision>1</ApplicationRevision>
+    <AutorunEnabled>true</AutorunEnabled>
+    <ApplicationRevision>2</ApplicationRevision>
     <ApplicationVersion>1.0.0.%2a</ApplicationVersion>
     <UseApplicationTrust>false</UseApplicationTrust>
     <PublishWizardCompleted>true</PublishWizardCompleted>
@@ -177,7 +178,9 @@
   <ItemGroup>
     <Compile Include="Configuration\ExternalConfiguration.cs" />
     <Compile Include="Common.cs" />
-    <Compile Include="ControlEntradaSalidaService.cs" />
+    <Compile Include="ControlEntradaSalidaService.cs">
+      <SubType>Component</SubType>
+    </Compile>
     <Compile Include="DeviceConnectionManager.cs" />
     <Compile Include="DeviceStatusEngine.cs" />
     <Compile Include="HCNetSDK.cs" />
@@ -186,7 +189,9 @@
     <Compile Include="PermissionUpdateGrpcServer.cs" />
     <Compile Include="PermissionUpdateInfo.cs" />
     <Compile Include="Program.cs" />
-    <Compile Include="ProjectInstaller.cs" />
+    <Compile Include="ProjectInstaller.cs">
+      <SubType>Component</SubType>
+    </Compile>
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Properties\Settings.Designer.cs">
       <AutoGen>True</AutoGen>
@@ -227,8 +232,8 @@
     </Content>
     <Content Include="SqlServerTypes\readme.htm" />
     <Content Include="SqlServerTypes\x64\msvcr120.dll">
-        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      </Content>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
     <Content Include="SqlServerTypes\x64\SqlServerSpatial140.dll">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>

@@ -1,20 +1,4 @@
--- =====================================================
--- SQL Server Script for Access Control System
--- =====================================================
--- 系统名称: ControlEntradaSalida 门禁管理系统
--- 脚本版本: v2.0 (SQL Server Edition)
--- 生成日期: 2025-10-30
--- 说明: 从 MySQL 转换的数据库脚本,保持完全等价的表结构和字段
---
--- 核心功能:
--- 1. 设备管理 - 门禁设备的注册、配置和连接管理
--- 2. 员工管理 - 员工信息和门禁权限管理(已合并权限信息)
--- =====================================================
 
--- =====================================================
--- Database: access_control_system
--- =====================================================
--- 如果数据库存在则删除 (谨慎使用)
 IF EXISTS (SELECT name FROM sys.databases WHERE name = N'access_control_system')
 BEGIN
     ALTER DATABASE access_control_system SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
@@ -45,8 +29,8 @@ IF OBJECT_ID('dbo.devices', 'U') IS NOT NULL
 GO
 
 CREATE TABLE dbo.devices (
-    -- 设备唯一标识(主键)
-    device_id INT NOT NULL IDENTITY(1,1),
+    -- 设备唯一标识(主键,可手动编辑)
+    device_id INT NOT NULL,
 
     -- 设备名称
     device_name NVARCHAR(255) NOT NULL,
@@ -234,41 +218,51 @@ GO
 
 
 -- 插入示例设备
-INSERT INTO dbo.devices (device_name, description, ip_address, port, username, password, status) VALUES
-(N'门禁设备103', N'生产区域', N'192.168.1.103', N'8000', N'admin', N'SXSSF1314te', 1),
-(N'门禁设备101', N'办公区域', N'192.168.1.101', N'8000', N'admin', N'sxs1314te', 1);
+INSERT INTO dbo.devices (device_id, device_name, description, ip_address, port, username, password, status) VALUES
+(101, N'门禁设备101', N'办公区域', N'192.168.1.101', N'8000', N'admin', N'sxs1314te', 1),
+(103, N'门禁设备103', N'生产区域', N'192.168.1.103', N'8000', N'admin', N'SXSSF1314te', 1);
 
 -- 插入示例员工(包含权限信息)
 INSERT INTO dbo.employees (employee_id, card_number, full_name, status, permission_level) VALUES
 (N'00000004', N'00000004', N'韩立', N'ACTIVE', 2);
 
 
--- =====================================================
--- 脚本执行完成
--- =====================================================
---
--- ✓ 数据库 'access_control_system' 已创建
---
--- 已创建核心表:
--- 1. devices (门禁设备表) - 存储设备配置和连接信息
--- 2. employees (员工信息表) - 存储员工基本信息、状态和权限信息
---
--- 已创建存储过程:
--- 1. delete_employee - 安全删除员工记录(带事务)
---
--- 已创建触发器:
--- 1. trg_devices_update - 自动更新 devices.updated_at
--- 2. trg_employees_update - 自动更新 employees.updated_at
---
--- 优化说明:
--- - 所有表字段与代码实际使用完全一致
--- - 已将 user_permissions 表合并到 employees 表中,简化查询
--- - 移除了未使用的access_logs表和device_users_backup表
--- - 字段注释清晰说明了用途和默认值
--- - 索引优化,提高查询性能
--- - 字符集使用 Chinese_PRC_CI_AS,支持中文排序
--- - 示例数据已更新为当前系统使用的默认值
--- - 使用 DATETIME2(0) 替代 DATETIME 以获得更好的精度和性能
--- - 使用触发器实现 updated_at 的自动更新功能
---
--- =====================================================
+IF NOT EXISTS (SELECT * FROM sys.server_principals WHERE name = N'admin_user')
+BEGIN
+    CREATE LOGIN admin_user 
+    WITH PASSWORD = '123456',
+         DEFAULT_DATABASE = [access_control_system],
+         CHECK_EXPIRATION = OFF,
+         CHECK_POLICY = OFF;
+END
+GO
+
+-- 切换到目标数据库
+USE access_control_system;
+GO
+
+-- 创建数据库用户
+IF NOT EXISTS (SELECT * FROM sys.database_principals WHERE name = N'admin_user')
+BEGIN
+    CREATE USER admin_user FOR LOGIN admin_user;
+END
+GO
+
+-- 将用户添加到db_owner角色 (完全权限)
+ALTER ROLE db_owner ADD MEMBER admin_user;
+GO
+
+-- 添加用户注释
+EXEC sys.sp_addextendedproperty
+    @name = N'MS_Description',
+    @value = N'门禁管理系统管理员用户，具有数据库完全控制权限',
+    @level0type = N'USER', @level0name = N'admin_user';
+GO
+
+-- 显示用户权限信息
+SELECT 
+    'admin_user' AS 用户名,
+    'db_owner' AS 角色,
+    '数据库完全控制权限' AS 权限描述,
+    '123456' AS 初始密码;
+GO

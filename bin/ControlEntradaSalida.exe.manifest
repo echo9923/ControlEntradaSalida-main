@@ -54,14 +54,14 @@
     </dependentAssembly>
   </dependency>
   <dependency>
-    <dependentAssembly dependencyType="install" allowDelayedBinding="true" codebase="ControlEntradaSalida.exe" size="156160">
+    <dependentAssembly dependencyType="install" allowDelayedBinding="true" codebase="ControlEntradaSalida.exe" size="156672">
       <assemblyIdentity name="ControlEntradaSalida" version="1.0.0.0" language="neutral" processorArchitecture="msil" />
       <hash>
         <dsig:Transforms>
           <dsig:Transform Algorithm="urn:schemas-microsoft-com:HashTransforms.Identity" />
         </dsig:Transforms>
         <dsig:DigestMethod Algorithm="http://www.w3.org/2000/09/xmldsig#sha256" />
-        <dsig:DigestValue>7xjFg6J1KvBxz+XKTygb8oTi4gs8MHwasEwkAlGlvPs=</dsig:DigestValue>
+        <dsig:DigestValue>xo61Q2wKGYY3v9dVez2cYsuVZKGvCqEdwR5al4gddRc=</dsig:DigestValue>
       </hash>
     </dependentAssembly>
   </dependency>
@@ -269,13 +269,13 @@
       </hash>
     </dependentAssembly>
   </dependency>
-  <file name="Configuration\appsettings.json" size="295">
+  <file name="Configuration\appsettings.json" size="301">
     <hash>
       <dsig:Transforms>
         <dsig:Transform Algorithm="urn:schemas-microsoft-com:HashTransforms.Identity" />
       </dsig:Transforms>
       <dsig:DigestMethod Algorithm="http://www.w3.org/2000/09/xmldsig#sha256" />
-      <dsig:DigestValue>q/9JwBAPrU4lF7M9mPlq/m5sM+a6HuycnU/XFS5KBKM=</dsig:DigestValue>
+      <dsig:DigestValue>WM1mfL5dYm2TvIP1tQ0B8HcLASDG8V6HPVyrf5YMjFY=</dsig:DigestValue>
     </hash>
   </file>
   <file name="ControlEntradaSalida.exe.config" size="1286">

@@ -39,7 +39,7 @@ USE `access_control_system`;
 DROP TABLE IF EXISTS `access_control_system`.`devices`;
 
 CREATE TABLE IF NOT EXISTS `access_control_system`.`devices` (
-  `device_id` INT NOT NULL AUTO_INCREMENT
+  `device_id` INT NOT NULL
     COMMENT '设备唯一标识(主键)',
 
   `device_name` VARCHAR(255) NOT NULL
@@ -77,7 +77,6 @@ CREATE TABLE IF NOT EXISTS `access_control_system`.`devices` (
   INDEX `idx_status` (`status` ASC) COMMENT '筛选启用/禁用的设备'
 )
 ENGINE=InnoDB
-AUTO_INCREMENT=1
 DEFAULT CHARSET=utf8mb4
 COLLATE=utf8mb4_unicode_ci
 COMMENT='门禁设备信息表';
