@@ -1,4 +1,4 @@
-using MySql.Data.MySqlClient;
+using System.Data.SqlClient;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
@@ -209,47 +209,46 @@ namespace ControlEntradaSalida
             List<DeviceAreaInfo> devices = new List<DeviceAreaInfo>();
 
             string connStr = commonHelper.obtenerCadenaConexion();
-            BaseDatosMySQL bd = new BaseDatosMySQL();
-            bd.conectarMySQL(connStr);
-            if (bd.conn == null)
+            SqlServerDatabase db = new SqlServerDatabase(commonHelper.obtenerTiempoEsperaComando());
+            db.Connect(connStr);
+            if (db.Connection == null)
             {
                 return devices;
             }
 
             try
             {
-                string sql = "SELECT device_id, device_name, description, status FROM devices";
-                MySqlCommand cmd = new MySqlCommand(sql, bd.conn);
-                MySqlDataReader reader = cmd.ExecuteReader();
-
-                while (reader.Read())
+                const string sql = "SELECT device_id, device_name, description, status FROM devices";
+                using (SqlCommand cmd = db.CreateCommand(sql))
+                using (SqlDataReader reader = cmd.ExecuteReader())
                 {
-                    bool isEnabled = Convert.ToInt32(reader["status"]) == 1;
-                    if (!isEnabled)
+                    while (reader.Read())
                     {
-                        continue;
+                        bool isEnabled = Convert.ToInt32(reader["status"]) == 1;
+                        if (!isEnabled)
+                        {
+                            continue;
+                        }
+
+                        int deviceId = Convert.ToInt32(reader["device_id"]);
+                        string name = reader["device_name"].ToString();
+                        string description = reader["description"] == DBNull.Value ? string.Empty : reader["description"].ToString();
+
+                        DeviceConnectionInfo connection = deviceManager.GetDeviceById(deviceId);
+
+                        devices.Add(new DeviceAreaInfo
+                        {
+                            DeviceId = deviceId,
+                            DeviceName = name,
+                            Area = ResolveArea(description),
+                            Connection = connection
+                        });
                     }
-
-                    int deviceId = Convert.ToInt32(reader["device_id"]);
-                    string name = reader["device_name"].ToString();
-                    string description = reader["description"] == DBNull.Value ? string.Empty : reader["description"].ToString();
-
-                    DeviceConnectionInfo connection = deviceManager.GetDeviceById(deviceId);
-
-                    devices.Add(new DeviceAreaInfo
-                    {
-                        DeviceId = deviceId,
-                        DeviceName = name,
-                        Area = ResolveArea(description),
-                        Connection = connection
-                    });
                 }
-
-                reader.Close();
             }
             finally
             {
-                bd.desconectarMySQL();
+                db.Disconnect();
             }
 
             return devices;
@@ -282,9 +281,9 @@ namespace ControlEntradaSalida
             missingRecords = new List<string>();
 
             string connStr = commonHelper.obtenerCadenaConexion();
-            BaseDatosMySQL bd = new BaseDatosMySQL();
-            bd.conectarMySQL(connStr);
-            if (bd.conn == null)
+            SqlServerDatabase db = new SqlServerDatabase(commonHelper.obtenerTiempoEsperaComando());
+            db.Connect(connStr);
+            if (db.Connection == null)
             {
                 return users;
             }
@@ -299,37 +298,36 @@ namespace ControlEntradaSalida
                                FROM employees
                                ORDER BY employee_id";
 
-                MySqlCommand cmd = new MySqlCommand(sql, bd.conn);
-                MySqlDataReader reader = cmd.ExecuteReader();
-
-                while (reader.Read())
+                using (SqlCommand cmd = db.CreateCommand(sql))
+                using (SqlDataReader reader = cmd.ExecuteReader())
                 {
-                    string employeeId = reader["employee_id"].ToString();
-                    string fullName = reader["full_name"] == DBNull.Value ? string.Empty : reader["full_name"].ToString();
-
-                    // 权限级别现在有默认值 0，不会是 NULL
-                    int permissionLevel = reader["permission_level"] != DBNull.Value
-                        ? Convert.ToInt32(reader["permission_level"])
-                        : 0;
-
-                    int? lastSynced = reader["last_synced_level"] != DBNull.Value
-                        ? Convert.ToInt32(reader["last_synced_level"])
-                        : (int?)null;
-
-                    users.Add(new UserPermissionRecord
+                    while (reader.Read())
                     {
-                        EmployeeId = employeeId,
-                        FullName = fullName,
-                        PermissionLevel = permissionLevel,
-                        LastSyncedLevel = lastSynced
-                    });
-                }
+                        string employeeId = reader["employee_id"].ToString();
+                        string fullName = reader["full_name"] == DBNull.Value ? string.Empty : reader["full_name"].ToString();
 
-                reader.Close();
+                        // 权限级别现在有默认值 0，不会是 NULL
+                        int permissionLevel = reader["permission_level"] != DBNull.Value
+                            ? Convert.ToInt32(reader["permission_level"])
+                            : 0;
+
+                        int? lastSynced = reader["last_synced_level"] != DBNull.Value
+                            ? Convert.ToInt32(reader["last_synced_level"])
+                            : (int?)null;
+
+                        users.Add(new UserPermissionRecord
+                        {
+                            EmployeeId = employeeId,
+                            FullName = fullName,
+                            PermissionLevel = permissionLevel,
+                            LastSyncedLevel = lastSynced
+                        });
+                    }
+                }
             }
             finally
             {
-                bd.desconectarMySQL();
+                db.Disconnect();
             }
 
             return users;
@@ -338,60 +336,58 @@ namespace ControlEntradaSalida
         private UserPermissionRecord LoadUserPermission(string employeeId)
         {
             string connStr = commonHelper.obtenerCadenaConexion();
-            BaseDatosMySQL bd = new BaseDatosMySQL();
-            bd.conectarMySQL(connStr);
-            if (bd.conn == null)
+            SqlServerDatabase db = new SqlServerDatabase(commonHelper.obtenerTiempoEsperaComando());
+            db.Connect(connStr);
+            if (db.Connection == null)
             {
                 return null;
             }
 
             try
             {
-                string sql = @"SELECT employee_id,
-                                      full_name,
-                                      permission_level,
-                                      last_synced_level
-                               FROM employees
-                               WHERE employee_id = @employee_id
-                               LIMIT 1";
+                const string sql = @"SELECT TOP (1) employee_id,
+                                             full_name,
+                                             permission_level,
+                                             last_synced_level
+                                      FROM employees
+                                      WHERE employee_id = @employee_id";
 
-                MySqlCommand cmd = new MySqlCommand(sql, bd.conn);
-                cmd.Parameters.AddWithValue("@employee_id", employeeId);
-
-                MySqlDataReader reader = cmd.ExecuteReader();
-                if (reader.Read())
+                using (SqlCommand cmd = db.CreateCommand(sql))
                 {
-                    UserPermissionRecord record = new UserPermissionRecord
+                    cmd.Parameters.AddWithValue("@employee_id", employeeId);
+
+                    using (SqlDataReader reader = cmd.ExecuteReader())
                     {
-                        EmployeeId = reader["employee_id"].ToString(),
-                        FullName = reader["full_name"] == DBNull.Value ? string.Empty : reader["full_name"].ToString(),
-                        PermissionLevel = reader["permission_level"] != DBNull.Value
-                            ? Convert.ToInt32(reader["permission_level"])
-                            : 0,
-                        LastSyncedLevel = reader["last_synced_level"] != DBNull.Value
-                            ? Convert.ToInt32(reader["last_synced_level"])
-                            : (int?)null
-                    };
-
-                    reader.Close();
-                    return record;
+                        if (reader.Read())
+                        {
+                            return new UserPermissionRecord
+                            {
+                                EmployeeId = reader["employee_id"].ToString(),
+                                FullName = reader["full_name"] == DBNull.Value ? string.Empty : reader["full_name"].ToString(),
+                                PermissionLevel = reader["permission_level"] != DBNull.Value
+                                    ? Convert.ToInt32(reader["permission_level"])
+                                    : 0,
+                                LastSyncedLevel = reader["last_synced_level"] != DBNull.Value
+                                    ? Convert.ToInt32(reader["last_synced_level"])
+                                    : (int?)null
+                            };
+                        }
+                    }
                 }
-
-                reader.Close();
                 return null;
             }
             finally
             {
-                bd.desconectarMySQL();
+                db.Disconnect();
             }
         }
 
         private bool UpdatePermissionLevel(string employeeId, int permissionLevel)
         {
             string connStr = commonHelper.obtenerCadenaConexion();
-            BaseDatosMySQL bd = new BaseDatosMySQL();
-            bd.conectarMySQL(connStr);
-            if (bd.conn == null)
+            SqlServerDatabase db = new SqlServerDatabase(commonHelper.obtenerTiempoEsperaComando());
+            db.Connect(connStr);
+            if (db.Connection == null)
             {
                 return false;
             }
@@ -402,16 +398,18 @@ namespace ControlEntradaSalida
                                SET permission_level = @level
                                WHERE employee_id = @employee_id";
 
-                MySqlCommand cmd = new MySqlCommand(sql, bd.conn);
-                cmd.Parameters.AddWithValue("@level", permissionLevel);
-                cmd.Parameters.AddWithValue("@employee_id", employeeId);
+                using (SqlCommand cmd = db.CreateCommand(sql))
+                {
+                    cmd.Parameters.AddWithValue("@level", permissionLevel);
+                    cmd.Parameters.AddWithValue("@employee_id", employeeId);
 
-                int affected = cmd.ExecuteNonQuery();
-                return affected > 0;
+                    int affected = cmd.ExecuteNonQuery();
+                    return affected > 0;
+                }
             }
             finally
             {
-                bd.desconectarMySQL();
+                db.Disconnect();
             }
         }
 
@@ -630,9 +628,9 @@ namespace ControlEntradaSalida
         private bool UpdateSyncedLevel(string employeeId, int permissionLevel)
         {
             string connStr = commonHelper.obtenerCadenaConexion();
-            BaseDatosMySQL bd = new BaseDatosMySQL();
-            bd.conectarMySQL(connStr);
-            if (bd.conn == null)
+            SqlServerDatabase db = new SqlServerDatabase(commonHelper.obtenerTiempoEsperaComando());
+            db.Connect(connStr);
+            if (db.Connection == null)
             {
                 return false;
             }
@@ -645,16 +643,18 @@ namespace ControlEntradaSalida
                                    last_synced_at = CURRENT_TIMESTAMP
                                WHERE employee_id = @employee_id";
 
-                MySqlCommand cmd = new MySqlCommand(sql, bd.conn);
-                cmd.Parameters.AddWithValue("@level", permissionLevel);
-                cmd.Parameters.AddWithValue("@employee_id", employeeId);
+                using (SqlCommand cmd = db.CreateCommand(sql))
+                {
+                    cmd.Parameters.AddWithValue("@level", permissionLevel);
+                    cmd.Parameters.AddWithValue("@employee_id", employeeId);
 
-                int affected = cmd.ExecuteNonQuery();
-                return affected > 0;
+                    int affected = cmd.ExecuteNonQuery();
+                    return affected > 0;
+                }
             }
             finally
             {
-                bd.desconectarMySQL();
+                db.Disconnect();
             }
         }
 

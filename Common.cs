@@ -1,11 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Configuration;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
+using ControlEntradaSalida.Configuration;
 
 //Common类，它实现了多个与海康威视设备通信、数据库连接及文件目录管理相关的工具函数。
 namespace ControlEntradaSalida
@@ -148,10 +148,22 @@ namespace ControlEntradaSalida
         //从 App.config 中读取 MySQL 数据库连接字符串
         public string obtenerCadenaConexion()
         {
-            string cadenaConexion = null;
-            cadenaConexion = ConfigurationManager.ConnectionStrings["mysql"].ConnectionString;
+            string connectionString = ExternalConfiguration.Current.Database.ConnectionString;
 
-            return cadenaConexion;
+            if (string.IsNullOrWhiteSpace(connectionString))
+            {
+                throw new InvalidOperationException("外部配置文件未提供数据库连接字符串。");
+            }
+
+            return connectionString.Trim();
+        }
+
+        public int obtenerTiempoEsperaComando()
+        {
+            int? configuredTimeout = ExternalConfiguration.Current.Database.CommandTimeoutSeconds;
+            return configuredTimeout.HasValue && configuredTimeout.Value > 0
+                ? configuredTimeout.Value
+                : 30;
         }
 
 

@@ -1,17 +1,14 @@
 using System;
-using System.Configuration;
 using System.IO;
+using ControlEntradaSalida.Configuration;
 
 namespace ControlEntradaSalida
 {
     /// <summary>
-    /// 服务配置读取器，负责从App.config加载 gRPC、日志等参数。
+    /// 服务配置读取器，负责从外部配置文件加载 gRPC、日志等参数。
     /// </summary>
     public sealed class ServiceConfiguration
     {
-        private const string GrpcPortKey = "GrpcListenPort";
-        private const string LogDirectoryKey = "LogDirectory";
-
         private static readonly Lazy<ServiceConfiguration> LazyInstance =
             new Lazy<ServiceConfiguration>(Load);
 
@@ -29,9 +26,10 @@ namespace ControlEntradaSalida
         {
             var configuration = new ServiceConfiguration();
 
-            configuration.GrpcListenPort = ReadIntSetting(GrpcPortKey, defaultValue: 5001);
-            configuration.LogDirectory = ReadStringSetting(LogDirectoryKey,
-                Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "logs"));
+            ExternalConfiguration.ServiceSection serviceSection = ExternalConfiguration.Current.Service;
+
+            configuration.GrpcListenPort = serviceSection?.GrpcListenPort ?? 5001;
+            configuration.LogDirectory = ResolveLogDirectory(serviceSection?.LogDirectory);
 
             EnsureLogDirectory(configuration.LogDirectory);
 
@@ -51,16 +49,14 @@ namespace ControlEntradaSalida
             }
         }
 
-        private static int ReadIntSetting(string key, int defaultValue)
+        private static string ResolveLogDirectory(string configuredDirectory)
         {
-            string rawValue = ConfigurationManager.AppSettings[key];
-            return int.TryParse(rawValue, out int parsed) ? parsed : defaultValue;
-        }
+            if (string.IsNullOrWhiteSpace(configuredDirectory))
+            {
+                return Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "logs");
+            }
 
-        private static string ReadStringSetting(string key, string defaultValue)
-        {
-            string rawValue = ConfigurationManager.AppSettings[key];
-            return string.IsNullOrWhiteSpace(rawValue) ? defaultValue : rawValue.Trim();
+            return configuredDirectory.Trim();
         }
     }
 }

@@ -9,7 +9,6 @@
 -- 核心功能:
 -- 1. 设备管理 - 门禁设备的注册、配置和连接管理
 -- 2. 员工管理 - 员工信息和门禁权限管理(已合并权限信息)
--- 3. 数据备份 - 设备用户数据的备份功能
 -- =====================================================
 
 SET @OLD_UNIQUE_CHECKS=@@UNIQUE_CHECKS, UNIQUE_CHECKS=0;
@@ -23,7 +22,7 @@ DROP SCHEMA IF EXISTS `access_control_system`;
 
 CREATE SCHEMA IF NOT EXISTS `access_control_system`
 DEFAULT CHARACTER SET utf8mb4
-COLLATE utf8mb4_unicode_ci;
+COLLATE=utf8mb4_unicode_ci;
 
 USE `access_control_system`;
 
@@ -64,9 +63,6 @@ CREATE TABLE IF NOT EXISTS `access_control_system`.`devices` (
   `status` TINYINT NOT NULL DEFAULT 1
     COMMENT '设备状态: 1=启用 0=禁用 (新增时默认为1)',
 
-  `is_default` TINYINT NOT NULL DEFAULT 0
-    COMMENT '是否默认设备: 1=默认 0=普通 (系统中只能有一个默认设备)',
-
   `last_used_time` DATETIME NULL DEFAULT NULL
     COMMENT '最后使用时间(设备最后连接或操作的时间)',
 
@@ -78,8 +74,7 @@ CREATE TABLE IF NOT EXISTS `access_control_system`.`devices` (
 
   PRIMARY KEY (`device_id`),
   INDEX `idx_ip_address` (`ip_address` ASC) COMMENT '通过IP地址快速查找设备',
-  INDEX `idx_status` (`status` ASC) COMMENT '筛选启用/禁用的设备',
-  INDEX `idx_is_default` (`is_default` ASC) COMMENT '快速定位默认设备'
+  INDEX `idx_status` (`status` ASC) COMMENT '筛选启用/禁用的设备'
 )
 ENGINE=InnoDB
 AUTO_INCREMENT=1
@@ -142,36 +137,6 @@ COLLATE=utf8mb4_unicode_ci
 COMMENT='员工信息表(包含权限信息)';
 
 -- =====================================================
--- 表: device_users_backup (设备用户备份表)
--- =====================================================
--- 用途: 备份从设备下载的用户数据和照片
--- 使用位置:
---   - GestionUsuariosDispositivo.cs (设备数据备份功能)
--- =====================================================
-DROP TABLE IF EXISTS `access_control_system`.`device_users_backup`;
-
-CREATE TABLE IF NOT EXISTS `access_control_system`.`device_users_backup` (
-  `backup_id` BIGINT NOT NULL AUTO_INCREMENT
-    COMMENT '备份记录ID(主键)',
-
-  `userdata` TEXT NOT NULL
-    COMMENT '用户数据(JSON格式,包含用户配置信息)',
-
-  `image` LONGBLOB NULL DEFAULT NULL
-    COMMENT '用户照片(二进制数据)',
-
-  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
-    COMMENT '备份时间',
-
-  PRIMARY KEY (`backup_id`),
-  INDEX `idx_created_at` (`created_at` ASC) COMMENT '按时间查询备份记录'
-)
-ENGINE=InnoDB
-DEFAULT CHARSET=utf8mb4
-COLLATE=utf8mb4_unicode_ci
-COMMENT='设备用户数据备份表';
-
--- =====================================================
 -- 存储过程: delete_employee
 -- =====================================================
 -- 用途: 安全删除员工记录
@@ -207,9 +172,9 @@ DELIMITER ;
 
 /*
 -- 插入示例设备
-INSERT INTO devices (device_name, description, ip_address, port, username, password, status, is_default) VALUES
-('主入口设备', '生产区域', '192.168.1.100', '8000', 'admin', 'SXSSF1314te', 1, 1),
-('副入口设备', '办公区域', '192.168.1.101', '8000', 'admin', 'SXSSF1314te', 1, 0);
+INSERT INTO devices (device_name, description, ip_address, port, username, password, status) VALUES
+('主入口设备', '生产区域', '192.168.1.100', '8000', 'admin', 'SXSSF1314te', 1),
+('副入口设备', '办公区域', '192.168.1.101', '8000', 'admin', 'SXSSF1314te', 1);
 
 -- 插入示例员工(包含权限信息)
 INSERT INTO employees (employee_id, card_number, full_name, status, permission_level) VALUES
@@ -234,7 +199,6 @@ SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS;
 -- 已创建核心表:
 -- 1. devices (门禁设备表) - 存储设备配置和连接信息
 -- 2. employees (员工信息表) - 存储员工基本信息、状态和权限信息
--- 3. device_users_backup (备份表) - 存储设备用户数据备份
 --
 -- 已创建存储过程:
 -- 1. delete_employee - 安全删除员工记录(带事务)
@@ -242,7 +206,7 @@ SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS;
 -- 优化说明:
 -- - 所有表字段与代码实际使用完全一致
 -- - 已将 user_permissions 表合并到 employees 表中,简化查询
--- - 移除了未使用的access_logs表和相关存储过程
+-- - 移除了未使用的access_logs表和device_users_backup表
 -- - 字段注释清晰说明了用途和默认值
 -- - 索引优化,提高查询性能
 -- - 字符集统一使用utf8mb4,支持完整Unicode字符

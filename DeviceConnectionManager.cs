@@ -6,7 +6,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Timers;
-using MySql.Data.MySqlClient;
+using System.Data.SqlClient;
 using System.Runtime.InteropServices;
 using System.Diagnostics;
 
@@ -283,10 +283,10 @@ namespace ControlEntradaSalida
             int newDevices = 0;
             Common cmn = new Common();
             string connstr = cmn.obtenerCadenaConexion();
-            BaseDatosMySQL bd = new BaseDatosMySQL();
-            bd.conectarMySQL(connstr);
+            SqlServerDatabase db = new SqlServerDatabase(cmn.obtenerTiempoEsperaComando());
+            db.Connect(connstr);
 
-            if (bd.conn == null)
+            if (db.Connection == null)
             {
                 ServiceLogger.Warn("数据库连接失败，无法加载设备列表。");
                 return newDevices;
@@ -298,8 +298,8 @@ namespace ControlEntradaSalida
             {
                 HashSet<int> knownDeviceIds = new HashSet<int>(_devices.Select(d => d.Id));
 
-                using (MySqlCommand cmd = new MySqlCommand(sql, bd.conn))
-                using (MySqlDataReader rdr = cmd.ExecuteReader())
+                using (SqlCommand cmd = db.CreateCommand(sql))
+                using (SqlDataReader rdr = cmd.ExecuteReader())
                 {
                     while (rdr.Read())
                     {
@@ -345,7 +345,7 @@ namespace ControlEntradaSalida
             }
             finally
             {
-                bd.desconectarMySQL();
+                db.Disconnect();
             }
 
             return newDevices;
@@ -1016,18 +1016,19 @@ namespace ControlEntradaSalida
                 {
                     Common cmn = new Common();
                     string connstr = cmn.obtenerCadenaConexion();
-                    BaseDatosMySQL bd = new BaseDatosMySQL();
-                    bd.conectarMySQL(connstr);
+                    SqlServerDatabase db = new SqlServerDatabase(cmn.obtenerTiempoEsperaComando());
+                    db.Connect(connstr);
                     
-                    if (bd.conn != null)
+                    if (db.Connection != null)
                     {
-                        string sql = "UPDATE devices SET last_used_time = @last_used_time WHERE device_id = @device_id";
-                        MySqlCommand cmd = new MySqlCommand(sql, bd.conn);
-                        cmd.Parameters.AddWithValue("@last_used_time", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
-                        cmd.Parameters.AddWithValue("@device_id", deviceId);
-                        cmd.ExecuteNonQuery();
-                        
-                        bd.desconectarMySQL();
+                        const string sql = "UPDATE devices SET last_used_time = SYSDATETIME() WHERE device_id = @device_id";
+                        using (SqlCommand cmd = db.CreateCommand(sql))
+                        {
+                            cmd.Parameters.AddWithValue("@device_id", deviceId);
+                            cmd.ExecuteNonQuery();
+                        }
+
+                        db.Disconnect();
                     }
                 });
             }
