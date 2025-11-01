@@ -12,6 +12,7 @@ namespace ControlEntradaSalida
     public static class ServiceLogger
     {
         private static readonly ReaderWriterLockSlim LogLock = new ReaderWriterLockSlim();
+        private const int MaxLogLines = 2000;
         private static string logDirectory;
         private static string currentLogFile;
         private static DateTime currentLogDate = DateTime.MinValue;
@@ -67,6 +68,7 @@ namespace ControlEntradaSalida
             try
             {
                 LogLock.EnterWriteLock();
+                EnforceLogSizeLimit();
                 File.AppendAllText(currentLogFile, line + Environment.NewLine, Encoding.UTF8);
             }
             catch (Exception ex)
@@ -95,6 +97,43 @@ namespace ControlEntradaSalida
             currentLogDate = DateTime.Today;
             string fileName = $"ControlEntradaSalida_{currentLogDate:yyyyMMdd}.log";
             currentLogFile = Path.Combine(logDirectory, fileName);
+        }
+
+        private static void EnforceLogSizeLimit()
+        {
+            if (string.IsNullOrEmpty(currentLogFile) || !File.Exists(currentLogFile))
+            {
+                return;
+            }
+
+            int lineCount = 0;
+            bool exceedsLimit = false;
+
+            using (var stream = new FileStream(currentLogFile, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+            using (var reader = new StreamReader(stream, Encoding.UTF8, true))
+            {
+                while (!reader.EndOfStream)
+                {
+                    reader.ReadLine();
+                    lineCount++;
+
+                    if (lineCount > MaxLogLines)
+                    {
+                        exceedsLimit = true;
+                        break;
+                    }
+                }
+            }
+
+            if (!exceedsLimit)
+            {
+                return;
+            }
+
+            using (var stream = new FileStream(currentLogFile, FileMode.Open, FileAccess.Write, FileShare.Read))
+            {
+                stream.SetLength(0);
+            }
         }
     }
 }

@@ -1,9 +1,38 @@
+-- 切换到 master 数据库，确保可以安全地管理目标数据库
+USE master;
+GO
 
 IF EXISTS (SELECT name FROM sys.databases WHERE name = N'access_control_system')
 BEGIN
+    DECLARE @kill_sessions NVARCHAR(MAX) = N'';
+
+    SELECT @kill_sessions = @kill_sessions + N'KILL ' + CAST(session_id AS NVARCHAR(10)) + N';'
+    FROM sys.dm_exec_sessions
+    WHERE database_id = DB_ID(N'access_control_system')
+      AND session_id <> @@SPID;
+
+    IF (@kill_sessions <> N'')
+    BEGIN
+        EXEC sp_executesql @kill_sessions;
+    END
+
     ALTER DATABASE access_control_system SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
     DROP DATABASE access_control_system;
 END
+GO
+
+-- 清理旧登录，确保后续使用全新的凭据
+IF EXISTS (SELECT * FROM sys.server_principals WHERE name = N'admin_user')
+    DROP LOGIN admin_user;
+GO
+IF EXISTS (SELECT * FROM sys.server_principals WHERE name = N'operator_user')
+    DROP LOGIN operator_user;
+GO
+IF EXISTS (SELECT * FROM sys.server_principals WHERE name = N'monitor_user')
+    DROP LOGIN monitor_user;
+GO
+IF EXISTS (SELECT * FROM sys.server_principals WHERE name = N'integration_user')
+    DROP LOGIN integration_user;
 GO
 
 -- 创建数据库,使用 UTF-8 排序规则
@@ -173,6 +202,37 @@ EXEC sys.sp_addextendedproperty
 GO
 
 -- =====================================================
+-- 表: AccessLogs (门禁通行日志)
+-- =====================================================
+-- 用途: 存储设备上报的门禁通行记录，供审计与统计使用
+-- =====================================================
+IF OBJECT_ID('dbo.AccessLogs', 'U') IS NOT NULL
+    DROP TABLE dbo.AccessLogs;
+GO
+
+CREATE TABLE dbo.AccessLogs
+(
+    编号             INT IDENTITY(1,1) PRIMARY KEY,
+    外部编号         NVARCHAR(50) COLLATE Chinese_PRC_CI_AS,
+    认证记录日期时间 DATETIME,
+    认证记录日期     DATE,
+    认证记录时间     TIME(0),
+    方向             NVARCHAR(10) COLLATE Chinese_PRC_CI_AS,
+    设备名称         NVARCHAR(100) COLLATE Chinese_PRC_CI_AS,
+    设备序列号       NVARCHAR(50) COLLATE Chinese_PRC_CI_AS,
+    人员名称         NVARCHAR(50) COLLATE Chinese_PRC_CI_AS,
+    卡号             NVARCHAR(50) COLLATE Chinese_PRC_CI_AS
+);
+GO
+
+EXEC sys.sp_addextendedproperty
+    @name = N'MS_Description',
+    @value = N'门禁通行日志表，记录外部同步的刷卡/识别记录',
+    @level0type = N'SCHEMA', @level0name = N'dbo',
+    @level1type = N'TABLE', @level1name = N'AccessLogs';
+GO
+
+-- =====================================================
 -- 存储过程: delete_employee
 -- =====================================================
 -- 用途: 安全删除员工记录
@@ -219,7 +279,7 @@ GO
 
 -- 插入示例设备
 INSERT INTO dbo.devices (device_id, device_name, description, ip_address, port, username, password, status) VALUES
-(101, N'门禁设备101', N'办公区域', N'192.168.1.101', N'8000', N'admin', N'sxs1314te', 1),
+(101, N'门禁设备101', N'办公区域', N'192.168.1.101', N'8000', N'admin', N'SXSSF1314te', 1),
 (103, N'门禁设备103', N'生产区域', N'192.168.1.103', N'8000', N'admin', N'SXSSF1314te', 1);
 
 -- 插入示例员工(包含权限信息)
@@ -227,42 +287,93 @@ INSERT INTO dbo.employees (employee_id, card_number, full_name, status, permissi
 (N'00000004', N'00000004', N'韩立', N'ACTIVE', 2);
 
 
-IF NOT EXISTS (SELECT * FROM sys.server_principals WHERE name = N'admin_user')
-BEGIN
-    CREATE LOGIN admin_user 
-    WITH PASSWORD = '123456',
-         DEFAULT_DATABASE = [access_control_system],
-         CHECK_EXPIRATION = OFF,
-         CHECK_POLICY = OFF;
-END
+-- =====================================================
+-- 服务器登录与数据库用户
+-- =====================================================
+
+USE master;
 GO
 
--- 切换到目标数据库
+CREATE LOGIN admin_user 
+WITH PASSWORD = '123456',
+     DEFAULT_DATABASE = [access_control_system],
+     CHECK_EXPIRATION = OFF,
+     CHECK_POLICY = OFF;
+GO
+
+CREATE LOGIN operator_user 
+WITH PASSWORD = 'Operator@123',
+     DEFAULT_DATABASE = [access_control_system],
+     CHECK_EXPIRATION = OFF,
+     CHECK_POLICY = OFF;
+GO
+
+CREATE LOGIN monitor_user 
+WITH PASSWORD = 'Monitor@123',
+     DEFAULT_DATABASE = [access_control_system],
+     CHECK_EXPIRATION = OFF,
+     CHECK_POLICY = OFF;
+GO
+
+CREATE LOGIN integration_user 
+WITH PASSWORD = 'Integration@123',
+     DEFAULT_DATABASE = [access_control_system],
+     CHECK_EXPIRATION = OFF,
+     CHECK_POLICY = OFF;
+GO
+
 USE access_control_system;
 GO
 
--- 创建数据库用户
-IF NOT EXISTS (SELECT * FROM sys.database_principals WHERE name = N'admin_user')
-BEGIN
-    CREATE USER admin_user FOR LOGIN admin_user;
-END
+CREATE USER admin_user FOR LOGIN admin_user;
 GO
-
--- 将用户添加到db_owner角色 (完全权限)
 ALTER ROLE db_owner ADD MEMBER admin_user;
 GO
-
--- 添加用户注释
 EXEC sys.sp_addextendedproperty
     @name = N'MS_Description',
     @value = N'门禁管理系统管理员用户，具有数据库完全控制权限',
     @level0type = N'USER', @level0name = N'admin_user';
 GO
 
--- 显示用户权限信息
+CREATE USER operator_user FOR LOGIN operator_user;
+GO
+ALTER ROLE db_owner ADD MEMBER operator_user;
+GO
+EXEC sys.sp_addextendedproperty
+    @name = N'MS_Description',
+    @value = N'门禁系统运营用户，具有数据库完全控制权限',
+    @level0type = N'USER', @level0name = N'operator_user';
+GO
+
+CREATE USER monitor_user FOR LOGIN monitor_user;
+GO
+ALTER ROLE db_owner ADD MEMBER monitor_user;
+GO
+EXEC sys.sp_addextendedproperty
+    @name = N'MS_Description',
+    @value = N'门禁系统监控用户，具有数据库完全控制权限',
+    @level0type = N'USER', @level0name = N'monitor_user';
+GO
+
+CREATE USER integration_user FOR LOGIN integration_user;
+GO
+ALTER ROLE db_owner ADD MEMBER integration_user;
+GO
+EXEC sys.sp_addextendedproperty
+    @name = N'MS_Description',
+    @value = N'门禁系统集成用户，具有数据库完全控制权限',
+    @level0type = N'USER', @level0name = N'integration_user';
+GO
+
 SELECT 
-    'admin_user' AS 用户名,
-    'db_owner' AS 角色,
-    '数据库完全控制权限' AS 权限描述,
-    '123456' AS 初始密码;
+    v.UserName AS 用户名,
+    v.RoleName AS 角色,
+    v.PermissionDescription AS 权限描述,
+    v.InitialPassword AS 初始密码
+FROM (VALUES
+    (N'admin_user', N'db_owner', N'数据库完全控制权限', N'123456'),
+    (N'operator_user', N'db_owner', N'数据库完全控制权限', N'Operator@123'),
+    (N'monitor_user', N'db_owner', N'数据库完全控制权限', N'Monitor@123'),
+    (N'integration_user', N'db_owner', N'数据库完全控制权限', N'Integration@123')
+) AS v(UserName, RoleName, PermissionDescription, InitialPassword);
 GO

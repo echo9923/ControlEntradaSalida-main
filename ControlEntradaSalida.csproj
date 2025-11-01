@@ -5,7 +5,7 @@
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProjectGuid>{F10C67C6-A82F-4846-BEE2-AD35BDAF9EDE}</ProjectGuid>
-    <OutputType>Exe</OutputType>
+    <OutputType>WinExe</OutputType>
     <RootNamespace>ControlEntradaSalida</RootNamespace>
     <AssemblyName>ControlEntradaSalida</AssemblyName>
     <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
@@ -25,7 +25,7 @@
     <UpdatePeriodically>false</UpdatePeriodically>
     <UpdateRequired>false</UpdateRequired>
     <MapFileExtensions>true</MapFileExtensions>
-    <ApplicationRevision>8</ApplicationRevision>
+    <ApplicationRevision>10</ApplicationRevision>
     <ApplicationVersion>1.0.0.%2a</ApplicationVersion>
     <UseApplicationTrust>false</UseApplicationTrust>
     <PublishWizardCompleted>true</PublishWizardCompleted>
@@ -103,6 +103,9 @@
   </PropertyGroup>
   <PropertyGroup>
     <SignManifests>false</SignManifests>
+  </PropertyGroup>
+  <PropertyGroup>
+    <ServiceDeployDir>$(MSBuildProjectDirectory)\门禁publish\ServicePackage\</ServiceDeployDir>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="BouncyCastle.Cryptography, Version=2.0.0.0, Culture=neutral, PublicKeyToken=072edcf4a5328938, processorArchitecture=MSIL">
@@ -290,6 +293,14 @@
       <NativePublishDependency Include="Native\**\*.*" />
     </ItemGroup>
     <Copy SourceFiles="@(NativePublishDependency->'%(FullPath)')" DestinationFiles="@(NativePublishDependency->'$(PublishDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
+  </Target>
+  <Target Name="CopyServiceDeploymentPackage" AfterTargets="Build">
+    <ItemGroup>
+      <ServiceDeploySource Include="$(TargetDir)**\*.*" />
+    </ItemGroup>
+    <RemoveDir Directories="$(ServiceDeployDir)" />
+    <MakeDir Directories="$(ServiceDeployDir)" />
+    <Copy SourceFiles="@(ServiceDeploySource)" DestinationFiles="@(ServiceDeploySource->'$(ServiceDeployDir)%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
   </Target>
   <ItemGroup>
     <Folder Include="runtimes\win-x64\native\" />

@@ -1,6 +1,7 @@
 using System;
 using System.Data;
 using System.Data.SqlClient;
+using System.Threading;
 
 namespace ControlEntradaSalida
 {
@@ -22,34 +23,59 @@ namespace ControlEntradaSalida
             CommandTimeoutSeconds = commandTimeoutSeconds > 0 ? commandTimeoutSeconds : 30;
         }
 
-        public void Connect(string connectionString)
+        public void Connect(string connectionString, int maxRetryCount = 10, int delayMilliseconds = 60000)
         {
             ErrorMessage = null;
             ErrorNumber = null;
+            int totalAttempts = Math.Max(1, maxRetryCount);
+            int retryDelay = delayMilliseconds < 0 ? 0 : delayMilliseconds;
 
-            SqlConnection connection = null;
+            for (int attempt = 1; attempt <= totalAttempts; attempt++)
+            {
+                SqlConnection connection = null;
 
-            try
-            {
-                connection = new SqlConnection(connectionString);
-                connection.Open();
-                Connection = connection;
-            }
-            catch (SqlException ex)
-            {
-                ErrorMessage = ex.Message;
-                ErrorNumber = ex.Number.ToString();
-                LogConnectionFailure("SQL 异常", ex);
-                DisposeConnection(connection);
-                Connection = null;
-            }
-            catch (Exception ex)
-            {
-                ErrorMessage = ex.Message;
-                ErrorNumber = null;
-                LogConnectionFailure("非 SQL 异常", ex);
-                DisposeConnection(connection);
-                Connection = null;
+                try
+                {
+                    connection = new SqlConnection(connectionString);
+                    connection.Open();
+                    Connection = connection;
+
+                    if (attempt > 1)
+                    {
+                        ServiceLogger.Info($"数据库连接在第 {attempt} 次尝试后成功。");
+                    }
+
+                    return;
+                }
+                catch (SqlException ex)
+                {
+                    ErrorMessage = ex.Message;
+                    ErrorNumber = ex.Number.ToString();
+                    LogConnectionFailure("SQL 异常", ex, attempt, totalAttempts);
+                    DisposeConnection(connection);
+                    Connection = null;
+                }
+                catch (Exception ex)
+                {
+                    ErrorMessage = ex.Message;
+                    ErrorNumber = null;
+                    LogConnectionFailure("非 SQL 异常", ex, attempt, totalAttempts);
+                    DisposeConnection(connection);
+                    Connection = null;
+                }
+
+                if (attempt < totalAttempts)
+                {
+                    if (retryDelay > 0)
+                    {
+                        ServiceLogger.Warn($"数据库连接失败，将在 {retryDelay} 毫秒后进行第 {attempt + 1} 次重试。");
+                        Thread.Sleep(retryDelay);
+                    }
+                    else
+                    {
+                        ServiceLogger.Warn($"数据库连接失败，正在立即进行第 {attempt + 1} 次重试。");
+                    }
+                }
             }
         }
 
@@ -70,9 +96,10 @@ namespace ControlEntradaSalida
             }
         }
 
-        private static void LogConnectionFailure(string category, Exception ex)
+        private static void LogConnectionFailure(string category, Exception ex, int attempt, int maxAttempts)
         {
-            string message = $"数据库连接失败（{category}）: {ex.Message}";
+            string attemptInfo = maxAttempts > 1 ? $"（第 {attempt}/{maxAttempts} 次尝试）" : string.Empty;
+            string message = $"数据库连接失败{attemptInfo}（{category}）: {ex.Message}";
             ServiceLogger.Error(message, ex);
         }
 
