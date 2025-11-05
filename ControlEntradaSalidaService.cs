@@ -104,7 +104,7 @@ namespace ControlEntradaSalida
             }
 
             var config = ServiceConfiguration.Current;
-            ServiceLogger.Initialize(config.LogDirectory);
+            ServiceLogger.Initialize(config.LogDirectory, config.LogRetentionDays);
             ServiceLogger.Info("日志系统初始化完成。");
 
             if (!Common.InicializarSDKHikVision())

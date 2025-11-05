@@ -9,6 +9,8 @@ namespace ControlEntradaSalida
     /// </summary>
     public sealed class ServiceConfiguration
     {
+        private const int DefaultLogRetentionDays = 90;
+
         private static readonly Lazy<ServiceConfiguration> LazyInstance =
             new Lazy<ServiceConfiguration>(Load);
 
@@ -17,6 +19,8 @@ namespace ControlEntradaSalida
         public int GrpcListenPort { get; private set; }
 
         public string LogDirectory { get; private set; }
+
+        public int LogRetentionDays { get; private set; }
 
         private ServiceConfiguration()
         {
@@ -30,6 +34,7 @@ namespace ControlEntradaSalida
 
             configuration.GrpcListenPort = serviceSection?.GrpcListenPort ?? 5001;
             configuration.LogDirectory = ResolveLogDirectory(serviceSection?.LogDirectory);
+            configuration.LogRetentionDays = ResolveLogRetentionDays(serviceSection?.LogRetentionDays);
 
             EnsureLogDirectory(configuration.LogDirectory);
 
@@ -57,6 +62,16 @@ namespace ControlEntradaSalida
             }
 
             return configuredDirectory.Trim();
+        }
+
+        private static int ResolveLogRetentionDays(int? configuredRetentionDays)
+        {
+            if (configuredRetentionDays.HasValue && configuredRetentionDays.Value > 0)
+            {
+                return configuredRetentionDays.Value;
+            }
+
+            return DefaultLogRetentionDays;
         }
     }
 }

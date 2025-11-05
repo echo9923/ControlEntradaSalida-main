@@ -64,6 +64,11 @@ namespace ControlEntradaSalida.Configuration
             /// 日志目录路径。
             /// </summary>
             public string LogDirectory { get; set; }
+
+            /// <summary>
+            /// 日志保留天数。
+            /// </summary>
+            public int? LogRetentionDays { get; set; }
         }
 
         public sealed class DatabaseSection
