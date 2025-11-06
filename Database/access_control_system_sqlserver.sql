@@ -123,128 +123,120 @@ EXEC sys.sp_addextendedproperty
 GO
 
 -- =====================================================
--- 表: employees (员工信息表)
+-- 表: system_users (人员信息表，与统一账号体系对接)
 -- =====================================================
--- 用途: 存储员工基本信息,用于门禁权限管理
+-- 用途: 统一存储账号体系中的人员主数据，username 字段保存实际工号，并承载门禁权限字段
 -- 使用位置:
---   - GestionEmpleados.cs (员工的增删改查所有操作)
+--   - PermissionRefreshManager.cs (权限同步与更新)
+--   - PermissionUpdateGrpcServer.cs (外部权限推送)
 -- =====================================================
-IF OBJECT_ID('dbo.employees', 'U') IS NOT NULL
-    DROP TABLE dbo.employees;
+IF OBJECT_ID(N'dbo.system_users', 'U') IS NOT NULL
+    DROP TABLE dbo.system_users;
 GO
 
-CREATE TABLE dbo.employees (
-    -- 员工编号(主键)
-    employee_id NVARCHAR(30) NOT NULL,
+CREATE TABLE dbo.system_users (
+    -- 主键，自增保持与统一账号体系一致
+    id BIGINT IDENTITY(1,1) NOT NULL,
 
-    -- 卡号(与员工编号相同,用于门禁识别)
-    card_number NVARCHAR(20) NOT NULL,
+    -- 工号/登录账号（唯一），对应旧版 employee_id
+    username NVARCHAR(30) NOT NULL,
 
-    -- 员工完整姓名
-    full_name NVARCHAR(255) NOT NULL,
+    -- 登录密码（密文）
+    [password] NVARCHAR(100) NOT NULL DEFAULT N'',
 
-    -- 人脸照片存储路径
-    photo_path NVARCHAR(255) NOT NULL DEFAULT '',
+    -- 中文名或显示名
+    nickname NVARCHAR(30) NOT NULL,
 
-    -- 员工状态: ACTIVE=在职 INACTIVE=离职
-    status NVARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
+    -- 备注
+    remark NVARCHAR(500) NULL,
 
-    -- 权限级别: 0=无任何权限 1=仅可进入办公区域 2=可进入办公和生产区域
-    permission_level TINYINT NOT NULL DEFAULT 0,
+    -- 组织维度
+    dept_id BIGINT NULL,
+    post_ids NVARCHAR(255) NULL,
+
+    -- 联系方式
+    email NVARCHAR(50) NULL DEFAULT N'',
+    mobile NVARCHAR(11) NULL DEFAULT N'',
+
+    -- 基础属性
+    sex TINYINT NULL DEFAULT 0,
+    avatar NVARCHAR(512) NULL DEFAULT N'',
+
+    -- 账号状态：0=启用 1=停用
+    status TINYINT NOT NULL DEFAULT 0,
+
+    -- 门禁权限级别：0-2
+    access_permission TINYINT NOT NULL DEFAULT 2,
 
     -- 最近一次同步到设备的权限级别
     last_synced_level TINYINT NULL,
 
     -- 权限级别最后更新时间
-    permission_updated_at DATETIME2(0) NULL,
+    permission_updated_at DATETIME2(3) NULL,
 
     -- 权限最近一次同步到设备的时间
-    last_synced_at DATETIME2(0) NULL,
+    last_synced_at DATETIME2(3) NULL,
 
-    -- 创建时间
-    created_at DATETIME2(0) NOT NULL DEFAULT SYSDATETIME(),
+    -- 登录信息
+    login_ip NVARCHAR(50) NULL DEFAULT N'',
+    login_date DATETIME2(3) NULL,
 
-    -- 最后更新时间
-    updated_at DATETIME2(0) NOT NULL DEFAULT SYSDATETIME(),
+    -- 创建及更新审计字段
+    creator NVARCHAR(64) NULL DEFAULT N'',
+    create_time DATETIME2(3) NOT NULL DEFAULT SYSDATETIME(),
+    updater NVARCHAR(64) NULL DEFAULT N'',
+    update_time DATETIME2(3) NOT NULL DEFAULT SYSDATETIME(),
 
-    CONSTRAINT PK_employees PRIMARY KEY (employee_id),
-    CONSTRAINT uk_card_number UNIQUE (card_number),
-    CONSTRAINT chk_status CHECK (status IN ('ACTIVE', 'INACTIVE'))
+    -- 软删除与租户
+    deleted BIT NOT NULL DEFAULT 0,
+    tenant_id BIGINT NOT NULL DEFAULT 0,
+
+    CONSTRAINT PK_system_users PRIMARY KEY CLUSTERED (id),
+    CONSTRAINT UQ_system_users_username UNIQUE (username)
 );
 GO
 
 -- 创建索引
-CREATE INDEX idx_status ON dbo.employees(status);                      -- 快速筛选在职/离职员工
-CREATE INDEX idx_full_name ON dbo.employees(full_name);                -- 通过姓名搜索员工
-CREATE INDEX idx_permission_level ON dbo.employees(permission_level);  -- 按权限级别筛选员工
+CREATE INDEX idx_system_users_username ON dbo.system_users(username);           -- 工号快速定位
+CREATE INDEX idx_system_users_status ON dbo.system_users(status);               -- 启停状态筛选
+CREATE INDEX idx_system_users_permission ON dbo.system_users(access_permission);-- 权限级别筛选
+CREATE INDEX idx_system_users_deleted ON dbo.system_users(deleted);             -- 软删除筛选
 GO
 
--- 创建触发器以实现 updated_at 自动更新
-CREATE TRIGGER trg_employees_update
-ON dbo.employees
+-- 创建触发器以实现 update_time 自动更新
+CREATE TRIGGER trg_system_users_update
+ON dbo.system_users
 AFTER UPDATE
 AS
 BEGIN
     SET NOCOUNT ON;
-    UPDATE dbo.employees
-    SET updated_at = SYSDATETIME()
-    FROM dbo.employees e
-    INNER JOIN inserted i ON e.employee_id = i.employee_id;
+    UPDATE dbo.system_users
+    SET update_time = SYSDATETIME()
+    FROM dbo.system_users su
+    INNER JOIN inserted i ON su.id = i.id;
 END;
 GO
 
 -- 添加表注释
 EXEC sys.sp_addextendedproperty
     @name = N'MS_Description',
-    @value = N'员工信息表(包含权限信息)',
+    @value = N'统一账号体系人员主数据表（username 即工号），包含门禁权限扩展字段',
     @level0type = N'SCHEMA', @level0name = N'dbo',
-    @level1type = N'TABLE', @level1name = N'employees';
-GO
-
--- =====================================================
--- 表: AccessLogs (门禁通行日志)
--- =====================================================
--- 用途: 存储设备上报的门禁通行记录，供审计与统计使用
--- =====================================================
-IF OBJECT_ID('dbo.AccessLogs', 'U') IS NOT NULL
-    DROP TABLE dbo.AccessLogs;
-GO
-
-CREATE TABLE dbo.AccessLogs
-(
-    编号             INT IDENTITY(1,1) PRIMARY KEY,
-    外部编号         NVARCHAR(50) COLLATE Chinese_PRC_CI_AS,
-    认证记录日期时间 DATETIME,
-    认证记录日期     DATE,
-    认证记录时间     TIME(0),
-    方向             NVARCHAR(10) COLLATE Chinese_PRC_CI_AS,
-    设备名称         NVARCHAR(100) COLLATE Chinese_PRC_CI_AS,
-    设备序列号       NVARCHAR(50) COLLATE Chinese_PRC_CI_AS,
-    人员名称         NVARCHAR(50) COLLATE Chinese_PRC_CI_AS,
-    卡号             NVARCHAR(50) COLLATE Chinese_PRC_CI_AS
-);
-GO
-
-EXEC sys.sp_addextendedproperty
-    @name = N'MS_Description',
-    @value = N'门禁通行日志表，记录外部同步的刷卡/识别记录',
-    @level0type = N'SCHEMA', @level0name = N'dbo',
-    @level1type = N'TABLE', @level1name = N'AccessLogs';
+    @level1type = N'TABLE', @level1name = N'system_users';
 GO
 
 -- =====================================================
 -- 存储过程: delete_employee
 -- =====================================================
--- 用途: 安全删除员工记录
--- 使用位置: GestionEmpleados.cs:679
--- 说明: 使用事务确保数据一致性
+-- 用途: 删除人员记录（以工号为唯一标识），保持与统一账号体系一致
+-- 使用位置: 历史清理逻辑兼容
 -- =====================================================
 IF OBJECT_ID('dbo.delete_employee', 'P') IS NOT NULL
     DROP PROCEDURE dbo.delete_employee;
 GO
 
 CREATE PROCEDURE dbo.delete_employee
-    @emp_id NVARCHAR(30)
+    @username NVARCHAR(30)
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -252,8 +244,17 @@ BEGIN
     BEGIN TRY
         BEGIN TRANSACTION;
 
-        -- 删除员工记录
-        DELETE FROM dbo.employees WHERE employee_id = @emp_id;
+        -- 优先执行逻辑删除，保留审计字段
+        UPDATE dbo.system_users
+        SET deleted = 1,
+            update_time = SYSDATETIME()
+        WHERE username = @username;
+
+        IF @@ROWCOUNT = 0
+        BEGIN
+            -- 若不存在记录则直接物理删除兜底
+            DELETE FROM dbo.system_users WHERE username = @username;
+        END;
 
         COMMIT TRANSACTION;
     END TRY
@@ -282,9 +283,9 @@ INSERT INTO dbo.devices (device_id, device_name, description, ip_address, port, 
 (101, N'门禁设备101', N'办公区域', N'192.168.1.101', N'8000', N'admin', N'SXSSF1314te', 1),
 (103, N'门禁设备103', N'生产区域', N'192.168.1.103', N'8000', N'admin', N'SXSSF1314te', 1);
 
--- 插入示例员工(包含权限信息)
-INSERT INTO dbo.employees (employee_id, card_number, full_name, status, permission_level) VALUES
-(N'00000004', N'00000004', N'韩立', N'ACTIVE', 2);
+-- 插入示例人员(包含权限信息)
+INSERT INTO dbo.system_users (username, nickname, status, access_permission, deleted)
+VALUES (N'00000004', N'韩立', 0, 2, 0);
 
 
 -- =====================================================

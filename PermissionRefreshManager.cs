@@ -290,25 +290,26 @@ namespace ControlEntradaSalida
 
             try
             {
-                // 直接从 employees 表查询，权限信息已合并到此表
-                string sql = @"SELECT employee_id,
-                                      full_name,
-                                      permission_level,
+                // 从 system_users 表读取人员信息，username 字段即旧版 employee_id
+                string sql = @"SELECT username,
+                                      nickname,
+                                      access_permission,
                                       last_synced_level
-                               FROM employees
-                               ORDER BY employee_id";
+                               FROM system_users
+                               WHERE deleted = 0
+                                 AND status = 0
+                               ORDER BY username";
 
                 using (SqlCommand cmd = db.CreateCommand(sql))
                 using (SqlDataReader reader = cmd.ExecuteReader())
                 {
                     while (reader.Read())
                     {
-                        string employeeId = reader["employee_id"].ToString();
-                        string fullName = reader["full_name"] == DBNull.Value ? string.Empty : reader["full_name"].ToString();
+                        string employeeId = reader["username"].ToString();
+                        string fullName = reader["nickname"] == DBNull.Value ? string.Empty : reader["nickname"].ToString();
 
-                        // 权限级别现在有默认值 0，不会是 NULL
-                        int permissionLevel = reader["permission_level"] != DBNull.Value
-                            ? Convert.ToInt32(reader["permission_level"])
+                        int permissionLevel = reader["access_permission"] != DBNull.Value
+                            ? Convert.ToInt32(reader["access_permission"])
                             : 0;
 
                         int? lastSynced = reader["last_synced_level"] != DBNull.Value
@@ -345,16 +346,17 @@ namespace ControlEntradaSalida
 
             try
             {
-                const string sql = @"SELECT TOP (1) employee_id,
-                                             full_name,
-                                             permission_level,
+                const string sql = @"SELECT TOP (1) username,
+                                             nickname,
+                                             access_permission,
                                              last_synced_level
-                                      FROM employees
-                                      WHERE employee_id = @employee_id";
+                                      FROM system_users
+                                      WHERE username = @username
+                                        AND deleted = 0";
 
                 using (SqlCommand cmd = db.CreateCommand(sql))
                 {
-                    cmd.Parameters.AddWithValue("@employee_id", employeeId);
+                    cmd.Parameters.AddWithValue("@username", employeeId);
 
                     using (SqlDataReader reader = cmd.ExecuteReader())
                     {
@@ -362,10 +364,10 @@ namespace ControlEntradaSalida
                         {
                             return new UserPermissionRecord
                             {
-                                EmployeeId = reader["employee_id"].ToString(),
-                                FullName = reader["full_name"] == DBNull.Value ? string.Empty : reader["full_name"].ToString(),
-                                PermissionLevel = reader["permission_level"] != DBNull.Value
-                                    ? Convert.ToInt32(reader["permission_level"])
+                                EmployeeId = reader["username"].ToString(),
+                                FullName = reader["nickname"] == DBNull.Value ? string.Empty : reader["nickname"].ToString(),
+                                PermissionLevel = reader["access_permission"] != DBNull.Value
+                                    ? Convert.ToInt32(reader["access_permission"])
                                     : 0,
                                 LastSyncedLevel = reader["last_synced_level"] != DBNull.Value
                                     ? Convert.ToInt32(reader["last_synced_level"])
@@ -374,12 +376,13 @@ namespace ControlEntradaSalida
                         }
                     }
                 }
-                return null;
             }
             finally
             {
                 db.Disconnect();
             }
+
+            return null;
         }
 
         private bool UpdatePermissionLevel(string employeeId, int permissionLevel)
@@ -394,14 +397,16 @@ namespace ControlEntradaSalida
 
             try
             {
-                string sql = @"UPDATE employees
-                               SET permission_level = @level
-                               WHERE employee_id = @employee_id";
+                string sql = @"UPDATE system_users
+                               SET access_permission = @level,
+                                   permission_updated_at = SYSDATETIME()
+                               WHERE username = @username
+                                 AND deleted = 0";
 
                 using (SqlCommand cmd = db.CreateCommand(sql))
                 {
                     cmd.Parameters.AddWithValue("@level", permissionLevel);
-                    cmd.Parameters.AddWithValue("@employee_id", employeeId);
+                    cmd.Parameters.AddWithValue("@username", employeeId);
 
                     int affected = cmd.ExecuteNonQuery();
                     return affected > 0;
@@ -415,9 +420,8 @@ namespace ControlEntradaSalida
 
         private void InsertDefaultPermissionRecords(IEnumerable<string> employeeIds)
         {
-            // 注意：权限信息已合并到 employees 表，且 permission_level 字段有默认值 0
-            // 新增员工时会自动设置默认权限，此方法不再需要执行任何操作
-            // 保留此方法以维持代码兼容性
+            // system_users 表中的 access_permission 已提供默认值，无需额外初始化
+            // 保留该方法仅为兼容历史流程
             return;
         }
 
@@ -637,16 +641,17 @@ namespace ControlEntradaSalida
 
             try
             {
-                // 直接更新 employees 表中的同步状态字段
-                string sql = @"UPDATE employees
+                // 更新 system_users 表中的同步字段
+                string sql = @"UPDATE system_users
                                SET last_synced_level = @level,
-                                   last_synced_at = CURRENT_TIMESTAMP
-                               WHERE employee_id = @employee_id";
+                                   last_synced_at = SYSDATETIME()
+                               WHERE username = @username
+                                 AND deleted = 0";
 
                 using (SqlCommand cmd = db.CreateCommand(sql))
                 {
                     cmd.Parameters.AddWithValue("@level", permissionLevel);
-                    cmd.Parameters.AddWithValue("@employee_id", employeeId);
+                    cmd.Parameters.AddWithValue("@username", employeeId);
 
                     int affected = cmd.ExecuteNonQuery();
                     return affected > 0;
