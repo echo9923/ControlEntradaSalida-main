@@ -7,7 +7,7 @@
     <framework targetVersion="4.7.2" profile="Full" supportedRuntime="4.0.30319" />
   </compatibleFrameworks>
   <dependency>
-    <dependentAssembly dependencyType="install" codebase="ControlEntradaSalida.exe.manifest" size="40013">
+    <dependentAssembly dependencyType="install" codebase="Application Files\ControlEntradaSalida_1_0_0_10\ControlEntradaSalida.exe.manifest" size="40013">
       <assemblyIdentity name="ControlEntradaSalida.exe" version="1.0.0.10" publicKeyToken="0000000000000000" language="neutral" processorArchitecture="msil" type="win32" />
       <hash>
         <dsig:Transforms>

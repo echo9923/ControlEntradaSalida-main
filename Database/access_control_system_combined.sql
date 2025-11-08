@@ -189,7 +189,7 @@ CREATE TABLE dbo.system_users (
 
     -- 软删除与租户
     deleted BIT NOT NULL DEFAULT 0,
-    tenant_id BIGINT NOT NULL DEFAULT 0,
+    tenant_id BIGINT NOT NULL DEFAULT 1,
 
     CONSTRAINT PK_system_users PRIMARY KEY CLUSTERED (id),
     CONSTRAINT UQ_system_users_username UNIQUE (username)
@@ -2493,8 +2493,8 @@ CREATE TABLE [dbo].[attendance_gate] (
   [create_time] datetime2(7)  NOT NULL,
   [updater] nvarchar(64) COLLATE Chinese_PRC_CI_AS  NULL,
   [update_time] datetime2(7)  NOT NULL,
-  [deleted] varchar(1) COLLATE Chinese_PRC_CI_AS  NOT NULL,
-  [tenant_id] bigint  NOT NULL
+  [deleted] varchar(1) COLLATE Chinese_PRC_CI_AS  NOT NULL DEFAULT '0',
+  [tenant_id] bigint  NOT NULL DEFAULT 1
 )
 GO
 
@@ -2668,7 +2668,7 @@ GO
 
 CREATE TABLE [dbo].[attendance_record] (
   [id] bigint  NOT NULL,
-  [user_id] bigint  NOT NULL,
+  [user_id] bigint  NULL,
   [date] date  NOT NULL,
   [check_in_time] datetime2(7)  NULL,
   [check_in_ip] nvarchar(64) COLLATE Chinese_PRC_CI_AS  NULL,
@@ -2683,8 +2683,8 @@ CREATE TABLE [dbo].[attendance_record] (
   [create_time] datetime2(7)  NOT NULL,
   [updater] nvarchar(64) COLLATE Chinese_PRC_CI_AS  NULL,
   [update_time] datetime2(7)  NOT NULL,
-  [deleted] varchar(1) COLLATE Chinese_PRC_CI_AS  NOT NULL,
-  [tenant_id] bigint  NOT NULL
+   [deleted] varchar(1) COLLATE Chinese_PRC_CI_AS  NOT NULL DEFAULT '0',
+  [tenant_id] bigint  NOT NULL DEFAULT 1
 )
 GO
 
@@ -2993,8 +2993,8 @@ CREATE TABLE [dbo].[attendance_schedule] (
   [create_time] datetime2(7)  NOT NULL,
   [updater] nvarchar(64) COLLATE Chinese_PRC_CI_AS  NULL,
   [update_time] datetime2(7)  NOT NULL,
-  [deleted] varchar(1) COLLATE Chinese_PRC_CI_AS  NOT NULL,
-  [tenant_id] bigint  NOT NULL
+   [deleted] varchar(1) COLLATE Chinese_PRC_CI_AS  NOT NULL DEFAULT '0',
+  [tenant_id] bigint  NOT NULL DEFAULT 1
 )
 GO
 
@@ -3119,8 +3119,8 @@ CREATE TABLE [dbo].[attendance_shift] (
   [create_time] datetime2(7)  NOT NULL,
   [updater] nvarchar(64) COLLATE Chinese_PRC_CI_AS  NULL,
   [update_time] datetime2(7)  NOT NULL,
-  [deleted] varchar(1) COLLATE Chinese_PRC_CI_AS  NOT NULL,
-  [tenant_id] bigint  NOT NULL
+   [deleted] varchar(1) COLLATE Chinese_PRC_CI_AS  NOT NULL DEFAULT '0',
+  [tenant_id] bigint  NOT NULL DEFAULT 1
 )
 GO
 
@@ -3268,8 +3268,8 @@ CREATE TABLE [dbo].[attendance_shift_rotation] (
   [create_time] datetime2(7)  NOT NULL,
   [updater] nvarchar(64) COLLATE Chinese_PRC_CI_AS  NULL,
   [update_time] datetime2(7)  NOT NULL,
-  [deleted] varchar(1) COLLATE Chinese_PRC_CI_AS  NOT NULL,
-  [tenant_id] bigint  NOT NULL
+   [deleted] varchar(1) COLLATE Chinese_PRC_CI_AS  NOT NULL DEFAULT '0',
+  [tenant_id] bigint  NOT NULL DEFAULT 1
 )
 GO
 
@@ -3420,8 +3420,8 @@ CREATE TABLE [dbo].[attendance_shift_rotation_assignment] (
   [create_time] datetime2(7)  NOT NULL,
   [updater] nvarchar(64) COLLATE Chinese_PRC_CI_AS  NULL,
   [update_time] datetime2(7)  NOT NULL,
-  [deleted] varchar(1) COLLATE Chinese_PRC_CI_AS  NOT NULL,
-  [tenant_id] bigint  NOT NULL
+   [deleted] varchar(1) COLLATE Chinese_PRC_CI_AS  NOT NULL DEFAULT '0',
+  [tenant_id] bigint  NOT NULL DEFAULT 1
 )
 GO
 
@@ -4467,8 +4467,8 @@ CREATE TABLE [dbo].[bpm_category] (
   [create_time] datetime2(7)  NOT NULL,
   [updater] nvarchar(64) COLLATE Chinese_PRC_CI_AS  NULL,
   [update_time] datetime2(7)  NOT NULL,
-  [deleted] varchar(1) COLLATE Chinese_PRC_CI_AS  NOT NULL,
-  [tenant_id] bigint  NOT NULL
+   [deleted] varchar(1) COLLATE Chinese_PRC_CI_AS  NOT NULL DEFAULT '0',
+  [tenant_id] bigint  NOT NULL DEFAULT 1
 )
 GO
 
@@ -4594,8 +4594,8 @@ CREATE TABLE [dbo].[bpm_form] (
   [create_time] datetime2(7)  NOT NULL,
   [updater] nvarchar(64) COLLATE Chinese_PRC_CI_AS  NULL,
   [update_time] datetime2(7)  NOT NULL,
-  [deleted] varchar(1) COLLATE Chinese_PRC_CI_AS  NOT NULL,
-  [tenant_id] bigint  NOT NULL
+   [deleted] varchar(1) COLLATE Chinese_PRC_CI_AS  NOT NULL DEFAULT '0',
+  [tenant_id] bigint  NOT NULL DEFAULT 1
 )
 GO
 
@@ -4721,8 +4721,8 @@ CREATE TABLE [dbo].[bpm_oa_leave] (
   [create_time] datetime2(7)  NOT NULL,
   [updater] nvarchar(64) COLLATE Chinese_PRC_CI_AS  NULL,
   [update_time] datetime2(7)  NOT NULL,
-  [deleted] varchar(1) COLLATE Chinese_PRC_CI_AS  NOT NULL,
-  [tenant_id] bigint  NOT NULL
+   [deleted] varchar(1) COLLATE Chinese_PRC_CI_AS  NOT NULL DEFAULT '0',
+  [tenant_id] bigint  NOT NULL DEFAULT 1
 )
 GO
 
@@ -4886,8 +4886,8 @@ CREATE TABLE [dbo].[bpm_process_definition_info] (
   [create_time] datetime2(7)  NOT NULL,
   [updater] nvarchar(64) COLLATE Chinese_PRC_CI_AS  NULL,
   [update_time] datetime2(7)  NOT NULL,
-  [deleted] varchar(1) COLLATE Chinese_PRC_CI_AS  NOT NULL,
-  [tenant_id] bigint  NOT NULL
+   [deleted] varchar(1) COLLATE Chinese_PRC_CI_AS  NOT NULL DEFAULT '0',
+  [tenant_id] bigint  NOT NULL DEFAULT 1
 )
 GO
 
@@ -6111,8 +6111,8 @@ CREATE TABLE [dbo].[bpm_process_expression] (
   [create_time] datetime2(7)  NOT NULL,
   [updater] nvarchar(64) COLLATE Chinese_PRC_CI_AS  NULL,
   [update_time] datetime2(7)  NOT NULL,
-  [deleted] varchar(1) COLLATE Chinese_PRC_CI_AS  NOT NULL,
-  [tenant_id] bigint  NOT NULL
+   [deleted] varchar(1) COLLATE Chinese_PRC_CI_AS  NOT NULL DEFAULT '0',
+  [tenant_id] bigint  NOT NULL DEFAULT 1
 )
 GO
 
@@ -6229,8 +6229,8 @@ CREATE TABLE [dbo].[bpm_process_instance_copy] (
   [create_time] datetime2(7)  NOT NULL,
   [updater] nvarchar(64) COLLATE Chinese_PRC_CI_AS  NULL,
   [update_time] datetime2(7)  NOT NULL,
-  [deleted] varchar(1) COLLATE Chinese_PRC_CI_AS  NOT NULL,
-  [tenant_id] bigint  NOT NULL
+   [deleted] varchar(1) COLLATE Chinese_PRC_CI_AS  NOT NULL DEFAULT '0',
+  [tenant_id] bigint  NOT NULL DEFAULT 1
 )
 GO
 
@@ -6386,8 +6386,8 @@ CREATE TABLE [dbo].[bpm_process_listener] (
   [create_time] datetime2(7)  NOT NULL,
   [updater] nvarchar(64) COLLATE Chinese_PRC_CI_AS  NULL,
   [update_time] datetime2(7)  NOT NULL,
-  [deleted] varchar(1) COLLATE Chinese_PRC_CI_AS  NOT NULL,
-  [tenant_id] bigint  NOT NULL
+   [deleted] varchar(1) COLLATE Chinese_PRC_CI_AS  NOT NULL DEFAULT '0',
+  [tenant_id] bigint  NOT NULL DEFAULT 1
 )
 GO
 
@@ -6513,8 +6513,8 @@ CREATE TABLE [dbo].[bpm_user_group] (
   [create_time] datetime2(7)  NOT NULL,
   [updater] nvarchar(64) COLLATE Chinese_PRC_CI_AS  NULL,
   [update_time] datetime2(7)  NOT NULL,
-  [deleted] varchar(1) COLLATE Chinese_PRC_CI_AS  NOT NULL,
-  [tenant_id] bigint  NOT NULL
+   [deleted] varchar(1) COLLATE Chinese_PRC_CI_AS  NOT NULL DEFAULT '0',
+  [tenant_id] bigint  NOT NULL DEFAULT 1
 )
 GO
 
@@ -6856,7 +6856,7 @@ GO
 CREATE TABLE [dbo].[infra_api_access_log] (
   [id] bigint  NOT NULL,
   [trace_id] nvarchar(64) COLLATE Chinese_PRC_CI_AS  NOT NULL,
-  [user_id] bigint  NOT NULL,
+  [user_id] bigint  NULL,
   [user_type] tinyint  NOT NULL,
   [application_name] nvarchar(50) COLLATE Chinese_PRC_CI_AS  NOT NULL,
   [request_method] nvarchar(16) COLLATE Chinese_PRC_CI_AS  NOT NULL,
@@ -6877,8 +6877,8 @@ CREATE TABLE [dbo].[infra_api_access_log] (
   [create_time] datetime2(7)  NOT NULL,
   [updater] nvarchar(64) COLLATE Chinese_PRC_CI_AS  NULL,
   [update_time] datetime2(7)  NOT NULL,
-  [deleted] varchar(1) COLLATE Chinese_PRC_CI_AS  NOT NULL,
-  [tenant_id] bigint  NOT NULL
+   [deleted] varchar(1) COLLATE Chinese_PRC_CI_AS  NOT NULL DEFAULT '0',
+  [tenant_id] bigint  NOT NULL DEFAULT 1
 )
 GO
 
@@ -7105,8 +7105,8 @@ CREATE TABLE [dbo].[infra_api_error_log] (
   [create_time] datetime2(7)  NOT NULL,
   [updater] nvarchar(64) COLLATE Chinese_PRC_CI_AS  NULL,
   [update_time] datetime2(7)  NOT NULL,
-  [deleted] varchar(1) COLLATE Chinese_PRC_CI_AS  NOT NULL,
-  [tenant_id] bigint  NOT NULL
+   [deleted] varchar(1) COLLATE Chinese_PRC_CI_AS  NOT NULL DEFAULT '0',
+  [tenant_id] bigint  NOT NULL DEFAULT 1
 )
 GO
 
@@ -9200,7 +9200,7 @@ CREATE TABLE [dbo].[infra_codegen_column] (
   [create_time] datetime2(7)  NOT NULL,
   [updater] nvarchar(64) COLLATE Chinese_PRC_CI_AS  NULL,
   [update_time] datetime2(7)  NOT NULL,
-  [deleted] varchar(1) COLLATE Chinese_PRC_CI_AS  NOT NULL
+   [deleted] varchar(1) COLLATE Chinese_PRC_CI_AS  NOT NULL DEFAULT '0'
 )
 GO
 
@@ -9410,7 +9410,7 @@ CREATE TABLE [dbo].[infra_codegen_table] (
   [create_time] datetime2(7)  NOT NULL,
   [updater] nvarchar(64) COLLATE Chinese_PRC_CI_AS  NULL,
   [update_time] datetime2(7)  NOT NULL,
-  [deleted] varchar(1) COLLATE Chinese_PRC_CI_AS  NOT NULL
+   [deleted] varchar(1) COLLATE Chinese_PRC_CI_AS  NOT NULL DEFAULT '0'
 )
 GO
 
@@ -9616,7 +9616,7 @@ CREATE TABLE [dbo].[infra_config] (
   [create_time] datetime2(7)  NOT NULL,
   [updater] nvarchar(64) COLLATE Chinese_PRC_CI_AS  NULL,
   [update_time] datetime2(7)  NOT NULL,
-  [deleted] varchar(1) COLLATE Chinese_PRC_CI_AS  NOT NULL
+   [deleted] varchar(1) COLLATE Chinese_PRC_CI_AS  NOT NULL DEFAULT '0'
 )
 GO
 
@@ -9766,7 +9766,7 @@ CREATE TABLE [dbo].[infra_data_source_config] (
   [create_time] datetime2(7)  NOT NULL,
   [updater] nvarchar(64) COLLATE Chinese_PRC_CI_AS  NULL,
   [update_time] datetime2(7)  NOT NULL,
-  [deleted] varchar(1) COLLATE Chinese_PRC_CI_AS  NOT NULL
+   [deleted] varchar(1) COLLATE Chinese_PRC_CI_AS  NOT NULL DEFAULT '0'
 )
 GO
 
@@ -9873,7 +9873,7 @@ CREATE TABLE [dbo].[infra_file] (
   [create_time] datetime2(7)  NOT NULL,
   [updater] nvarchar(64) COLLATE Chinese_PRC_CI_AS  NULL,
   [update_time] datetime2(7)  NOT NULL,
-  [deleted] varchar(1) COLLATE Chinese_PRC_CI_AS  NOT NULL
+   [deleted] varchar(1) COLLATE Chinese_PRC_CI_AS  NOT NULL DEFAULT '0'
 )
 GO
 
@@ -9993,7 +9993,7 @@ CREATE TABLE [dbo].[infra_file_config] (
   [create_time] datetime2(7)  NOT NULL,
   [updater] nvarchar(64) COLLATE Chinese_PRC_CI_AS  NULL,
   [update_time] datetime2(7)  NOT NULL,
-  [deleted] varchar(1) COLLATE Chinese_PRC_CI_AS  NOT NULL
+   [deleted] varchar(1) COLLATE Chinese_PRC_CI_AS  NOT NULL DEFAULT '0'
 )
 GO
 
@@ -10134,7 +10134,7 @@ CREATE TABLE [dbo].[infra_file_content] (
   [create_time] datetime2(7)  NOT NULL,
   [updater] nvarchar(64) COLLATE Chinese_PRC_CI_AS  NULL,
   [update_time] datetime2(7)  NOT NULL,
-  [deleted] varchar(1) COLLATE Chinese_PRC_CI_AS  NOT NULL
+   [deleted] varchar(1) COLLATE Chinese_PRC_CI_AS  NOT NULL DEFAULT '0'
 )
 GO
 
@@ -10236,7 +10236,7 @@ CREATE TABLE [dbo].[infra_job] (
   [create_time] datetime2(7)  NOT NULL,
   [updater] nvarchar(64) COLLATE Chinese_PRC_CI_AS  NULL,
   [update_time] datetime2(7)  NOT NULL,
-  [deleted] varchar(1) COLLATE Chinese_PRC_CI_AS  NOT NULL
+   [deleted] varchar(1) COLLATE Chinese_PRC_CI_AS  NOT NULL DEFAULT '0'
 )
 GO
 
@@ -10419,7 +10419,7 @@ CREATE TABLE [dbo].[infra_job_log] (
   [create_time] datetime2(7)  NOT NULL,
   [updater] nvarchar(64) COLLATE Chinese_PRC_CI_AS  NULL,
   [update_time] datetime2(7)  NOT NULL,
-  [deleted] varchar(1) COLLATE Chinese_PRC_CI_AS  NOT NULL
+   [deleted] varchar(1) COLLATE Chinese_PRC_CI_AS  NOT NULL DEFAULT '0'
 )
 GO
 
@@ -10668,8 +10668,8 @@ CREATE TABLE [dbo].[system_dept] (
   [create_time] datetime2(7)  NOT NULL,
   [updater] nvarchar(64) COLLATE Chinese_PRC_CI_AS  NULL,
   [update_time] datetime2(7)  NOT NULL,
-  [deleted] varchar(1) COLLATE Chinese_PRC_CI_AS  NOT NULL,
-  [tenant_id] bigint  NOT NULL,
+   [deleted] varchar(1) COLLATE Chinese_PRC_CI_AS  NOT NULL DEFAULT '0',
+  [tenant_id] bigint  NOT NULL DEFAULT 1,
   [total_people] int  NOT NULL
 )
 GO
@@ -11160,7 +11160,7 @@ CREATE TABLE [dbo].[system_dict_data] (
   [create_time] datetime2(7)  NOT NULL,
   [updater] nvarchar(64) COLLATE Chinese_PRC_CI_AS  NULL,
   [update_time] datetime2(7)  NOT NULL,
-  [deleted] varchar(1) COLLATE Chinese_PRC_CI_AS  NOT NULL
+   [deleted] varchar(1) COLLATE Chinese_PRC_CI_AS  NOT NULL DEFAULT '0'
 )
 GO
 
@@ -13185,7 +13185,7 @@ CREATE TABLE [dbo].[system_dict_type] (
   [create_time] datetime2(7)  NOT NULL,
   [updater] nvarchar(64) COLLATE Chinese_PRC_CI_AS  NULL,
   [update_time] datetime2(7)  NOT NULL,
-  [deleted] varchar(1) COLLATE Chinese_PRC_CI_AS  NOT NULL,
+   [deleted] varchar(1) COLLATE Chinese_PRC_CI_AS  NOT NULL DEFAULT '0',
   [deleted_time] datetime2(7)  NULL
 )
 GO
@@ -13638,8 +13638,8 @@ CREATE TABLE [dbo].[system_login_log] (
   [create_time] datetime2(7)  NOT NULL,
   [updater] nvarchar(64) COLLATE Chinese_PRC_CI_AS  NULL,
   [update_time] datetime2(7)  NOT NULL,
-  [deleted] varchar(1) COLLATE Chinese_PRC_CI_AS  NOT NULL,
-  [tenant_id] bigint  NOT NULL
+  [deleted] varchar(1) COLLATE Chinese_PRC_CI_AS  NOT NULL DEFAULT '0',
+  [tenant_id] bigint  NOT NULL DEFAULT 1
 )
 GO
 
@@ -14070,7 +14070,7 @@ CREATE TABLE [dbo].[system_mail_account] (
   [create_time] datetime2(7)  NOT NULL,
   [updater] nvarchar(64) COLLATE Chinese_PRC_CI_AS  NULL,
   [update_time] datetime2(7)  NOT NULL,
-  [deleted] varchar(1) COLLATE Chinese_PRC_CI_AS  NOT NULL
+   [deleted] varchar(1) COLLATE Chinese_PRC_CI_AS  NOT NULL DEFAULT '0'
 )
 GO
 
@@ -14221,7 +14221,7 @@ CREATE TABLE [dbo].[system_mail_log] (
   [create_time] datetime2(7)  NOT NULL,
   [updater] nvarchar(64) COLLATE Chinese_PRC_CI_AS  NULL,
   [update_time] datetime2(7)  NOT NULL,
-  [deleted] varchar(1) COLLATE Chinese_PRC_CI_AS  NOT NULL
+   [deleted] varchar(1) COLLATE Chinese_PRC_CI_AS  NOT NULL DEFAULT '0'
 )
 GO
 
@@ -14422,7 +14422,7 @@ CREATE TABLE [dbo].[system_mail_template] (
   [create_time] datetime2(7)  NOT NULL,
   [updater] nvarchar(64) COLLATE Chinese_PRC_CI_AS  NULL,
   [update_time] datetime2(7)  NOT NULL,
-  [deleted] varchar(1) COLLATE Chinese_PRC_CI_AS  NOT NULL
+   [deleted] varchar(1) COLLATE Chinese_PRC_CI_AS  NOT NULL DEFAULT '0'
 )
 GO
 
@@ -14580,7 +14580,7 @@ CREATE TABLE [dbo].[system_menu] (
   [create_time] datetime2(7)  NOT NULL,
   [updater] nvarchar(64) COLLATE Chinese_PRC_CI_AS  NULL,
   [update_time] datetime2(7)  NOT NULL,
-  [deleted] varchar(1) COLLATE Chinese_PRC_CI_AS  NOT NULL
+   [deleted] varchar(1) COLLATE Chinese_PRC_CI_AS  NOT NULL DEFAULT '0'
 )
 GO
 
@@ -17623,8 +17623,8 @@ CREATE TABLE [dbo].[system_notice] (
   [create_time] datetime2(7)  NOT NULL,
   [updater] nvarchar(64) COLLATE Chinese_PRC_CI_AS  NULL,
   [update_time] datetime2(7)  NOT NULL,
-  [deleted] varchar(1) COLLATE Chinese_PRC_CI_AS  NOT NULL,
-  [tenant_id] bigint  NOT NULL
+   [deleted] varchar(1) COLLATE Chinese_PRC_CI_AS  NOT NULL DEFAULT '0',
+  [tenant_id] bigint  NOT NULL DEFAULT 1
 )
 GO
 
@@ -17751,8 +17751,8 @@ CREATE TABLE [dbo].[system_notify_message] (
   [create_time] datetime2(7)  NOT NULL,
   [updater] nvarchar(64) COLLATE Chinese_PRC_CI_AS  NULL,
   [update_time] datetime2(7)  NOT NULL,
-  [deleted] varchar(1) COLLATE Chinese_PRC_CI_AS  NOT NULL,
-  [tenant_id] bigint  NOT NULL
+   [deleted] varchar(1) COLLATE Chinese_PRC_CI_AS  NOT NULL DEFAULT '0',
+  [tenant_id] bigint  NOT NULL DEFAULT 1
 )
 GO
 
@@ -17910,7 +17910,7 @@ CREATE TABLE [dbo].[system_notify_template] (
   [create_time] datetime2(7)  NOT NULL,
   [updater] nvarchar(64) COLLATE Chinese_PRC_CI_AS  NULL,
   [update_time] datetime2(7)  NOT NULL,
-  [deleted] varchar(1) COLLATE Chinese_PRC_CI_AS  NOT NULL
+   [deleted] varchar(1) COLLATE Chinese_PRC_CI_AS  NOT NULL DEFAULT '0'
 )
 GO
 
@@ -18047,8 +18047,8 @@ CREATE TABLE [dbo].[system_oauth2_access_token] (
   [create_time] datetime2(7)  NOT NULL,
   [updater] nvarchar(64) COLLATE Chinese_PRC_CI_AS  NULL,
   [update_time] datetime2(7)  NOT NULL,
-  [deleted] varchar(1) COLLATE Chinese_PRC_CI_AS  NOT NULL,
-  [tenant_id] bigint  NOT NULL
+   [deleted] varchar(1) COLLATE Chinese_PRC_CI_AS  NOT NULL DEFAULT '0',
+  [tenant_id] bigint  NOT NULL DEFAULT 1
 )
 GO
 
@@ -18556,8 +18556,8 @@ CREATE TABLE [dbo].[system_oauth2_approve] (
   [create_time] datetime2(7)  NOT NULL,
   [updater] nvarchar(64) COLLATE Chinese_PRC_CI_AS  NULL,
   [update_time] datetime2(7)  NOT NULL,
-  [deleted] varchar(1) COLLATE Chinese_PRC_CI_AS  NOT NULL,
-  [tenant_id] bigint  NOT NULL
+   [deleted] varchar(1) COLLATE Chinese_PRC_CI_AS  NOT NULL DEFAULT '0',
+  [tenant_id] bigint  NOT NULL DEFAULT 1
 )
 GO
 
@@ -18694,7 +18694,7 @@ CREATE TABLE [dbo].[system_oauth2_client] (
   [create_time] datetime2(7)  NOT NULL,
   [updater] nvarchar(64) COLLATE Chinese_PRC_CI_AS  NULL,
   [update_time] datetime2(7)  NOT NULL,
-  [deleted] varchar(1) COLLATE Chinese_PRC_CI_AS  NOT NULL
+   [deleted] varchar(1) COLLATE Chinese_PRC_CI_AS  NOT NULL DEFAULT '0'
 )
 GO
 
@@ -18892,8 +18892,8 @@ CREATE TABLE [dbo].[system_oauth2_code] (
   [create_time] datetime2(7)  NOT NULL,
   [updater] nvarchar(64) COLLATE Chinese_PRC_CI_AS  NULL,
   [update_time] datetime2(7)  NOT NULL,
-  [deleted] varchar(1) COLLATE Chinese_PRC_CI_AS  NOT NULL,
-  [tenant_id] bigint  NOT NULL
+   [deleted] varchar(1) COLLATE Chinese_PRC_CI_AS  NOT NULL DEFAULT '0',
+  [tenant_id] bigint  NOT NULL DEFAULT 1
 )
 GO
 
@@ -19035,8 +19035,8 @@ CREATE TABLE [dbo].[system_oauth2_refresh_token] (
   [create_time] datetime2(7)  NOT NULL,
   [updater] nvarchar(64) COLLATE Chinese_PRC_CI_AS  NULL,
   [update_time] datetime2(7)  NOT NULL,
-  [deleted] varchar(1) COLLATE Chinese_PRC_CI_AS  NOT NULL,
-  [tenant_id] bigint  NOT NULL
+   [deleted] varchar(1) COLLATE Chinese_PRC_CI_AS  NOT NULL DEFAULT '0',
+  [tenant_id] bigint  NOT NULL DEFAULT 1
 )
 GO
 
@@ -19315,8 +19315,8 @@ CREATE TABLE [dbo].[system_operate_log] (
   [create_time] datetime2(7)  NOT NULL,
   [updater] nvarchar(64) COLLATE Chinese_PRC_CI_AS  NULL,
   [update_time] datetime2(7)  NOT NULL,
-  [deleted] varchar(1) COLLATE Chinese_PRC_CI_AS  NOT NULL,
-  [tenant_id] bigint  NOT NULL
+   [deleted] varchar(1) COLLATE Chinese_PRC_CI_AS  NOT NULL DEFAULT '0',
+  [tenant_id] bigint  NOT NULL DEFAULT 1
 )
 GO
 
@@ -19681,8 +19681,8 @@ CREATE TABLE [dbo].[system_post] (
   [create_time] datetime2(7)  NOT NULL,
   [updater] nvarchar(64) COLLATE Chinese_PRC_CI_AS  NULL,
   [update_time] datetime2(7)  NOT NULL,
-  [deleted] varchar(1) COLLATE Chinese_PRC_CI_AS  NOT NULL,
-  [tenant_id] bigint  NOT NULL
+   [deleted] varchar(1) COLLATE Chinese_PRC_CI_AS  NOT NULL DEFAULT '0',
+  [tenant_id] bigint  NOT NULL DEFAULT 1
 )
 GO
 
@@ -19823,8 +19823,8 @@ CREATE TABLE [dbo].[system_role] (
   [create_time] datetime2(7)  NOT NULL,
   [updater] nvarchar(64) COLLATE Chinese_PRC_CI_AS  NULL,
   [update_time] datetime2(7)  NOT NULL,
-  [deleted] varchar(1) COLLATE Chinese_PRC_CI_AS  NOT NULL,
-  [tenant_id] bigint  NOT NULL
+   [deleted] varchar(1) COLLATE Chinese_PRC_CI_AS  NOT NULL DEFAULT '0',
+  [tenant_id] bigint  NOT NULL DEFAULT 1
 )
 GO
 
@@ -19986,8 +19986,8 @@ CREATE TABLE [dbo].[system_role_menu] (
   [create_time] datetime2(7)  NOT NULL,
   [updater] nvarchar(64) COLLATE Chinese_PRC_CI_AS  NULL,
   [update_time] datetime2(7)  NOT NULL,
-  [deleted] varchar(1) COLLATE Chinese_PRC_CI_AS  NOT NULL,
-  [tenant_id] bigint  NOT NULL
+   [deleted] varchar(1) COLLATE Chinese_PRC_CI_AS  NOT NULL DEFAULT '0',
+  [tenant_id] bigint  NOT NULL DEFAULT 1
 )
 GO
 
@@ -22611,7 +22611,7 @@ CREATE TABLE [dbo].[system_sms_channel] (
   [create_time] datetime2(7)  NOT NULL,
   [updater] nvarchar(64) COLLATE Chinese_PRC_CI_AS  NULL,
   [update_time] datetime2(7)  NOT NULL,
-  [deleted] varchar(1) COLLATE Chinese_PRC_CI_AS  NOT NULL
+   [deleted] varchar(1) COLLATE Chinese_PRC_CI_AS  NOT NULL DEFAULT '0'
 )
 GO
 
@@ -22750,8 +22750,8 @@ CREATE TABLE [dbo].[system_sms_code] (
   [create_time] datetime2(7)  NOT NULL,
   [updater] nvarchar(64) COLLATE Chinese_PRC_CI_AS  NULL,
   [update_time] datetime2(7)  NOT NULL,
-  [deleted] varchar(1) COLLATE Chinese_PRC_CI_AS  NOT NULL,
-  [tenant_id] bigint  NOT NULL
+   [deleted] varchar(1) COLLATE Chinese_PRC_CI_AS  NOT NULL DEFAULT '0',
+  [tenant_id] bigint  NOT NULL DEFAULT 1
 )
 GO
 
@@ -22908,7 +22908,7 @@ CREATE TABLE [dbo].[system_sms_log] (
   [create_time] datetime2(7)  NOT NULL,
   [updater] nvarchar(64) COLLATE Chinese_PRC_CI_AS  NULL,
   [update_time] datetime2(7)  NOT NULL,
-  [deleted] varchar(1) COLLATE Chinese_PRC_CI_AS  NOT NULL
+   [deleted] varchar(1) COLLATE Chinese_PRC_CI_AS  NOT NULL DEFAULT '0'
 )
 GO
 
@@ -23168,7 +23168,7 @@ CREATE TABLE [dbo].[system_sms_template] (
   [create_time] datetime2(7)  NOT NULL,
   [updater] nvarchar(64) COLLATE Chinese_PRC_CI_AS  NULL,
   [update_time] datetime2(7)  NOT NULL,
-  [deleted] varchar(1) COLLATE Chinese_PRC_CI_AS  NOT NULL
+   [deleted] varchar(1) COLLATE Chinese_PRC_CI_AS  NOT NULL DEFAULT '0'
 )
 GO
 
@@ -23363,8 +23363,8 @@ CREATE TABLE [dbo].[system_social_client] (
   [create_time] datetime2(7)  NOT NULL,
   [updater] nvarchar(64) COLLATE Chinese_PRC_CI_AS  NULL,
   [update_time] datetime2(7)  NOT NULL,
-  [deleted] varchar(1) COLLATE Chinese_PRC_CI_AS  NOT NULL,
-  [tenant_id] bigint  NOT NULL
+   [deleted] varchar(1) COLLATE Chinese_PRC_CI_AS  NOT NULL DEFAULT '0',
+  [tenant_id] bigint  NOT NULL DEFAULT 1
 )
 GO
 
@@ -23517,8 +23517,8 @@ CREATE TABLE [dbo].[system_social_user] (
   [create_time] datetime2(7)  NOT NULL,
   [updater] nvarchar(64) COLLATE Chinese_PRC_CI_AS  NULL,
   [update_time] datetime2(7)  NOT NULL,
-  [deleted] varchar(1) COLLATE Chinese_PRC_CI_AS  NOT NULL,
-  [tenant_id] bigint  NOT NULL
+   [deleted] varchar(1) COLLATE Chinese_PRC_CI_AS  NOT NULL DEFAULT '0',
+  [tenant_id] bigint  NOT NULL DEFAULT 1
 )
 GO
 
@@ -23665,8 +23665,8 @@ CREATE TABLE [dbo].[system_social_user_bind] (
   [create_time] datetime2(7)  NOT NULL,
   [updater] nvarchar(64) COLLATE Chinese_PRC_CI_AS  NULL,
   [update_time] datetime2(7)  NOT NULL,
-  [deleted] varchar(1) COLLATE Chinese_PRC_CI_AS  NOT NULL,
-  [tenant_id] bigint  NOT NULL
+   [deleted] varchar(1) COLLATE Chinese_PRC_CI_AS  NOT NULL DEFAULT '0',
+  [tenant_id] bigint  NOT NULL DEFAULT 1
 )
 GO
 
@@ -23783,7 +23783,7 @@ CREATE TABLE [dbo].[system_tenant] (
   [create_time] datetime2(7)  NOT NULL,
   [updater] nvarchar(64) COLLATE Chinese_PRC_CI_AS  NULL,
   [update_time] datetime2(7)  NOT NULL,
-  [deleted] varchar(1) COLLATE Chinese_PRC_CI_AS  NOT NULL
+   [deleted] varchar(1) COLLATE Chinese_PRC_CI_AS  NOT NULL DEFAULT '0'
 )
 GO
 
@@ -23932,7 +23932,7 @@ CREATE TABLE [dbo].[system_tenant_package] (
   [create_time] datetime2(7)  NOT NULL,
   [updater] nvarchar(64) COLLATE Chinese_PRC_CI_AS  NULL,
   [update_time] datetime2(7)  NOT NULL,
-  [deleted] varchar(1) COLLATE Chinese_PRC_CI_AS  NOT NULL
+   [deleted] varchar(1) COLLATE Chinese_PRC_CI_AS  NOT NULL DEFAULT '0'
 )
 GO
 
@@ -24038,8 +24038,8 @@ CREATE TABLE [dbo].[system_user_post] (
   [create_time] datetime2(7)  NOT NULL,
   [updater] nvarchar(64) COLLATE Chinese_PRC_CI_AS  NULL,
   [update_time] datetime2(7)  NOT NULL,
-  [deleted] varchar(1) COLLATE Chinese_PRC_CI_AS  NOT NULL,
-  [tenant_id] bigint  NOT NULL
+   [deleted] varchar(1) COLLATE Chinese_PRC_CI_AS  NOT NULL DEFAULT '0',
+  [tenant_id] bigint  NOT NULL DEFAULT 1
 )
 GO
 
@@ -24136,7 +24136,7 @@ CREATE TABLE [dbo].[system_user_role] (
   [updater] nvarchar(64) COLLATE Chinese_PRC_CI_AS  NULL,
   [update_time] datetime2(7)  NULL,
   [deleted] varchar(1) COLLATE Chinese_PRC_CI_AS  NULL,
-  [tenant_id] bigint  NOT NULL
+  [tenant_id] bigint  NOT NULL DEFAULT 1
 )
 GO
 
@@ -24262,8 +24262,8 @@ CREATE TABLE [dbo].[yudao_demo01_contact] (
   [create_time] datetime2(7)  NOT NULL,
   [updater] nvarchar(64) COLLATE Chinese_PRC_CI_AS  NULL,
   [update_time] datetime2(7)  NOT NULL,
-  [deleted] varchar(1) COLLATE Chinese_PRC_CI_AS  NOT NULL,
-  [tenant_id] bigint  NOT NULL
+   [deleted] varchar(1) COLLATE Chinese_PRC_CI_AS  NOT NULL DEFAULT '0',
+  [tenant_id] bigint  NOT NULL DEFAULT 1
 )
 GO
 
@@ -24383,8 +24383,8 @@ CREATE TABLE [dbo].[yudao_demo02_category] (
   [create_time] datetime2(7)  NOT NULL,
   [updater] nvarchar(64) COLLATE Chinese_PRC_CI_AS  NULL,
   [update_time] datetime2(7)  NOT NULL,
-  [deleted] varchar(1) COLLATE Chinese_PRC_CI_AS  NOT NULL,
-  [tenant_id] bigint  NOT NULL
+   [deleted] varchar(1) COLLATE Chinese_PRC_CI_AS  NOT NULL DEFAULT '0',
+  [tenant_id] bigint  NOT NULL DEFAULT 1
 )
 GO
 
@@ -24499,8 +24499,8 @@ CREATE TABLE [dbo].[yudao_demo03_course] (
   [create_time] datetime2(7)  NOT NULL,
   [updater] nvarchar(64) COLLATE Chinese_PRC_CI_AS  NULL,
   [update_time] datetime2(7)  NOT NULL,
-  [deleted] varchar(1) COLLATE Chinese_PRC_CI_AS  NOT NULL,
-  [tenant_id] bigint  NOT NULL
+   [deleted] varchar(1) COLLATE Chinese_PRC_CI_AS  NOT NULL DEFAULT '0',
+  [tenant_id] bigint  NOT NULL DEFAULT 1
 )
 GO
 
@@ -24655,8 +24655,8 @@ CREATE TABLE [dbo].[yudao_demo03_grade] (
   [create_time] datetime2(7)  NOT NULL,
   [updater] nvarchar(64) COLLATE Chinese_PRC_CI_AS  NULL,
   [update_time] datetime2(7)  NOT NULL,
-  [deleted] varchar(1) COLLATE Chinese_PRC_CI_AS  NOT NULL,
-  [tenant_id] bigint  NOT NULL
+   [deleted] varchar(1) COLLATE Chinese_PRC_CI_AS  NOT NULL DEFAULT '0',
+  [tenant_id] bigint  NOT NULL DEFAULT 1
 )
 GO
 
@@ -24770,8 +24770,8 @@ CREATE TABLE [dbo].[yudao_demo03_student] (
   [create_time] datetime2(7)  NOT NULL,
   [updater] nvarchar(64) COLLATE Chinese_PRC_CI_AS  NULL,
   [update_time] datetime2(7)  NOT NULL,
-  [deleted] varchar(1) COLLATE Chinese_PRC_CI_AS  NOT NULL,
-  [tenant_id] bigint  NOT NULL
+   [deleted] varchar(1) COLLATE Chinese_PRC_CI_AS  NOT NULL DEFAULT '0',
+  [tenant_id] bigint  NOT NULL DEFAULT 1
 )
 GO
 
@@ -27145,6 +27145,10 @@ GO
 -- ----------------------------
 ALTER TABLE [dbo].[flw_ru_batch_part] ADD CONSTRAINT [FLW_FK_BATCH_PART_PARENT] FOREIGN KEY ([BATCH_ID_]) REFERENCES [dbo].[flw_ru_batch] ([ID_]) ON DELETE NO ACTION ON UPDATE NO ACTION
 GO
+
+
+
+
 
 
 
