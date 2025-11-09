@@ -10,6 +10,7 @@ namespace ControlEntradaSalida
     public sealed class ServiceConfiguration
     {
         private const int DefaultLogRetentionDays = 90;
+        private const int DefaultPayloadLogMaxChars = 2048;
 
         private static readonly Lazy<ServiceConfiguration> LazyInstance =
             new Lazy<ServiceConfiguration>(Load);
@@ -21,6 +22,10 @@ namespace ControlEntradaSalida
         public string LogDirectory { get; private set; }
 
         public int LogRetentionDays { get; private set; }
+
+        public bool LogGrpcPayloads { get; private set; }
+
+        public int GrpcPayloadLogMaxChars { get; private set; }
 
         private ServiceConfiguration()
         {
@@ -35,6 +40,8 @@ namespace ControlEntradaSalida
             configuration.GrpcListenPort = serviceSection?.GrpcListenPort ?? 5001;
             configuration.LogDirectory = ResolveLogDirectory(serviceSection?.LogDirectory);
             configuration.LogRetentionDays = ResolveLogRetentionDays(serviceSection?.LogRetentionDays);
+            configuration.LogGrpcPayloads = serviceSection?.LogGrpcPayloads ?? false;
+            configuration.GrpcPayloadLogMaxChars = ResolvePayloadLogMaxChars(serviceSection?.GrpcPayloadLogMaxChars);
 
             EnsureLogDirectory(configuration.LogDirectory);
 
@@ -72,6 +79,16 @@ namespace ControlEntradaSalida
             }
 
             return DefaultLogRetentionDays;
+        }
+
+        private static int ResolvePayloadLogMaxChars(int? configuredMaxChars)
+        {
+            if (configuredMaxChars.HasValue && configuredMaxChars.Value > 0)
+            {
+                return configuredMaxChars.Value;
+            }
+
+            return DefaultPayloadLogMaxChars;
         }
     }
 }

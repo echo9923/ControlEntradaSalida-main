@@ -122,7 +122,10 @@ namespace ControlEntradaSalida
             DeviceConnectionManager.Instance.ResumeMonitoring();
 
             refreshManager = new PermissionRefreshManager();
-            grpcServer = new PermissionUpdateGrpcServer(refreshManager);
+            grpcServer = new PermissionUpdateGrpcServer(
+                refreshManager,
+                config.LogGrpcPayloads,
+                config.GrpcPayloadLogMaxChars);
             grpcServer.Start(config.GrpcListenPort);
 
             initialized = true;

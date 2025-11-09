@@ -45,15 +45,19 @@ namespace ControlEntradaSalida
 
         private readonly PermissionRefreshManager refreshManager;
         private readonly object lifecycleLock = new object();
+        private readonly bool logPayloads;
+        private readonly int payloadLogMaxChars;
 
         private CancellationTokenSource shutdownTokenSource;
         private Server grpcServer;
         private Thread listenerThread;
         private int listenPort = DefaultPort;
 
-        public PermissionUpdateGrpcServer(PermissionRefreshManager refreshManager)
+        public PermissionUpdateGrpcServer(PermissionRefreshManager refreshManager, bool logPayloads, int payloadLogMaxChars)
         {
             this.refreshManager = refreshManager ?? throw new ArgumentNullException(nameof(refreshManager));
+            this.logPayloads = logPayloads;
+            this.payloadLogMaxChars = payloadLogMaxChars > 0 ? payloadLogMaxChars : 0;
         }
 
         public void Start(int port = DefaultPort)
@@ -174,6 +178,7 @@ namespace ControlEntradaSalida
             Stopwatch stopwatch = Stopwatch.StartNew();
 
             ServiceLogger.Info($"{GrpcLogPrefix} 请求 {requestId} 来自 {peer}，载荷长度 {payloadLength} 字节。");
+            LogPayloadIfEnabled("入站", requestId, request, payloadLength);
 
             try
             {
@@ -191,13 +196,17 @@ namespace ControlEntradaSalida
                     summary.UsersFailed = 0;
                     stopwatch.Stop();
                     LogGrpcSummary(peer, requestId, summary, stopwatch.Elapsed);
-                    return Task.FromResult(BuildResponse(summary));
+                    string responsePayload = BuildResponse(summary);
+                    LogPayloadIfEnabled("出站", requestId, responsePayload, Encoding.UTF8.GetByteCount(responsePayload));
+                    return Task.FromResult(responsePayload);
                 }
 
                 PermissionRefreshSummary result = refreshManager.RefreshPermissionsForEmployees(updates);
                 stopwatch.Stop();
                 LogGrpcSummary(peer, requestId, result, stopwatch.Elapsed);
-                return Task.FromResult(BuildResponse(result));
+                string successPayload = BuildResponse(result);
+                LogPayloadIfEnabled("出站", requestId, successPayload, Encoding.UTF8.GetByteCount(successPayload));
+                return Task.FromResult(successPayload);
             }
             catch (JsonException ex)
             {
@@ -387,6 +396,49 @@ namespace ControlEntradaSalida
             };
 
             return JsonConvert.SerializeObject(payload);
+        }
+
+        private void LogPayloadIfEnabled(string direction, string requestId, string payload, int payloadBytes)
+        {
+            if (!logPayloads)
+            {
+                return;
+            }
+
+            bool truncated;
+            string formattedPayload = FormatPayloadForLog(payload, out truncated);
+            string sizeInfo = truncated
+                ? string.Format(CultureInfo.InvariantCulture,
+                    "（原始 {0} 字节，已截断至 {1} 字符）",
+                    payloadBytes,
+                    payloadLogMaxChars)
+                : string.Format(CultureInfo.InvariantCulture, "（{0} 字节）", payloadBytes);
+
+            ServiceLogger.Debug(string.Format(CultureInfo.InvariantCulture,
+                "{0} 请求 {1} {2} JSON {3}：{4}",
+                GrpcLogPrefix,
+                requestId,
+                direction,
+                sizeInfo,
+                formattedPayload));
+        }
+
+        private string FormatPayloadForLog(string payload, out bool truncated)
+        {
+            truncated = false;
+
+            if (string.IsNullOrEmpty(payload))
+            {
+                return "<空>";
+            }
+
+            if (payloadLogMaxChars <= 0 || payload.Length <= payloadLogMaxChars)
+            {
+                return payload;
+            }
+
+            truncated = true;
+            return payload.Substring(0, payloadLogMaxChars) + "...";
         }
 
         public void Dispose()

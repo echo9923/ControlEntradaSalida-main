@@ -1,0 +1,23 @@
+2025-11-09 22:53:07.007 [INFO] 设备 1(一发南门1进) 连接成功。
+2025-11-09 22:53:07.014 [INFO] 设备连接初始化完成。
+2025-11-09 22:53:14.148 [INFO] [权限GRPC] 请求 da132aad852c4328b9bbcf9fa5133e00 来自 ipv4:127.0.0.1:60046，载荷长度 42 字节。
+2025-11-09 22:53:14.185 [DEBUG] [权限GRPC] 请求 da132aad852c4328b9bbcf9fa5133e00 已解析 1 条权限指令，示例员工：2231。
+2025-11-09 22:53:34.219 [INFO] [权限GRPC] 请求 da132aad852c4328b9bbcf9fa5133e00 / 客户端 ipv4:127.0.0.1:60046 权限同步完成：总数 1，成功 1，跳过 0，失败 0，耗时 20070.86 ms。
+2025-11-09 23:00:51.825 [INFO] [权限GRPC] 请求 c7ab54ffeff7438c88473a69755e8435 来自 ipv4:127.0.0.1:60397，载荷长度 42 字节。
+2025-11-09 23:00:51.834 [DEBUG] [权限GRPC] 请求 c7ab54ffeff7438c88473a69755e8435 已解析 1 条权限指令，示例员工：2231。
+2025-11-09 23:01:21.936 [ERROR] [权限GRPC] 请求 c7ab54ffeff7438c88473a69755e8435 处理权限更新时发生异常。 | 异常: System.Data.SqlClient.SqlException (0x80131904): 执行超时已过期。完成操作之前已超时或服务器未响应。 
+操作已被用户取消。
+语句已终止。 ---> System.ComponentModel.Win32Exception (0x80004005): 等待的操作过时。
+   在 System.Data.SqlClient.SqlConnection.OnError(SqlException exception, Boolean breakConnection, Action`1 wrapCloseInAction)
+   在 System.Data.SqlClient.TdsParser.ThrowExceptionAndWarning(TdsParserStateObject stateObj, Boolean callerHasConnectionLock, Boolean asyncClose)
+   在 System.Data.SqlClient.TdsParser.TryRun(RunBehavior runBehavior, SqlCommand cmdHandler, SqlDataReader dataStream, BulkCopySimpleResultSet bulkCopyHandler, TdsParserStateObject stateObj, Boolean& dataReady)
+   在 System.Data.SqlClient.SqlCommand.FinishExecuteReader(SqlDataReader ds, RunBehavior runBehavior, String resetOptionsString, Boolean isInternal, Boolean forDescribeParameterEncryption, Boolean shouldCacheForAlwaysEncrypted)
+   在 System.Data.SqlClient.SqlCommand.RunExecuteReaderTds(CommandBehavior cmdBehavior, RunBehavior runBehavior, Boolean returnStream, Boolean async, Int32 timeout, Task& task, Boolean asyncWrite, Boolean inRetry, SqlDataReader ds, Boolean describeParameterEncryptionRequest)
+   在 System.Data.SqlClient.SqlCommand.RunExecuteReader(CommandBehavior cmdBehavior, RunBehavior runBehavior, Boolean returnStream, String method, TaskCompletionSource`1 completion, Int32 timeout, Task& task, Boolean& usedCache, Boolean asyncWrite, Boolean inRetry)
+   在 System.Data.SqlClient.SqlCommand.InternalExecuteNonQuery(TaskCompletionSource`1 completion, String methodName, Boolean sendToPipe, Int32 timeout, Boolean& usedCache, Boolean asyncWrite, Boolean inRetry)
+   在 System.Data.SqlClient.SqlCommand.ExecuteNonQuery()
+   在 ControlEntradaSalida.PermissionRefreshManager.UpdatePermissionLevel(String employeeId, Int32 permissionLevel) 位置 E:\门禁项目\AssessControl\ControlEntradaSalida-main\PermissionRefreshManager.cs:行号 411
+   在 ControlEntradaSalida.PermissionRefreshManager.RefreshPermissionsForEmployees(IEnumerable`1 updates) 位置 E:\门禁项目\AssessControl\ControlEntradaSalida-main\PermissionRefreshManager.cs:行号 147
+   在 ControlEntradaSalida.PermissionUpdateGrpcServer.HandlePermissionUpdateAsync(String request, ServerCallContext context) 位置 E:\门禁项目\AssessControl\ControlEntradaSalida-main\PermissionUpdateGrpcServer.cs:行号 197
+ClientConnectionId:d8428ad4-550a-4607-879e-f9bb48a75de1
+Error Number:-2,State:0,Class:11

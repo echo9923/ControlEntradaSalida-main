@@ -69,6 +69,16 @@ namespace ControlEntradaSalida.Configuration
             /// 日志保留天数。
             /// </summary>
             public int? LogRetentionDays { get; set; }
+
+            /// <summary>
+            /// 是否记录 gRPC 请求与响应的 JSON 载荷。
+            /// </summary>
+            public bool? LogGrpcPayloads { get; set; }
+
+            /// <summary>
+            /// gRPC JSON 日志的最大字符数，超出部分将被截断。
+            /// </summary>
+            public int? GrpcPayloadLogMaxChars { get; set; }
         }
 
         public sealed class DatabaseSection
