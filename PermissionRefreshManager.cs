@@ -144,21 +144,13 @@ namespace ControlEntradaSalida
                         continue;
                     }
 
-                    bool permissionStored = UpdatePermissionLevel(update.EmployeeId, update.PermissionCode);
-                    if (!permissionStored)
-                    {
-                        summary.UsersFailed++;
-                        summary.Errors.Add(string.Format(CultureInfo.InvariantCulture,
-                            "更新员工 {0} 在数据库中的权限失败，可能不存在该员工。", update.EmployeeId));
-                        continue;
-                    }
-
                     UserPermissionRecord userRecord = LoadUserPermission(update.EmployeeId);
                     if (userRecord == null)
                     {
                         summary.UsersFailed++;
                         summary.Errors.Add(string.Format(CultureInfo.InvariantCulture,
-                            "未找到员工 {0} 的详细信息。", update.EmployeeId));
+                            "未找到员工 {0} 的详细信息。",
+                            update.EmployeeId));
                         continue;
                     }
 
@@ -179,7 +171,8 @@ namespace ControlEntradaSalida
                         {
                             summary.UsersFailed++;
                             summary.Errors.Add(string.Format(CultureInfo.InvariantCulture,
-                                "更新用户 {0} 的同步状态失败。", userRecord.EmployeeId));
+                                "更新用户 {0} 的同步状态失败。",
+                                userRecord.EmployeeId));
                             continue;
                         }
 
@@ -387,35 +380,11 @@ namespace ControlEntradaSalida
 
         private bool UpdatePermissionLevel(string employeeId, int permissionLevel)
         {
-            string connStr = commonHelper.obtenerCadenaConexion();
-            SqlServerDatabase db = new SqlServerDatabase(commonHelper.obtenerTiempoEsperaComando());
-            db.Connect(connStr);
-            if (db.Connection == null)
-            {
-                return false;
-            }
-
-            try
-            {
-                string sql = @"UPDATE system_users
-                               SET access_permission = @level,
-                                   permission_updated_at = SYSDATETIME()
-                               WHERE username = @username
-                                 AND deleted = 0";
-
-                using (SqlCommand cmd = db.CreateCommand(sql))
-                {
-                    cmd.Parameters.AddWithValue("@level", permissionLevel);
-                    cmd.Parameters.AddWithValue("@username", employeeId);
-
-                    int affected = cmd.ExecuteNonQuery();
-                    return affected > 0;
-                }
-            }
-            finally
-            {
-                db.Disconnect();
-            }
+            ServiceLogger.Debug(string.Format(CultureInfo.InvariantCulture,
+                "跳过更新数据库中员工 {0} 的权限级别，收到的权限级别为 {1}。",
+                employeeId,
+                permissionLevel));
+            return true;
         }
 
         private void InsertDefaultPermissionRecords(IEnumerable<string> employeeIds)
