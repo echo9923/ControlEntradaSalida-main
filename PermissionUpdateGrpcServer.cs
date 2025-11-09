@@ -3,6 +3,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -21,6 +22,15 @@ namespace ControlEntradaSalida
         private const int DefaultPort = 5001;
         private const string ServiceName = "permission.PermissionSyncService";
         private const string MethodName = "SyncPermissions";
+
+        private const string GrpcLogPrefix = "[权限GRPC]";
+
+        private static readonly string[] RequestIdHeaderCandidates = new[]
+        {
+            "x-request-id",
+            "x-correlation-id",
+            "x-trace-id"
+        };
 
         private static readonly Marshaller<string> StringMarshaller = Marshallers.Create(
             Encoding.UTF8.GetBytes,
@@ -158,22 +168,41 @@ namespace ControlEntradaSalida
 
         private Task<string> HandlePermissionUpdateAsync(string request, ServerCallContext context)
         {
+            string peer = DescribePeer(context);
+            string requestId = ResolveRequestId(context);
+            int payloadLength = string.IsNullOrEmpty(request) ? 0 : Encoding.UTF8.GetByteCount(request);
+            Stopwatch stopwatch = Stopwatch.StartNew();
+
+            ServiceLogger.Info($"{GrpcLogPrefix} 请求 {requestId} 来自 {peer}，载荷长度 {payloadLength} 字节。");
+
             try
             {
                 List<PermissionUpdateInfo> updates = ParseUpdates(request);
+                string employeePreview = updates.Count == 0
+                    ? "无"
+                    : string.Join(",", updates.Take(5).Select(u => u.EmployeeId));
+                ServiceLogger.Debug($"{GrpcLogPrefix} 请求 {requestId} 已解析 {updates.Count} 条权限指令，示例员工：{employeePreview}。");
+
                 if (updates.Count == 0)
                 {
+                    ServiceLogger.Warn($"{GrpcLogPrefix} 请求 {requestId} 未解析出任何有效的权限更新。");
                     PermissionRefreshSummary summary = new PermissionRefreshSummary();
                     summary.Errors.Add("未解析到有效的权限更新数据。");
                     summary.UsersFailed = 0;
+                    stopwatch.Stop();
+                    LogGrpcSummary(peer, requestId, summary, stopwatch.Elapsed);
                     return Task.FromResult(BuildResponse(summary));
                 }
 
                 PermissionRefreshSummary result = refreshManager.RefreshPermissionsForEmployees(updates);
+                stopwatch.Stop();
+                LogGrpcSummary(peer, requestId, result, stopwatch.Elapsed);
                 return Task.FromResult(BuildResponse(result));
             }
             catch (JsonException ex)
             {
+                stopwatch.Stop();
+                ServiceLogger.Warn($"{GrpcLogPrefix} 请求 {requestId} JSON格式错误：{ex.Message}");
                 throw new RpcException(
                     new Status(StatusCode.InvalidArgument,
                         string.Format(CultureInfo.InvariantCulture,
@@ -181,17 +210,94 @@ namespace ControlEntradaSalida
             }
             catch (ArgumentException ex)
             {
+                stopwatch.Stop();
+                ServiceLogger.Warn($"{GrpcLogPrefix} 请求 {requestId} 参数非法：{ex.Message}");
                 throw new RpcException(new Status(StatusCode.InvalidArgument, ex.Message));
             }
             catch (RpcException)
             {
+                stopwatch.Stop();
                 throw;
             }
             catch (Exception ex)
             {
-                ServiceLogger.Error("处理权限更新时发生异常。", ex);
+                stopwatch.Stop();
+                ServiceLogger.Error($"{GrpcLogPrefix} 请求 {requestId} 处理权限更新时发生异常。", ex);
                 throw new RpcException(new Status(StatusCode.Internal, "处理权限更新时发生未知错误。"));
             }
+        }
+
+        private static string DescribePeer(ServerCallContext context)
+        {
+            if (context == null)
+            {
+                return "未知客户端";
+            }
+
+            if (!string.IsNullOrWhiteSpace(context.Peer))
+            {
+                return context.Peer;
+            }
+
+            Metadata headers = context.RequestHeaders;
+            if (headers != null)
+            {
+                Metadata.Entry forwardEntry = headers.FirstOrDefault(
+                    h => string.Equals(h.Key, "x-forwarded-for", StringComparison.OrdinalIgnoreCase));
+                if (forwardEntry != null && !string.IsNullOrWhiteSpace(forwardEntry.Value))
+                {
+                    return forwardEntry.Value;
+                }
+            }
+
+            return "未知客户端";
+        }
+
+        private static string ResolveRequestId(ServerCallContext context)
+        {
+            if (context?.RequestHeaders != null)
+            {
+                foreach (string headerName in RequestIdHeaderCandidates)
+                {
+                    Metadata.Entry entry = context.RequestHeaders.FirstOrDefault(
+                        h => string.Equals(h.Key, headerName, StringComparison.OrdinalIgnoreCase));
+                    if (entry != null && !string.IsNullOrWhiteSpace(entry.Value))
+                    {
+                        return entry.Value;
+                    }
+                }
+            }
+
+            return Guid.NewGuid().ToString("N");
+        }
+
+        private static void LogGrpcSummary(string peer, string requestId, PermissionRefreshSummary summary, TimeSpan duration)
+        {
+            string baseMessage = string.Format(
+                CultureInfo.InvariantCulture,
+                "{0} 请求 {1} / 客户端 {2} 权限同步完成：总数 {3}，成功 {4}，跳过 {5}，失败 {6}，耗时 {7} ms。",
+                GrpcLogPrefix,
+                requestId,
+                peer,
+                summary.TotalUsers,
+                summary.UsersUpdated,
+                summary.UsersSkipped,
+                summary.UsersFailed,
+                Math.Round(duration.TotalMilliseconds, 2, MidpointRounding.AwayFromZero));
+
+            if (summary.Errors.Count == 0)
+            {
+                ServiceLogger.Info(baseMessage);
+                return;
+            }
+
+            string errorPreview = string.Join(" | ", summary.Errors.Take(3));
+            if (summary.Errors.Count > 3)
+            {
+                errorPreview += " ...";
+            }
+
+            ServiceLogger.Warn($"{baseMessage} 错误示例：{errorPreview}");
         }
 
         private static List<PermissionUpdateInfo> ParseUpdates(string payload)
