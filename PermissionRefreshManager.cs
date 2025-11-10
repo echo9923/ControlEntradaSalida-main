@@ -62,7 +62,8 @@ namespace ControlEntradaSalida
                     {
                         summary.UsersFailed++;
                         summary.Errors.Add(string.Format(CultureInfo.InvariantCulture,
-                            "用户 {0} 的权限级别 {1} 无效，应为 0-2。", user.EmployeeId, user.PermissionLevel));
+                            "用户 {0} 的权限级别 {1} 无效，应为 0-2。",
+                            user.EmployeeId, user.PermissionLevel));
                         continue;
                     }
 
@@ -75,15 +76,7 @@ namespace ControlEntradaSalida
                     RefreshResult result = ApplyPermissionToDevices(user, devices);
                     if (result.Success)
                     {
-                        bool updated = UpdateSyncedLevel(user.EmployeeId, user.PermissionLevel);
-                        if (!updated)
-                        {
-                            summary.UsersFailed++;
-                            summary.Errors.Add(string.Format(CultureInfo.InvariantCulture,
-                                "更新用户 {0} 的同步状态失败。", user.EmployeeId));
-                            continue;
-                        }
-
+                        // 与请求方共享数据库，last_synced_level 等权限字段由对方维护，此处仅完成设备刷新。
                         summary.UsersUpdated++;
                     }
                     else
@@ -144,21 +137,14 @@ namespace ControlEntradaSalida
                         continue;
                     }
 
-                    bool permissionStored = UpdatePermissionLevel(update.EmployeeId, update.PermissionCode);
-                    if (!permissionStored)
-                    {
-                        summary.UsersFailed++;
-                        summary.Errors.Add(string.Format(CultureInfo.InvariantCulture,
-                            "更新员工 {0} 在数据库中的权限失败，可能不存在该员工。", update.EmployeeId));
-                        continue;
-                    }
-
+                    // 与请求方项目共享数据库，权限字段写入由对方负责，此处仅读取员工资料并同步到设备。
                     UserPermissionRecord userRecord = LoadUserPermission(update.EmployeeId);
                     if (userRecord == null)
                     {
                         summary.UsersFailed++;
                         summary.Errors.Add(string.Format(CultureInfo.InvariantCulture,
-                            "未找到员工 {0} 的详细信息。", update.EmployeeId));
+                            "未找到员工 {0} 的详细信息。",
+                            update.EmployeeId));
                         continue;
                     }
 
@@ -174,15 +160,7 @@ namespace ControlEntradaSalida
                     RefreshResult result = ApplyPermissionToDevices(userRecord, devices);
                     if (result.Success)
                     {
-                        bool synced = UpdateSyncedLevel(userRecord.EmployeeId, update.PermissionCode);
-                        if (!synced)
-                        {
-                            summary.UsersFailed++;
-                            summary.Errors.Add(string.Format(CultureInfo.InvariantCulture,
-                                "更新用户 {0} 的同步状态失败。", userRecord.EmployeeId));
-                            continue;
-                        }
-
+                        // 权限同步标记由请求方维护，此处不再写入 last_synced_level 等字段。
                         summary.UsersUpdated++;
                     }
                     else
@@ -387,35 +365,8 @@ namespace ControlEntradaSalida
 
         private bool UpdatePermissionLevel(string employeeId, int permissionLevel)
         {
-            string connStr = commonHelper.obtenerCadenaConexion();
-            SqlServerDatabase db = new SqlServerDatabase(commonHelper.obtenerTiempoEsperaComando());
-            db.Connect(connStr);
-            if (db.Connection == null)
-            {
-                return false;
-            }
-
-            try
-            {
-                string sql = @"UPDATE system_users
-                               SET access_permission = @level,
-                                   permission_updated_at = SYSDATETIME()
-                               WHERE username = @username
-                                 AND deleted = 0";
-
-                using (SqlCommand cmd = db.CreateCommand(sql))
-                {
-                    cmd.Parameters.AddWithValue("@level", permissionLevel);
-                    cmd.Parameters.AddWithValue("@username", employeeId);
-
-                    int affected = cmd.ExecuteNonQuery();
-                    return affected > 0;
-                }
-            }
-            finally
-            {
-                db.Disconnect();
-            }
+            // 与请求方项目共享数据库，权限字段更新由请求方负责；此方法保留仅为兼容，不执行任何数据库写操作。
+            return true;
         }
 
         private void InsertDefaultPermissionRecords(IEnumerable<string> employeeIds)
@@ -631,36 +582,8 @@ namespace ControlEntradaSalida
 
         private bool UpdateSyncedLevel(string employeeId, int permissionLevel)
         {
-            string connStr = commonHelper.obtenerCadenaConexion();
-            SqlServerDatabase db = new SqlServerDatabase(commonHelper.obtenerTiempoEsperaComando());
-            db.Connect(connStr);
-            if (db.Connection == null)
-            {
-                return false;
-            }
-
-            try
-            {
-                // 更新 system_users 表中的同步字段
-                string sql = @"UPDATE system_users
-                               SET last_synced_level = @level,
-                                   last_synced_at = SYSDATETIME()
-                               WHERE username = @username
-                                 AND deleted = 0";
-
-                using (SqlCommand cmd = db.CreateCommand(sql))
-                {
-                    cmd.Parameters.AddWithValue("@level", permissionLevel);
-                    cmd.Parameters.AddWithValue("@username", employeeId);
-
-                    int affected = cmd.ExecuteNonQuery();
-                    return affected > 0;
-                }
-            }
-            finally
-            {
-                db.Disconnect();
-            }
+            // 与请求方项目共享数据库，权限字段的同步标记由请求方维护，此处不再写入 last_synced_level。
+            return true;
         }
 
         private class UserPermissionRecord
