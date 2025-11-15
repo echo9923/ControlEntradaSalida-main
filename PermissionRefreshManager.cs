@@ -5,6 +5,8 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Runtime.InteropServices;
+using System.Text;
 
 namespace ControlEntradaSalida
 {
@@ -12,10 +14,17 @@ namespace ControlEntradaSalida
     {
         private static readonly string DefaultBeginTime = "2022-01-01T00:00:00";
         private static readonly string DefaultEndTime = "2035-12-31T23:59:59";
+        private const string UserInfoSetupUrl = "PUT /ISAPI/AccessControl/UserInfo/SetUp?format=json";
+        private const string FaceSetupUrl = "PUT /ISAPI/Intelligent/FDLib/FDSetUp?format=json";
+        private const string DefaultFaceLibType = "blackFD";
+        private const string DefaultFaceLibId = "1";
+        private const string UserVerifyModeFace = "face";
+        private const int MaxFaceImageBytes = 200 * 1024;
 
         private readonly DeviceConnectionManager deviceManager;
         private readonly Common commonHelper;
         private readonly object refreshLock = new object();
+        private readonly object personSyncLock = new object();
 
         public PermissionRefreshManager()
         {
@@ -189,6 +198,113 @@ namespace ControlEntradaSalida
                     {
                         summary.UsersFailed++;
                         summary.Errors.AddRange(result.Errors);
+                    }
+                }
+            }
+
+            return summary;
+        }
+
+        public PersonSyncSummary SyncPersonsToConnectedDevices(IEnumerable<PersonSyncRequest> persons)
+        {
+            if (persons == null)
+            {
+                throw new ArgumentNullException(nameof(persons));
+            }
+
+            List<PersonSyncRequest> sanitized = new List<PersonSyncRequest>();
+            int skippedWithoutId = 0;
+            foreach (PersonSyncRequest person in persons)
+            {
+                if (person == null)
+                {
+                    continue;
+                }
+
+                string employeeId = person.EmployeeId?.Trim();
+                if (string.IsNullOrWhiteSpace(employeeId))
+                {
+                    ServiceLogger.Warn("检测到缺少 employee_id 的人员记录，已跳过。");
+                    skippedWithoutId++;
+                    continue;
+                }
+
+                person.EmployeeId = employeeId;
+                person.FullName = person.FullName?.Trim();
+                person.Gender = NormalizeGender(person.Gender);
+                sanitized.Add(person);
+            }
+
+            List<PersonSyncRequest> requests = sanitized
+                .GroupBy(p => p.EmployeeId, StringComparer.OrdinalIgnoreCase)
+                .Select(g => g.Last())
+                .ToList();
+
+            PersonSyncSummary summary = new PersonSyncSummary
+            {
+                TotalPersons = requests.Count
+            };
+
+            if (requests.Count == 0)
+            {
+                if (skippedWithoutId > 0)
+                {
+                    summary.Errors.Add(string.Format(CultureInfo.InvariantCulture,
+                        "有 {0} 条记录因缺少 employee_id 被跳过。", skippedWithoutId));
+                }
+
+                summary.Errors.Add("未提供任何需要同步的人员。");
+                return summary;
+            }
+
+            lock (personSyncLock)
+            {
+                EnsureDevicesLoaded();
+
+                List<DeviceConnectionInfo> onlineDevices = deviceManager.GetAllDevices()
+                    .Where(d => d.IsEnabled && d.IsConnected && d.UserID >= 0)
+                    .ToList();
+
+                summary.TargetDevices = onlineDevices.Count;
+
+                if (onlineDevices.Count == 0)
+                {
+                    summary.Errors.Add("当前没有在线的门禁设备，无法下发人员信息。");
+                    summary.FailedPersons = summary.TotalPersons;
+                    return summary;
+                }
+
+                if (skippedWithoutId > 0)
+                {
+                    summary.Errors.Add(string.Format(CultureInfo.InvariantCulture,
+                        "有 {0} 条记录因缺少 employee_id 被跳过。", skippedWithoutId));
+                }
+
+                foreach (PersonSyncRequest request in requests)
+                {
+                    bool personSucceeded = true;
+
+                    foreach (DeviceConnectionInfo device in onlineDevices)
+                    {
+                        DeviceUpdateResult result = UpsertPersonOnDevice(device, request);
+                        if (!result.Success)
+                        {
+                            personSucceeded = false;
+                            summary.Errors.Add(result.ErrorMessage);
+                        }
+                        else if (request.HasFace)
+                        {
+                            summary.FacesUploaded++;
+                        }
+                    }
+
+                    if (personSucceeded)
+                    {
+                        summary.SuccessfulPersons++;
+                    }
+                    else
+                    {
+                        summary.FailedPersons++;
                     }
                 }
             }
@@ -519,6 +635,110 @@ namespace ControlEntradaSalida
             return DeviceUpdateResult.SuccessResult;
         }
 
+        private DeviceUpdateResult UpsertPersonOnDevice(DeviceConnectionInfo device, PersonSyncRequest person)
+        {
+            if (device == null)
+            {
+                return DeviceUpdateResult.Fail(string.Format(CultureInfo.InvariantCulture,
+                    "无法定位同步人员 {0} 的目标设备。", person.EmployeeId));
+            }
+
+            if (!device.IsConnected || device.UserID < 0)
+            {
+                bool connected = deviceManager.ConnectToDevice(device);
+                if (!connected || device.UserID < 0)
+                {
+                    return DeviceUpdateResult.Fail(string.Format(CultureInfo.InvariantCulture,
+                        "无法连接设备 {0}，同步人员 {1} 失败。", device.Name, person.EmployeeId));
+                }
+            }
+
+            string payload = BuildPersonUserInfoPayload(person, device);
+            bool queryResult = commonHelper.ISAPIQuery(device.UserID,
+                UserInfoSetupUrl,
+                payload,
+                out string outputResult,
+                out string outputStatus);
+
+            if (!queryResult)
+            {
+                string errorMessage = ParseErrorMessage(outputStatus ?? outputResult);
+                return DeviceUpdateResult.Fail(string.Format(CultureInfo.InvariantCulture,
+                    "设备 {0} 下发人员 {1} 信息失败：{2}",
+                    device.Name,
+                    person.EmployeeId,
+                    errorMessage));
+            }
+
+            if (!IsResponseOk(outputResult))
+            {
+                string errorMessage = ParseErrorMessage(outputResult);
+                return DeviceUpdateResult.Fail(string.Format(CultureInfo.InvariantCulture,
+                    "设备 {0} 返回错误，人员 {1} 信息未更新：{2}",
+                    device.Name,
+                    person.EmployeeId,
+                    errorMessage));
+            }
+
+            if (!person.HasFace)
+            {
+                return DeviceUpdateResult.SuccessResult;
+            }
+
+            return UploadFaceToDevice(device, person);
+        }
+
+        private string BuildPersonUserInfoPayload(PersonSyncRequest person, DeviceConnectionInfo connection)
+        {
+            int doorCount = connection.Capabilities?.MaxDoorCount ?? 1;
+            if (doorCount <= 0)
+            {
+                doorCount = 1;
+            }
+
+            bool enable = person.Enabled;
+            string doorRightValue = enable
+                ? string.Join(",", Enumerable.Range(1, doorCount)
+                    .Select(doorNo => doorNo.ToString(CultureInfo.InvariantCulture)))
+                : string.Empty;
+
+            var rightPlans = enable && doorCount > 0
+                ? Enumerable.Range(1, doorCount)
+                    .Select(doorNo => new
+                    {
+                        doorNo,
+                        planTemplateNo = "1"
+                    })
+                    .ToArray()
+                : Array.Empty<object>();
+
+            string beginTime = FormatDateTimeValue(person.ValidFrom) ?? DefaultBeginTime;
+            string endTime = FormatDateTimeValue(person.ValidTo) ?? DefaultEndTime;
+
+            var payload = new
+            {
+                UserInfo = new
+                {
+                    employeeNo = person.EmployeeId,
+                    name = person.FullName ?? string.Empty,
+                    userType = "normal",
+                    gender = string.IsNullOrWhiteSpace(person.Gender) ? "unknown" : person.Gender,
+                    userVerifyMode = UserVerifyModeFace,
+                    Valid = new
+                    {
+                        enable,
+                        beginTime,
+                        endTime,
+                        timeType = "local"
+                    },
+                    doorRight = doorRightValue,
+                    RightPlan = rightPlans
+                }
+            };
+
+            return JsonConvert.SerializeObject(payload);
+        }
+
         private string BuildUserInfoPayload(UserPermissionRecord user, DeviceConnectionInfo connection, bool enable)
         {
             int doorCount = connection.Capabilities?.MaxDoorCount ?? 1;
@@ -564,6 +784,209 @@ namespace ControlEntradaSalida
             };
 
             return JsonConvert.SerializeObject(payload);
+        }
+
+        private DeviceUpdateResult UploadFaceToDevice(DeviceConnectionInfo device, PersonSyncRequest person)
+        {
+            if (!person.HasFace)
+            {
+                return DeviceUpdateResult.SuccessResult;
+            }
+
+            if (person.FaceImageBytes.Length > MaxFaceImageBytes)
+            {
+                return DeviceUpdateResult.Fail(string.Format(CultureInfo.InvariantCulture,
+                    "人员 {0} 的人脸图片大小 {1} 字节超过 200KB 限制。",
+                    person.EmployeeId,
+                    person.FaceImageBytes.Length));
+            }
+
+            IntPtr urlPtr = IntPtr.Zero;
+            IntPtr jsonPtr = IntPtr.Zero;
+            IntPtr picturePtr = IntPtr.Zero;
+            IntPtr configPtr = IntPtr.Zero;
+            IntPtr responsePtr = IntPtr.Zero;
+            int handle = -1;
+
+            try
+            {
+                byte[] urlBytes = Encoding.UTF8.GetBytes(FaceSetupUrl);
+                urlPtr = Marshal.AllocHGlobal(urlBytes.Length + 1);
+                Marshal.Copy(urlBytes, 0, urlPtr, urlBytes.Length);
+                Marshal.WriteByte(urlPtr, urlBytes.Length, 0);
+
+                handle = HCNetSDK.NET_DVR_StartRemoteConfig(device.UserID,
+                    (uint)HCNetSDK.NET_DVR_FACE_DATA_RECORD,
+                    urlPtr,
+                    urlBytes.Length,
+                    null,
+                    IntPtr.Zero);
+                if (handle < 0)
+                {
+                    uint errorCode = HCNetSDK.NET_DVR_GetLastError();
+                    return DeviceUpdateResult.Fail(string.Format(CultureInfo.InvariantCulture,
+                        "设备 {0} 启动人脸同步失败，错误码 {1}。",
+                        device.Name,
+                        errorCode));
+                }
+
+                string jsonPayload = BuildFacePayload(person);
+                byte[] jsonBytes = Encoding.UTF8.GetBytes(jsonPayload);
+                jsonPtr = Marshal.AllocHGlobal(jsonBytes.Length);
+                Marshal.Copy(jsonBytes, 0, jsonPtr, jsonBytes.Length);
+
+                picturePtr = Marshal.AllocHGlobal(person.FaceImageBytes.Length);
+                Marshal.Copy(person.FaceImageBytes, 0, picturePtr, person.FaceImageBytes.Length);
+
+                HCNetSDK.NET_DVR_JSON_DATA_CFG config = new HCNetSDK.NET_DVR_JSON_DATA_CFG
+                {
+                    dwSize = (uint)Marshal.SizeOf(typeof(HCNetSDK.NET_DVR_JSON_DATA_CFG)),
+                    lpJsonData = jsonPtr,
+                    dwJsonDataSize = (uint)jsonBytes.Length,
+                    lpPicData = picturePtr,
+                    dwPicDataSize = (uint)person.FaceImageBytes.Length,
+                    byRes = new byte[256]
+                };
+
+                int configSize = Marshal.SizeOf(config);
+                configPtr = Marshal.AllocHGlobal(configSize);
+                Marshal.StructureToPtr(config, configPtr, false);
+
+                responsePtr = Marshal.AllocHGlobal(2048);
+                uint responseSize = 0;
+
+                int status = HCNetSDK.NET_DVR_SendWithRecvRemoteConfig(
+                    handle,
+                    configPtr,
+                    (uint)configSize,
+                    responsePtr,
+                    2048,
+                    ref responseSize);
+
+                string response = ReadStringFromBuffer(responsePtr, responseSize);
+                if (status == (int)HCNetSDK.NET_SDK_SENDWITHRECV_STATUS.NET_SDK_CONFIG_STATUS_SUCCESS ||
+                    status == (int)HCNetSDK.NET_SDK_SENDWITHRECV_STATUS.NET_SDK_CONFIG_STATUS_FINISH)
+                {
+                    return DeviceUpdateResult.SuccessResult;
+                }
+
+                string errorMessage = string.IsNullOrWhiteSpace(response)
+                    ? string.Format(CultureInfo.InvariantCulture, "状态 {0}", status)
+                    : ParseErrorMessage(response);
+
+                return DeviceUpdateResult.Fail(string.Format(CultureInfo.InvariantCulture,
+                    "设备 {0} 同步人员 {1} 的人脸失败：{2}",
+                    device.Name,
+                    person.EmployeeId,
+                    errorMessage));
+            }
+            finally
+            {
+                if (handle >= 0)
+                {
+                    HCNetSDK.NET_DVR_StopRemoteConfig(handle);
+                }
+
+                if (urlPtr != IntPtr.Zero)
+                {
+                    Marshal.FreeHGlobal(urlPtr);
+                }
+
+                if (jsonPtr != IntPtr.Zero)
+                {
+                    Marshal.FreeHGlobal(jsonPtr);
+                }
+
+                if (picturePtr != IntPtr.Zero)
+                {
+                    Marshal.FreeHGlobal(picturePtr);
+                }
+
+                if (configPtr != IntPtr.Zero)
+                {
+                    Marshal.FreeHGlobal(configPtr);
+                }
+
+                if (responsePtr != IntPtr.Zero)
+                {
+                    Marshal.FreeHGlobal(responsePtr);
+                }
+            }
+        }
+
+        private static string BuildFacePayload(PersonSyncRequest person)
+        {
+            var payload = new
+            {
+                faceLibType = DefaultFaceLibType,
+                FDID = DefaultFaceLibId,
+                FPID = person.EmployeeId
+            };
+
+            return JsonConvert.SerializeObject(payload);
+        }
+
+        private static string NormalizeGender(string gender)
+        {
+            if (string.IsNullOrWhiteSpace(gender))
+            {
+                return "unknown";
+            }
+
+            string normalized = gender.Trim().ToLowerInvariant();
+            switch (normalized)
+            {
+                case "male":
+                case "m":
+                case "man":
+                case "boy":
+                    return "male";
+                case "female":
+                case "f":
+                case "woman":
+                case "girl":
+                    return "female";
+                default:
+                    return "unknown";
+            }
+        }
+
+        private static string FormatDateTimeValue(DateTime? value)
+        {
+            if (!value.HasValue)
+            {
+                return null;
+            }
+
+            return value.Value.ToString("yyyy-MM-ddTHH:mm:ss", CultureInfo.InvariantCulture);
+        }
+
+        private static string ReadStringFromBuffer(IntPtr buffer, uint length)
+        {
+            if (buffer == IntPtr.Zero)
+            {
+                return null;
+            }
+
+            if (length == 0)
+            {
+                int actualLength = 0;
+                while (Marshal.ReadByte(buffer, actualLength) != 0)
+                {
+                    actualLength++;
+                }
+
+                length = (uint)actualLength;
+            }
+
+            if (length == 0)
+            {
+                return string.Empty;
+            }
+
+            byte[] data = new byte[length];
+            Marshal.Copy(buffer, data, 0, (int)length);
+            return Encoding.UTF8.GetString(data).TrimEnd('\0');
         }
 
         private bool IsResponseOk(string response)

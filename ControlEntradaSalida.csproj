@@ -188,6 +188,8 @@
     <Compile Include="HCNetSDK.cs" />
     <Compile Include="HCNetSDK_Facial.cs" />
     <Compile Include="PermissionRefreshManager.cs" />
+    <Compile Include="PersonSyncRequest.cs" />
+    <Compile Include="PersonSyncSummary.cs" />
     <Compile Include="PermissionUpdateGrpcServer.cs" />
     <Compile Include="PermissionUpdateInfo.cs" />
     <Compile Include="Program.cs" />
