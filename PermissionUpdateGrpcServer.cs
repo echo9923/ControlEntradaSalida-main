@@ -4,6 +4,7 @@ using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Collections.Concurrent;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -23,6 +24,10 @@ namespace ControlEntradaSalida
         private const string ServiceName = "permission.PermissionSyncService";
         private const string MethodName = "SyncPermissions";
         private const string PersonMethodName = "SyncPersons";
+        private const string DeleteFaceMethodName = "DeleteFaces";
+        private const string GetFaceMethodName = "GetFaces";
+        private const string CaptureFaceMethodName = "CaptureFaceStream";
+        private const string StatusMethodName = "GetEnrollmentStatus";
 
         private const string GrpcLogPrefix = "[权限GRPC]";
 
@@ -48,6 +53,34 @@ namespace ControlEntradaSalida
             MethodType.Unary,
             ServiceName,
             PersonMethodName,
+            StringMarshaller,
+            StringMarshaller);
+
+        private static readonly Method<string, string> DeleteFacesMethod = new Method<string, string>(
+            MethodType.Unary,
+            ServiceName,
+            DeleteFaceMethodName,
+            StringMarshaller,
+            StringMarshaller);
+
+        private static readonly Method<string, string> GetFacesMethod = new Method<string, string>(
+            MethodType.Unary,
+            ServiceName,
+            GetFaceMethodName,
+            StringMarshaller,
+            StringMarshaller);
+
+        private static readonly Method<string, string> GetStatusMethod = new Method<string, string>(
+            MethodType.Unary,
+            ServiceName,
+            StatusMethodName,
+            StringMarshaller,
+            StringMarshaller);
+
+        private static readonly Method<string, string> CaptureFaceStreamMethod = new Method<string, string>(
+            MethodType.ServerStreaming,
+            ServiceName,
+            CaptureFaceMethodName,
             StringMarshaller,
             StringMarshaller);
 
@@ -151,6 +184,10 @@ namespace ControlEntradaSalida
                         ServerServiceDefinition.CreateBuilder()
                             .AddMethod(UpdatePermissionMethod, HandlePermissionUpdateAsync)
                             .AddMethod(SyncPersonsMethod, HandlePersonSyncAsync)
+                            .AddMethod(DeleteFacesMethod, HandleFaceDeleteAsync)
+                            .AddMethod(GetFacesMethod, HandleFaceGetAsync)
+                            .AddMethod(GetStatusMethod, HandleStatusGetAsync)
+                            .AddMethod(CaptureFaceStreamMethod, HandleCaptureStreamAsync)
                             .Build()
                     },
                     Ports =
@@ -292,6 +329,203 @@ namespace ControlEntradaSalida
                 ServiceLogger.Error($"{GrpcLogPrefix} 请求 {requestId} 下发人员信息时发生异常。", ex);
                 throw new RpcException(new Status(StatusCode.Internal, "处理人员下发时发生未知错误。"));
             }
+        }
+
+        private Task<string> HandleFaceDeleteAsync(string request, ServerCallContext context)
+        {
+            string peer = DescribePeer(context);
+            string requestId = ResolveRequestId(context);
+            int payloadLength = string.IsNullOrEmpty(request) ? 0 : Encoding.UTF8.GetByteCount(request);
+            Stopwatch stopwatch = Stopwatch.StartNew();
+
+            ServiceLogger.Info($"{GrpcLogPrefix} 请求 {requestId} (DeleteFaces) 来自 {peer}，载荷长度 {payloadLength} 字节。");
+            LogPayloadIfEnabled("入站", requestId, request, payloadLength);
+
+            try
+            {
+                List<string> ids = ParseEmployeeIdList(request);
+                FaceOperationSummary summary = refreshManager.DeleteFacesOnDevices(ids);
+                stopwatch.Stop();
+
+                string responsePayload = BuildFaceOperationResponse(summary);
+                LogPayloadIfEnabled("出站", requestId, responsePayload, Encoding.UTF8.GetByteCount(responsePayload));
+                return Task.FromResult(responsePayload);
+            }
+            catch (JsonException ex)
+            {
+                stopwatch.Stop();
+                ServiceLogger.Warn($"{GrpcLogPrefix} 请求 {requestId} JSON格式错误：{ex.Message}");
+                throw new RpcException(new Status(StatusCode.InvalidArgument, $"JSON格式错误：{ex.Message}"));
+            }
+            catch (ArgumentException ex)
+            {
+                stopwatch.Stop();
+                ServiceLogger.Warn($"{GrpcLogPrefix} 请求 {requestId} 参数非法：{ex.Message}");
+                throw new RpcException(new Status(StatusCode.InvalidArgument, ex.Message));
+            }
+            catch (RpcException)
+            {
+                stopwatch.Stop();
+                throw;
+            }
+            catch (Exception ex)
+            {
+                stopwatch.Stop();
+                ServiceLogger.Error($"{GrpcLogPrefix} 请求 {requestId} 删除人脸时发生异常。", ex);
+                throw new RpcException(new Status(StatusCode.Internal, "处理人脸删除时发生未知错误。"));
+            }
+        }
+
+        private Task<string> HandleFaceGetAsync(string request, ServerCallContext context)
+        {
+            string peer = DescribePeer(context);
+            string requestId = ResolveRequestId(context);
+            int payloadLength = string.IsNullOrEmpty(request) ? 0 : Encoding.UTF8.GetByteCount(request);
+            Stopwatch stopwatch = Stopwatch.StartNew();
+
+            ServiceLogger.Info($"{GrpcLogPrefix} 请求 {requestId} (GetFaces) 来自 {peer}，载荷长度 {payloadLength} 字节。");
+            LogPayloadIfEnabled("入站", requestId, request, payloadLength);
+
+            try
+            {
+                List<string> ids = ParseEmployeeIdList(request);
+                FaceOperationSummary summary = refreshManager.GetFacesFromDevices(ids);
+                stopwatch.Stop();
+
+                string responsePayload = BuildFaceOperationResponse(summary);
+                LogPayloadIfEnabled("出站", requestId, responsePayload, Encoding.UTF8.GetByteCount(responsePayload));
+                return Task.FromResult(responsePayload);
+            }
+            catch (JsonException ex)
+            {
+                stopwatch.Stop();
+                ServiceLogger.Warn($"{GrpcLogPrefix} 请求 {requestId} JSON格式错误：{ex.Message}");
+                throw new RpcException(new Status(StatusCode.InvalidArgument, $"JSON格式错误：{ex.Message}"));
+            }
+            catch (ArgumentException ex)
+            {
+                stopwatch.Stop();
+                ServiceLogger.Warn($"{GrpcLogPrefix} 请求 {requestId} 参数非法：{ex.Message}");
+                throw new RpcException(new Status(StatusCode.InvalidArgument, ex.Message));
+            }
+            catch (RpcException)
+            {
+                stopwatch.Stop();
+                throw;
+            }
+            catch (Exception ex)
+            {
+                stopwatch.Stop();
+                ServiceLogger.Error($"{GrpcLogPrefix} 请求 {requestId} 查询人脸时发生异常。", ex);
+                throw new RpcException(new Status(StatusCode.Internal, "处理人脸查询时发生未知错误。"));
+            }
+        }
+
+        private Task<string> HandleStatusGetAsync(string request, ServerCallContext context)
+        {
+            string requestId = ResolveRequestId(context);
+            int payloadLength = string.IsNullOrEmpty(request) ? 0 : Encoding.UTF8.GetByteCount(request);
+            ServiceLogger.Info($"{GrpcLogPrefix} 请求 {requestId} (GetEnrollmentStatus) 载荷长度 {payloadLength} 字节。");
+
+            if (string.IsNullOrWhiteSpace(request))
+            {
+                throw new RpcException(new Status(StatusCode.InvalidArgument, "请求体不能为空。"));
+            }
+
+            string taskId;
+            try
+            {
+                JToken root = JToken.Parse(request);
+                taskId = root.Value<string>("taskId") ?? root.Value<string>("task_id");
+            }
+            catch (JsonException ex)
+            {
+                throw new RpcException(new Status(StatusCode.InvalidArgument, $"JSON格式错误：{ex.Message}"));
+            }
+
+            if (string.IsNullOrWhiteSpace(taskId))
+            {
+                throw new RpcException(new Status(StatusCode.InvalidArgument, "缺少 taskId。"));
+            }
+
+            EnrollmentTaskStatus status = EnrollmentTaskStore.Get(taskId);
+            if (status == null)
+            {
+                throw new RpcException(new Status(StatusCode.NotFound, $"任务 {taskId} 不存在或已过期。"));
+            }
+
+            var payload = new
+            {
+                taskId = status.TaskId,
+                employeeId = status.EmployeeId,
+                action = status.Action,
+                status = status.Status,
+                message = status.Message,
+                errorCode = status.ErrorCode
+            };
+
+            return Task.FromResult(JsonConvert.SerializeObject(payload));
+        }
+
+        private async Task HandleCaptureStreamAsync(string request, IServerStreamWriter<string> responseStream, ServerCallContext context)
+        {
+            string peer = DescribePeer(context);
+            string requestId = ResolveRequestId(context);
+            int payloadLength = string.IsNullOrEmpty(request) ? 0 : Encoding.UTF8.GetByteCount(request);
+            ServiceLogger.Info($"{GrpcLogPrefix} 请求 {requestId} (CaptureFaceStream) 来自 {peer}，载荷长度 {payloadLength} 字节。");
+
+            string employeeId = null;
+            string taskId;
+
+            try
+            {
+                JToken root = JToken.Parse(request);
+                employeeId = root.Value<string>("employee_id") ??
+                             root.Value<string>("employeeId") ??
+                             root.Value<string>("employee_no") ??
+                             root.Value<string>("employeeNo");
+            }
+            catch (JsonException ex)
+            {
+                throw new RpcException(new Status(StatusCode.InvalidArgument, $"JSON格式错误：{ex.Message}"));
+            }
+
+            if (string.IsNullOrWhiteSpace(employeeId))
+            {
+                throw new RpcException(new Status(StatusCode.InvalidArgument, "缺少 employee_id。"));
+            }
+
+            taskId = EnrollmentTaskStore.CreateTask(employeeId, "CaptureFaceStream");
+
+            FaceCaptureResult capture = refreshManager.CaptureFaceFromEnrollmentDevice();
+            if (!capture.Success)
+            {
+                EnrollmentTaskStore.Complete(taskId, false, capture.ErrorMessage, "CAPTURE_FAILED");
+                var errorPayload = new
+                {
+                    taskId,
+                    employeeId,
+                    status = "Failed",
+                    message = capture.ErrorMessage,
+                    errorCode = "CAPTURE_FAILED"
+                };
+                await responseStream.WriteAsync(JsonConvert.SerializeObject(errorPayload)).ConfigureAwait(false);
+                return;
+            }
+
+            var framePayload = new
+            {
+                taskId,
+                employeeId,
+                frameIndex = 1,
+                faceImageBase64 = capture.FaceImageBase64,
+                faceImageFormat = capture.Format,
+                qualityScore = (int?)null,
+                recommend = true
+            };
+
+            await responseStream.WriteAsync(JsonConvert.SerializeObject(framePayload)).ConfigureAwait(false);
+            EnrollmentTaskStore.Complete(taskId, true, "采集完成");
         }
 
         private static string DescribePeer(ServerCallContext context)
@@ -708,6 +942,112 @@ namespace ControlEntradaSalida
             };
 
             return JsonConvert.SerializeObject(payload);
+        }
+
+        private static string BuildFaceOperationResponse(FaceOperationSummary summary)
+        {
+            var payload = new
+            {
+                total = summary.Total,
+                succeeded = summary.Succeeded,
+                failed = summary.Failed,
+                targetDevices = summary.TargetDevices,
+                errors = summary.Errors.ToArray(),
+                items = summary.Items.Select(i => new
+                {
+                    employeeId = i.EmployeeId,
+                    success = i.Success,
+                    faceImageBase64 = i.FaceImageBase64,
+                    rawResponse = i.RawResponse,
+                    error = i.Error
+                }).ToArray()
+            };
+
+            return JsonConvert.SerializeObject(payload);
+        }
+
+        private static List<string> ParseEmployeeIdList(string payload)
+        {
+            if (string.IsNullOrWhiteSpace(payload))
+            {
+                throw new ArgumentException("请求体不能为空。");
+            }
+
+            JToken root = JToken.Parse(payload);
+            List<string> ids = new List<string>();
+
+            void tryAdd(JToken token)
+            {
+                if (token == null || token.Type == JTokenType.Null)
+                {
+                    return;
+                }
+
+                if (token.Type == JTokenType.String || token.Type == JTokenType.Integer)
+                {
+                    string value = token.ToString();
+                    if (!string.IsNullOrWhiteSpace(value))
+                    {
+                        ids.Add(value.Trim());
+                    }
+                    return;
+                }
+
+                if (token.Type == JTokenType.Object)
+                {
+                    string id = ((JObject)token).Value<string>("employee_id") ??
+                                ((JObject)token).Value<string>("employeeId") ??
+                                ((JObject)token).Value<string>("employee_no") ??
+                                ((JObject)token).Value<string>("employeeNo");
+                    if (!string.IsNullOrWhiteSpace(id))
+                    {
+                        ids.Add(id.Trim());
+                    }
+                }
+            }
+
+            if (root.Type == JTokenType.Array)
+            {
+                foreach (JToken item in root)
+                {
+                    tryAdd(item);
+                }
+            }
+            else if (root.Type == JTokenType.Object)
+            {
+                if (root["items"] is JArray itemsArray)
+                {
+                    foreach (JToken item in itemsArray)
+                    {
+                        tryAdd(item);
+                    }
+                }
+                else if (root["records"] is JArray recordsArray)
+                {
+                    foreach (JToken item in recordsArray)
+                    {
+                        tryAdd(item);
+                    }
+                }
+                else
+                {
+                    tryAdd(root);
+                }
+            }
+            else
+            {
+                tryAdd(root);
+            }
+
+            if (ids.Count == 0)
+            {
+                throw new ArgumentException("未解析到有效的员工编号。");
+            }
+
+            return ids
+                .Where(id => !string.IsNullOrWhiteSpace(id))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
         }
 
         private void LogPayloadIfEnabled(string direction, string requestId, string payload, int payloadBytes)

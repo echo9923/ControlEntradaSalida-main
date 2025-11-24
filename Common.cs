@@ -158,6 +158,133 @@ namespace ControlEntradaSalida
             return connectionString.Trim();
         }
 
+        /// <summary>
+        /// 使用海康 SDK 发送 ISAPI 请求并返回二进制结果（用于抓拍图片）。
+        /// </summary>
+        public bool ISAPIBinaryRequest(int userID, string requestURL, string inputParam, out byte[] outputBytes, out string outputStatus)
+        {
+            outputBytes = null;
+            outputStatus = null;
+
+            if (userID < 0)
+            {
+                outputStatus = "设备未连接";
+                return false;
+            }
+
+            HCNetSDK.NET_DVR_XML_CONFIG_INPUT inputStruct = new HCNetSDK.NET_DVR_XML_CONFIG_INPUT
+            {
+                byRes = new byte[32],
+                dwSize = (uint)Marshal.SizeOf(typeof(HCNetSDK.NET_DVR_XML_CONFIG_INPUT))
+            };
+
+            HCNetSDK.NET_DVR_XML_CONFIG_OUTPUT outputStruct = new HCNetSDK.NET_DVR_XML_CONFIG_OUTPUT
+            {
+                byRes = new byte[32],
+                dwSize = (uint)Marshal.SizeOf(typeof(HCNetSDK.NET_DVR_XML_CONFIG_OUTPUT))
+            };
+
+            string url = requestURL ?? string.Empty;
+            byte[] urlBytes = Encoding.UTF8.GetBytes(url);
+
+            string payload = inputParam ?? string.Empty;
+            byte[] payloadBytes = Encoding.UTF8.GetBytes(payload);
+
+            IntPtr urlPtr = IntPtr.Zero;
+            IntPtr payloadPtr = IntPtr.Zero;
+            IntPtr outputPtr = IntPtr.Zero;
+            IntPtr statusPtr = IntPtr.Zero;
+
+            try
+            {
+                urlPtr = Marshal.AllocHGlobal(urlBytes.Length + 1);
+                if (urlBytes.Length > 0)
+                {
+                    Marshal.Copy(urlBytes, 0, urlPtr, urlBytes.Length);
+                }
+                Marshal.WriteByte(urlPtr, urlBytes.Length, 0);
+
+                inputStruct.lpRequestUrl = urlPtr;
+                inputStruct.dwRequestUrlLen = (uint)urlBytes.Length;
+
+                payloadPtr = Marshal.AllocHGlobal(payloadBytes.Length + 1);
+                if (payloadBytes.Length > 0)
+                {
+                    Marshal.Copy(payloadBytes, 0, payloadPtr, payloadBytes.Length);
+                }
+                Marshal.WriteByte(payloadPtr, payloadBytes.Length, 0);
+
+                inputStruct.lpInBuffer = payloadPtr;
+                inputStruct.dwInBufferSize = (uint)payloadBytes.Length;
+
+                int outBufferSize = 1024 * 1024; // 1MB 足够单帧 JPEG
+                int statusBufferSize = 4096;
+
+                outputPtr = Marshal.AllocHGlobal(outBufferSize);
+                statusPtr = Marshal.AllocHGlobal(statusBufferSize);
+
+                outputStruct.lpOutBuffer = outputPtr;
+                outputStruct.dwOutBufferSize = (uint)outBufferSize;
+                outputStruct.lpStatusBuffer = statusPtr;
+                outputStruct.dwStatusSize = (uint)statusBufferSize;
+
+                bool success = HCNetSDK.NET_DVR_STDXMLConfig(userID, ref inputStruct, ref outputStruct);
+                if (!success)
+                {
+                    iLastErr = HCNetSDK.NET_DVR_GetLastError();
+                    outputStatus = PtrToStringUtf8(statusPtr);
+                    return false;
+                }
+
+                outputStatus = PtrToStringUtf8(statusPtr);
+
+                // 读取实际长度：如果返回数据中没有 '\0'，默认整个缓冲有效；否则读到首个 0 为止
+                int length = outBufferSize;
+                for (int i = 0; i < outBufferSize; i++)
+                {
+                    if (Marshal.ReadByte(outputPtr, i) == 0)
+                    {
+                        length = i;
+                        break;
+                    }
+                }
+
+                if (length > 0)
+                {
+                    outputBytes = new byte[length];
+                    Marshal.Copy(outputPtr, outputBytes, 0, length);
+                }
+                else
+                {
+                    outputBytes = Array.Empty<byte>();
+                }
+
+                return true;
+            }
+            finally
+            {
+                if (urlPtr != IntPtr.Zero)
+                {
+                    Marshal.FreeHGlobal(urlPtr);
+                }
+
+                if (payloadPtr != IntPtr.Zero)
+                {
+                    Marshal.FreeHGlobal(payloadPtr);
+                }
+
+                if (outputPtr != IntPtr.Zero)
+                {
+                    Marshal.FreeHGlobal(outputPtr);
+                }
+
+                if (statusPtr != IntPtr.Zero)
+                {
+                    Marshal.FreeHGlobal(statusPtr);
+                }
+            }
+        }
+
         public int obtenerTiempoEsperaComando()
         {
             int? configuredTimeout = ExternalConfiguration.Current.Database.CommandTimeoutSeconds;

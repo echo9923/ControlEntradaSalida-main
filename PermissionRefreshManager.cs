@@ -16,6 +16,10 @@ namespace ControlEntradaSalida
         private static readonly string DefaultEndTime = "2035-12-31T23:59:59";
         private const string UserInfoSetupUrl = "PUT /ISAPI/AccessControl/UserInfo/SetUp?format=json";
         private const string FaceSetupUrl = "PUT /ISAPI/Intelligent/FDLib/FDSetUp?format=json";
+        private const string FaceDeleteUrl = "DELETE /ISAPI/Intelligent/FDLib/FDDel?format=json";
+        private const string FaceSearchUrl = "POST /ISAPI/Intelligent/FDLib/FDSearch?format=json";
+        private const string SnapshotUrl = "GET /ISAPI/Streaming/channels/101/picture";
+        private const string EnrollmentDeviceName = "人脸录入仪";
         private const string DefaultFaceLibType = "blackFD";
         private const string DefaultFaceLibId = "1";
         private const string UserVerifyModeFace = "face";
@@ -924,6 +928,343 @@ namespace ControlEntradaSalida
             };
 
             return JsonConvert.SerializeObject(payload);
+        }
+
+        /// <summary>
+        /// 从“人脸录入仪”设备抓取一帧 JPEG 并返回 Base64。
+        /// </summary>
+        public FaceCaptureResult CaptureFaceFromEnrollmentDevice()
+        {
+            EnsureDevicesLoaded();
+            DeviceConnectionInfo device = deviceManager.GetAllDevices()
+                .FirstOrDefault(d => string.Equals(d.Name, EnrollmentDeviceName, StringComparison.OrdinalIgnoreCase));
+
+            if (device == null)
+            {
+                return FaceCaptureResult.Fail("未找到名称为“人脸录入仪”的设备。");
+            }
+
+            if (!device.IsConnected || device.UserID < 0)
+            {
+                bool connected = deviceManager.ConnectToDevice(device);
+                if (!connected || device.UserID < 0)
+                {
+                    return FaceCaptureResult.Fail(string.Format(CultureInfo.InvariantCulture,
+                        "无法连接设备 {0}。", device.Name));
+                }
+            }
+
+            bool ok = commonHelper.ISAPIBinaryRequest(device.UserID,
+                SnapshotUrl,
+                string.Empty,
+                out byte[] bytes,
+                out string status);
+
+            if (!ok || bytes == null || bytes.Length == 0)
+            {
+                string message = string.IsNullOrWhiteSpace(status)
+                    ? "抓拍失败：设备无响应。"
+                    : string.Format(CultureInfo.InvariantCulture, "抓拍失败：{0}", status);
+                return FaceCaptureResult.Fail(message);
+            }
+
+            if (bytes.Length > MaxFaceImageBytes)
+            {
+                return FaceCaptureResult.Fail(string.Format(CultureInfo.InvariantCulture,
+                    "抓拍图片大小 {0} 字节超过 200KB。", bytes.Length));
+            }
+
+            string base64 = Convert.ToBase64String(bytes);
+            return FaceCaptureResult.Success(base64, "jpg");
+        }
+
+        public FaceOperationSummary DeleteFacesOnDevices(IEnumerable<string> employeeIds)
+        {
+            if (employeeIds == null)
+            {
+                throw new ArgumentNullException(nameof(employeeIds));
+            }
+
+            List<string> ids = employeeIds
+                .Where(id => !string.IsNullOrWhiteSpace(id))
+                .Select(id => id.Trim())
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            FaceOperationSummary summary = new FaceOperationSummary
+            {
+                Total = ids.Count
+            };
+
+            if (ids.Count == 0)
+            {
+                summary.Errors.Add("未提供需要删除人脸的员工编号。");
+                return summary;
+            }
+
+            lock (personSyncLock)
+            {
+                EnsureDevicesLoaded();
+                List<DeviceConnectionInfo> onlineDevices = deviceManager.GetAllDevices()
+                    .Where(d => d.IsEnabled && d.IsConnected && d.UserID >= 0)
+                    .ToList();
+
+                summary.TargetDevices = onlineDevices.Count;
+                if (onlineDevices.Count == 0)
+                {
+                    summary.Errors.Add("当前没有在线的门禁设备，无法删除人脸。");
+                    summary.Failed = summary.Total;
+                    return summary;
+                }
+
+                foreach (string id in ids)
+                {
+                    FaceOperationItem item = new FaceOperationItem
+                    {
+                        EmployeeId = id
+                    };
+
+                    foreach (DeviceConnectionInfo device in onlineDevices)
+                    {
+                        DeviceUpdateResult result = DeleteFaceOnDevice(device, id);
+                        if (result.Success)
+                        {
+                            item.Success = true;
+                            break;
+                        }
+
+                        item.Error = result.ErrorMessage;
+                    }
+
+                    if (item.Success)
+                    {
+                        summary.Succeeded++;
+                    }
+                    else
+                    {
+                        summary.Failed++;
+                        if (!string.IsNullOrWhiteSpace(item.Error))
+                        {
+                            summary.Errors.Add(item.Error);
+                        }
+                    }
+
+                    summary.Items.Add(item);
+                }
+            }
+
+            return summary;
+        }
+
+        public FaceOperationSummary GetFacesFromDevices(IEnumerable<string> employeeIds)
+        {
+            if (employeeIds == null)
+            {
+                throw new ArgumentNullException(nameof(employeeIds));
+            }
+
+            List<string> ids = employeeIds
+                .Where(id => !string.IsNullOrWhiteSpace(id))
+                .Select(id => id.Trim())
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            FaceOperationSummary summary = new FaceOperationSummary
+            {
+                Total = ids.Count
+            };
+
+            if (ids.Count == 0)
+            {
+                summary.Errors.Add("未提供需要查询人脸的员工编号。");
+                return summary;
+            }
+
+            lock (personSyncLock)
+            {
+                EnsureDevicesLoaded();
+                List<DeviceConnectionInfo> onlineDevices = deviceManager.GetAllDevices()
+                    .Where(d => d.IsEnabled && d.IsConnected && d.UserID >= 0)
+                    .ToList();
+
+                summary.TargetDevices = onlineDevices.Count;
+                if (onlineDevices.Count == 0)
+                {
+                    summary.Errors.Add("当前没有在线的门禁设备，无法查询人脸。");
+                    summary.Failed = summary.Total;
+                    return summary;
+                }
+
+                foreach (string id in ids)
+                {
+                    FaceOperationItem item = new FaceOperationItem
+                    {
+                        EmployeeId = id
+                    };
+
+                    foreach (DeviceConnectionInfo device in onlineDevices)
+                    {
+                        FaceQueryResult result = QueryFaceOnDevice(device, id);
+                        if (result.Success)
+                        {
+                            item.Success = true;
+                            item.FaceImageBase64 = result.FaceImageBase64;
+                            item.RawResponse = result.RawResponse;
+                            break;
+                        }
+
+                        item.Error = result.ErrorMessage;
+                        item.RawResponse = result.RawResponse;
+                    }
+
+                    if (item.Success)
+                    {
+                        summary.Succeeded++;
+                    }
+                    else
+                    {
+                        summary.Failed++;
+                        if (!string.IsNullOrWhiteSpace(item.Error))
+                        {
+                            summary.Errors.Add(item.Error);
+                        }
+                    }
+
+                    summary.Items.Add(item);
+                }
+            }
+
+            return summary;
+        }
+
+        private DeviceUpdateResult DeleteFaceOnDevice(DeviceConnectionInfo device, string employeeId)
+        {
+            if (device == null)
+            {
+                return DeviceUpdateResult.Fail("未找到可用的设备。");
+            }
+
+            if (!device.IsConnected || device.UserID < 0)
+            {
+                bool connected = deviceManager.ConnectToDevice(device);
+                if (!connected || device.UserID < 0)
+                {
+                    return DeviceUpdateResult.Fail(string.Format(CultureInfo.InvariantCulture,
+                        "无法连接设备 {0}，删除人员 {1} 的人脸失败。", device.Name, employeeId));
+                }
+            }
+
+            var payload = new
+            {
+                faceLibType = DefaultFaceLibType,
+                FDID = DefaultFaceLibId,
+                FPID = employeeId
+            };
+
+            bool result = commonHelper.ISAPIQuery(device.UserID,
+                FaceDeleteUrl,
+                JsonConvert.SerializeObject(payload),
+                out string outputResult,
+                out string outputStatus);
+
+            if (!result)
+            {
+                string errorMessage = ParseErrorMessage(outputStatus ?? outputResult);
+                return DeviceUpdateResult.Fail(string.Format(CultureInfo.InvariantCulture,
+                    "设备 {0} 删除人员 {1} 的人脸失败：{2}",
+                    device.Name,
+                    employeeId,
+                    errorMessage));
+            }
+
+            if (!IsResponseOk(outputResult))
+            {
+                string errorMessage = ParseErrorMessage(outputResult);
+                return DeviceUpdateResult.Fail(string.Format(CultureInfo.InvariantCulture,
+                    "设备 {0} 返回错误，人员 {1} 人脸未删除：{2}",
+                    device.Name,
+                    employeeId,
+                    errorMessage));
+            }
+
+            return DeviceUpdateResult.SuccessResult;
+        }
+
+        private FaceQueryResult QueryFaceOnDevice(DeviceConnectionInfo device, string employeeId)
+        {
+            FaceQueryResult result = new FaceQueryResult
+            {
+                Success = false,
+                ErrorMessage = string.Empty
+            };
+
+            if (device == null)
+            {
+                result.ErrorMessage = "未找到可用的设备。";
+                return result;
+            }
+
+            if (!device.IsConnected || device.UserID < 0)
+            {
+                bool connected = deviceManager.ConnectToDevice(device);
+                if (!connected || device.UserID < 0)
+                {
+                    result.ErrorMessage = string.Format(CultureInfo.InvariantCulture,
+                        "无法连接设备 {0}，查询人员 {1} 人脸失败。", device.Name, employeeId);
+                    return result;
+                }
+            }
+
+            var payload = new
+            {
+                searchResultPosition = 0,
+                maxResults = 1,
+                FDID = DefaultFaceLibId,
+                FPID = employeeId
+            };
+
+            bool ok = commonHelper.ISAPIQuery(device.UserID,
+                FaceSearchUrl,
+                JsonConvert.SerializeObject(payload),
+                out string outputResult,
+                out string outputStatus);
+
+            result.RawResponse = string.IsNullOrWhiteSpace(outputResult) ? outputStatus : outputResult;
+
+            if (!ok)
+            {
+                result.ErrorMessage = ParseErrorMessage(outputStatus ?? outputResult);
+                return result;
+            }
+
+            if (!IsResponseOk(outputResult))
+            {
+                result.ErrorMessage = ParseErrorMessage(outputResult);
+                return result;
+            }
+
+            try
+            {
+                JToken root = JToken.Parse(outputResult);
+                JToken dataList = root["FaceDataRecord"];
+                if (dataList is JArray arr && arr.Count > 0)
+                {
+                    JToken first = arr[0];
+                    string face = first.Value<string>("facePicBinary") ??
+                                  first.Value<string>("FacePicBinary") ??
+                                  first.Value<string>("facePic") ??
+                                  first.Value<string>("FacePic");
+
+                    result.FaceImageBase64 = face;
+                }
+            }
+            catch (JsonException)
+            {
+                // 解析失败不影响成功标记，仍返回原始响应
+            }
+
+            result.Success = true;
+            return result;
         }
 
         private static string NormalizeGender(string gender)
