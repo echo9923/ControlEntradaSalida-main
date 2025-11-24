@@ -32,7 +32,7 @@
   <dependency>
     <dependentOS>
       <osVersionInfo>
-        <os majorVersion="4" minorVersion="10" buildNumber="0" servicePackMajor="0" />
+        <os majorVersion="5" minorVersion="1" buildNumber="2600" servicePackMajor="0" />
       </osVersionInfo>
     </dependentOS>
   </dependency>
@@ -61,7 +61,7 @@
           <dsig:Transform Algorithm="urn:schemas-microsoft-com:HashTransforms.Identity" />
         </dsig:Transforms>
         <dsig:DigestMethod Algorithm="http://www.w3.org/2000/09/xmldsig#sha256" />
-        <dsig:DigestValue>7AA6tWC52pbtC4yr+YXqX1rrO87kAIWEub0qejN81ys=</dsig:DigestValue>
+        <dsig:DigestValue>SvhpAIwhjXJHOyXh63JfcD49fyb9VfWy5GHn/MCRlMA=</dsig:DigestValue>
       </hash>
     </dependentAssembly>
   </dependency>
