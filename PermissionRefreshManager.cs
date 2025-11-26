@@ -36,6 +36,32 @@ namespace ControlEntradaSalida
             commonHelper = new Common();
         }
 
+        /// <summary>
+        /// 判断设备是否为人脸录入仪设备。
+        /// 人脸录入仪仅用于连接和人脸录入功能，不参与人员信息、权限等数据的下发。
+        /// </summary>
+        /// <param name="device">设备连接信息</param>
+        /// <returns>如果是人脸录入仪则返回 true</returns>
+        private static bool IsEnrollmentDevice(DeviceConnectionInfo device)
+        {
+            if (device == null)
+            {
+                return false;
+            }
+
+            return string.Equals(device.Name, EnrollmentDeviceName, StringComparison.OrdinalIgnoreCase);
+        }
+
+        /// <summary>
+        /// 判断设备名称是否为人脸录入仪设备。
+        /// </summary>
+        /// <param name="deviceName">设备名称</param>
+        /// <returns>如果是人脸录入仪则返回 true</returns>
+        private static bool IsEnrollmentDevice(string deviceName)
+        {
+            return string.Equals(deviceName, EnrollmentDeviceName, StringComparison.OrdinalIgnoreCase);
+        }
+
         public PermissionRefreshSummary RefreshAllPermissions()
         {
             lock (refreshLock)
@@ -265,8 +291,9 @@ namespace ControlEntradaSalida
             {
                 EnsureDevicesLoaded();
 
+                // 排除人脸录入仪设备，该设备仅用于连接和人脸录入功能
                 List<DeviceConnectionInfo> onlineDevices = deviceManager.GetAllDevices()
-                    .Where(d => d.IsEnabled && d.IsConnected && d.UserID >= 0)
+                    .Where(d => d.IsEnabled && d.IsConnected && d.UserID >= 0 && !IsEnrollmentDevice(d))
                     .ToList();
 
                 summary.TargetDevices = onlineDevices.Count;
@@ -352,6 +379,13 @@ namespace ControlEntradaSalida
 
                         int deviceId = Convert.ToInt32(reader["device_id"]);
                         string name = reader["device_name"].ToString();
+
+                        // 跳过人脸录入仪设备，该设备仅用于连接和人脸录入功能
+                        if (IsEnrollmentDevice(name))
+                        {
+                            continue;
+                        }
+
                         string description = reader["description"] == DBNull.Value ? string.Empty : reader["description"].ToString();
 
                         DeviceConnectionInfo connection = deviceManager.GetDeviceById(deviceId);
@@ -1085,8 +1119,9 @@ namespace ControlEntradaSalida
             lock (personSyncLock)
             {
                 EnsureDevicesLoaded();
+                // 排除人脸录入仪设备，该设备仅用于连接和人脸录入功能
                 List<DeviceConnectionInfo> onlineDevices = deviceManager.GetAllDevices()
-                    .Where(d => d.IsEnabled && d.IsConnected && d.UserID >= 0)
+                    .Where(d => d.IsEnabled && d.IsConnected && d.UserID >= 0 && !IsEnrollmentDevice(d))
                     .ToList();
 
                 summary.TargetDevices = onlineDevices.Count;
@@ -1163,8 +1198,9 @@ namespace ControlEntradaSalida
             lock (personSyncLock)
             {
                 EnsureDevicesLoaded();
+                // 排除人脸录入仪设备，该设备仅用于连接和人脸录入功能
                 List<DeviceConnectionInfo> onlineDevices = deviceManager.GetAllDevices()
-                    .Where(d => d.IsEnabled && d.IsConnected && d.UserID >= 0)
+                    .Where(d => d.IsEnabled && d.IsConnected && d.UserID >= 0 && !IsEnrollmentDevice(d))
                     .ToList();
 
                 summary.TargetDevices = onlineDevices.Count;
