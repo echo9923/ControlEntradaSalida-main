@@ -18,7 +18,7 @@ namespace ControlEntradaSalida
             };
         }
 
-        public static FaceCaptureResult Success(string base64, string format)
+        public static FaceCaptureResult Ok(string base64, string format)
         {
             return new FaceCaptureResult
             {

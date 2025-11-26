@@ -16,7 +16,7 @@ namespace ControlEntradaSalida
         private static readonly string DefaultEndTime = "2035-12-31T23:59:59";
         private const string UserInfoSetupUrl = "PUT /ISAPI/AccessControl/UserInfo/SetUp?format=json";
         private const string FaceSetupUrl = "PUT /ISAPI/Intelligent/FDLib/FDSetUp?format=json";
-        private const string FaceDeleteUrl = "DELETE /ISAPI/Intelligent/FDLib/FDDel?format=json";
+        private const string FaceDeleteUrl = "PUT /ISAPI/Intelligent/FDLib/FDSearch/Delete?format=json&FDID=1&faceLibType=blackFD";
         private const string FaceSearchUrl = "POST /ISAPI/Intelligent/FDLib/FDSearch?format=json";
         private const string SnapshotUrl = "GET /ISAPI/Streaming/channels/101/picture";
         private const string EnrollmentDeviceName = "人脸录入仪";
@@ -941,7 +941,7 @@ namespace ControlEntradaSalida
 
             if (device == null)
             {
-                return FaceCaptureResult.Fail("未找到名称为“人脸录入仪”的设备。");
+                return FaceCaptureResult.Fail("未找到名称为'人脸录入仪'的设备。");
             }
 
             if (!device.IsConnected || device.UserID < 0)
@@ -954,28 +954,108 @@ namespace ControlEntradaSalida
                 }
             }
 
-            bool ok = commonHelper.ISAPIBinaryRequest(device.UserID,
-                SnapshotUrl,
-                string.Empty,
-                out byte[] bytes,
-                out string status);
-
-            if (!ok || bytes == null || bytes.Length == 0)
+            // 根据技术规范2.4.6，使用NET_DVR_CAPTURE_FACE_INFO (2510)命令码进行人脸采集
+            // 此接口适用于DS-K1F600U-D6E-F等专用人脸录入仪
+            int handle = -1;
+            IntPtr condPtr = IntPtr.Zero;
+            try
             {
-                string message = string.IsNullOrWhiteSpace(status)
-                    ? "抓拍失败：设备无响应。"
-                    : string.Format(CultureInfo.InvariantCulture, "抓拍失败：{0}", status);
-                return FaceCaptureResult.Fail(message);
-            }
+                // 1. 准备采集条件结构体
+                HCNetSDK_Facial.NET_DVR_CAPTURE_FACE_COND cond = new HCNetSDK_Facial.NET_DVR_CAPTURE_FACE_COND();
+                cond.init();
+                cond.dwSize = Marshal.SizeOf(cond);
 
-            if (bytes.Length > MaxFaceImageBytes)
+                condPtr = Marshal.AllocHGlobal(Marshal.SizeOf(cond));
+                Marshal.StructureToPtr(cond, condPtr, false);
+
+                // 2. 开启远程配置
+                handle = HCNetSDK_Facial.NET_DVR_StartRemoteConfig(
+                    device.UserID,
+                    HCNetSDK_Facial.NET_DVR_CAPTURE_FACE_INFO,
+                    condPtr,
+                    Marshal.SizeOf(cond),
+                    null,
+                    IntPtr.Zero);
+
+                if (handle < 0)
+                {
+                    uint errorCode = HCNetSDK.NET_DVR_GetLastError();
+                    return FaceCaptureResult.Fail(string.Format(CultureInfo.InvariantCulture,
+                        "启动人脸采集失败，错误码：{0}。", errorCode));
+                }
+
+                // 3. 循环获取采集结果（等待用户将人脸对准设备）
+                int maxAttempts = 100; // 最大尝试次数，约10秒
+                for (int i = 0; i < maxAttempts; i++)
+                {
+                    HCNetSDK_Facial.NET_DVR_CAPTURE_FACE_CFG faceCfg = new HCNetSDK_Facial.NET_DVR_CAPTURE_FACE_CFG();
+                    faceCfg.init();
+                    faceCfg.dwSize = Marshal.SizeOf(faceCfg);
+
+                    int status = HCNetSDK_Facial.NET_DVR_GetNextRemoteConfig(
+                        handle,
+                        ref faceCfg,
+                        Marshal.SizeOf(faceCfg));
+
+                    if (status == HCNetSDK_Facial.NET_SDK_GET_NEXT_STATUS_SUCCESS)
+                    {
+                        // 检查采集进度：0-未采集到人脸，100-采集到人脸
+                        if (faceCfg.byCaptureProgress == 100)
+                        {
+                            // 采集成功，提取人脸图片
+                            if (faceCfg.dwFacePicSize > 0 && faceCfg.pFacePicBuffer != IntPtr.Zero)
+                            {
+                                byte[] faceData = new byte[faceCfg.dwFacePicSize];
+                                Marshal.Copy(faceCfg.pFacePicBuffer, faceData, 0, faceCfg.dwFacePicSize);
+
+                                if (faceData.Length > MaxFaceImageBytes)
+                                {
+                                    return FaceCaptureResult.Fail(string.Format(CultureInfo.InvariantCulture,
+                                        "采集图片大小 {0} 字节超过 200KB。", faceData.Length));
+                                }
+
+                                string base64 = Convert.ToBase64String(faceData);
+                                return FaceCaptureResult.Ok(base64, "jpg");
+                            }
+                            else
+                            {
+                                return FaceCaptureResult.Fail("采集成功但未获取到人脸图片数据。");
+                            }
+                        }
+                        // 进度为0，继续等待
+                    }
+                    else if (status == HCNetSDK_Facial.NET_SDK_GET_NEXT_STATUS_NEED_WAIT)
+                    {
+                        // 需要等待，休眠一段时间后继续
+                        System.Threading.Thread.Sleep(100);
+                    }
+                    else if (status == HCNetSDK_Facial.NET_SDK_GET_NEXT_STATUS_FINISH)
+                    {
+                        // 采集完成但未获取到人脸
+                        return FaceCaptureResult.Fail("人脸采集完成但未检测到有效人脸。");
+                    }
+                    else if (status == HCNetSDK_Facial.NET_SDK_GET_NEXT_STATUS_FAILED)
+                    {
+                        uint errorCode = HCNetSDK.NET_DVR_GetLastError();
+                        return FaceCaptureResult.Fail(string.Format(CultureInfo.InvariantCulture,
+                            "人脸采集失败，错误码：{0}。", errorCode));
+                    }
+                }
+
+                return FaceCaptureResult.Fail("人脸采集超时，请确保人脸正对设备摄像头。");
+            }
+            finally
             {
-                return FaceCaptureResult.Fail(string.Format(CultureInfo.InvariantCulture,
-                    "抓拍图片大小 {0} 字节超过 200KB。", bytes.Length));
+                // 4. 关闭远程配置
+                if (handle >= 0)
+                {
+                    HCNetSDK_Facial.NET_DVR_StopRemoteConfig(handle);
+                }
+                if (condPtr != IntPtr.Zero)
+                {
+                    Marshal.FreeHGlobal(condPtr);
+                }
             }
-
-            string base64 = Convert.ToBase64String(bytes);
-            return FaceCaptureResult.Success(base64, "jpg");
         }
 
         public FaceOperationSummary DeleteFacesOnDevices(IEnumerable<string> employeeIds)
@@ -1154,11 +1234,14 @@ namespace ControlEntradaSalida
                 }
             }
 
+            // 根据技术规范2.4.3.3，FPID为数组格式，支持批量删除
+            // FDID和faceLibType已在URL参数中指定
             var payload = new
             {
-                faceLibType = DefaultFaceLibType,
-                FDID = DefaultFaceLibId,
-                FPID = employeeId
+                FPID = new[]
+                {
+                    new { value = employeeId }
+                }
             };
 
             bool result = commonHelper.ISAPIQuery(device.UserID,
@@ -1215,10 +1298,12 @@ namespace ControlEntradaSalida
                 }
             }
 
+            // 根据技术规范2.4.1.4，faceLibType为必填字段
             var payload = new
             {
                 searchResultPosition = 0,
                 maxResults = 1,
+                faceLibType = DefaultFaceLibType,
                 FDID = DefaultFaceLibId,
                 FPID = employeeId
             };
