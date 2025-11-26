@@ -25,6 +25,7 @@ namespace ControlEntradaSalida
         private const string MethodName = "SyncPermissions";
         private const string PersonMethodName = "SyncPersons";
         private const string DeleteFaceMethodName = "DeleteFaces";
+        private const string DeletePersonMethodName = "DeletePersons";
         private const string GetFaceMethodName = "GetFaces";
         private const string CaptureFaceMethodName = "CaptureFaceStream";
         private const string StatusMethodName = "GetEnrollmentStatus";
@@ -60,6 +61,13 @@ namespace ControlEntradaSalida
             MethodType.Unary,
             ServiceName,
             DeleteFaceMethodName,
+            StringMarshaller,
+            StringMarshaller);
+
+        private static readonly Method<string, string> DeletePersonsMethod = new Method<string, string>(
+            MethodType.Unary,
+            ServiceName,
+            DeletePersonMethodName,
             StringMarshaller,
             StringMarshaller);
 
@@ -185,6 +193,7 @@ namespace ControlEntradaSalida
                             .AddMethod(UpdatePermissionMethod, HandlePermissionUpdateAsync)
                             .AddMethod(SyncPersonsMethod, HandlePersonSyncAsync)
                             .AddMethod(DeleteFacesMethod, HandleFaceDeleteAsync)
+                            .AddMethod(DeletePersonsMethod, HandlePersonDeleteAsync)
                             .AddMethod(GetFacesMethod, HandleFaceGetAsync)
                             .AddMethod(GetStatusMethod, HandleStatusGetAsync)
                             .AddMethod(CaptureFaceStreamMethod, HandleCaptureStreamAsync)
@@ -373,6 +382,51 @@ namespace ControlEntradaSalida
                 stopwatch.Stop();
                 ServiceLogger.Error($"{GrpcLogPrefix} 请求 {requestId} 删除人脸时发生异常。", ex);
                 throw new RpcException(new Status(StatusCode.Internal, "处理人脸删除时发生未知错误。"));
+            }
+        }
+
+        private Task<string> HandlePersonDeleteAsync(string request, ServerCallContext context)
+        {
+            string peer = DescribePeer(context);
+            string requestId = ResolveRequestId(context);
+            int payloadLength = string.IsNullOrEmpty(request) ? 0 : Encoding.UTF8.GetByteCount(request);
+            Stopwatch stopwatch = Stopwatch.StartNew();
+
+            ServiceLogger.Info($"{GrpcLogPrefix} 请求 {requestId} (DeletePersons) 来自 {peer}，载荷长度 {payloadLength} 字节。");
+            LogPayloadIfEnabled("入站", requestId, request, payloadLength);
+
+            try
+            {
+                List<string> ids = ParseEmployeeIdList(request);
+                PersonDeleteSummary summary = refreshManager.DeletePersonsFromDevices(ids);
+                stopwatch.Stop();
+
+                string responsePayload = BuildPersonDeleteResponse(summary);
+                LogPayloadIfEnabled("出站", requestId, responsePayload, Encoding.UTF8.GetByteCount(responsePayload));
+                return Task.FromResult(responsePayload);
+            }
+            catch (JsonException ex)
+            {
+                stopwatch.Stop();
+                ServiceLogger.Warn($"{GrpcLogPrefix} 请求 {requestId} JSON格式错误：{ex.Message}");
+                throw new RpcException(new Status(StatusCode.InvalidArgument, $"JSON格式错误：{ex.Message}"));
+            }
+            catch (ArgumentException ex)
+            {
+                stopwatch.Stop();
+                ServiceLogger.Warn($"{GrpcLogPrefix} 请求 {requestId} 参数非法：{ex.Message}");
+                throw new RpcException(new Status(StatusCode.InvalidArgument, ex.Message));
+            }
+            catch (RpcException)
+            {
+                stopwatch.Stop();
+                throw;
+            }
+            catch (Exception ex)
+            {
+                stopwatch.Stop();
+                ServiceLogger.Error($"{GrpcLogPrefix} 请求 {requestId} 删除人员时发生异常。", ex);
+                throw new RpcException(new Status(StatusCode.Internal, "处理人员删除时发生未知错误。"));
             }
         }
 
@@ -960,6 +1014,28 @@ namespace ControlEntradaSalida
                     faceImageBase64 = i.FaceImageBase64,
                     rawResponse = i.RawResponse,
                     error = i.Error
+                }).ToArray()
+            };
+
+            return JsonConvert.SerializeObject(payload);
+        }
+
+        private static string BuildPersonDeleteResponse(PersonDeleteSummary summary)
+        {
+            var payload = new
+            {
+                total = summary.Total,
+                succeeded = summary.Succeeded,
+                failed = summary.Failed,
+                targetDevices = summary.TargetDevices,
+                errors = summary.Errors.ToArray(),
+                items = summary.Items.Select(i => new
+                {
+                    employeeId = i.EmployeeId,
+                    success = i.Success,
+                    successDevices = i.SuccessDevices,
+                    failedDevices = i.FailedDevices,
+                    deviceErrors = i.DeviceErrors.ToArray()
                 }).ToArray()
             };
 

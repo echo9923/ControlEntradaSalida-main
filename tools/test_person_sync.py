@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 基于现有 gRPC 接口（permission.PermissionSyncService）的人脸录入全流程测试工具。
-功能：权限下发、人员+人脸下发、人脸删除、人脸查询、抓拍采集（CaptureFaceStream），UI 使用 Qt。
+功能：权限下发、人员+人脸下发、人员删除、人脸删除、人脸查询、抓拍采集（CaptureFaceStream），UI 使用 Qt。
 
 依赖：
   - grpcio
@@ -199,7 +199,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # 行 3：人脸文件
         layout.addWidget(QtWidgets.QLabel("人脸图片"), 3, 0)
-        self.face_path_edit = QtWidgets.QLineEdit(str(Path("tools/111.jpg")))
+        self.face_path_edit = QtWidgets.QLineEdit()
         layout.addWidget(self.face_path_edit, 3, 1, 1, 3)
         btn_browse = QtWidgets.QPushButton("选择文件")
         btn_browse.clicked.connect(self._choose_face)
@@ -218,6 +218,10 @@ class MainWindow(QtWidgets.QMainWindow):
         self.btn_delete = QtWidgets.QPushButton("删除人脸")
         self.btn_delete.clicked.connect(self._on_delete_face)
         btn_layout.addWidget(self.btn_delete)
+
+        self.btn_delete_person = QtWidgets.QPushButton("删除人员")
+        self.btn_delete_person.clicked.connect(self._on_delete_person)
+        btn_layout.addWidget(self.btn_delete_person)
 
         self.btn_get = QtWidgets.QPushButton("查询人脸")
         self.btn_get.clicked.connect(self._on_get_face)
@@ -338,6 +342,16 @@ class MainWindow(QtWidgets.QMainWindow):
             return _grpc_call(self._server(), "/permission.PermissionSyncService/DeleteFaces", payload, self._timeout())
 
         self._run_async("DeleteFaces", payload, task)
+
+    def _on_delete_person(self) -> None:
+        """删除人员（从设备中彻底删除人员信息，包括人脸和权限）"""
+        employee_id = self.employee_edit.text().strip()
+        payload = build_face_id_payload(employee_id)
+
+        def task() -> dict:
+            return _grpc_call(self._server(), "/permission.PermissionSyncService/DeletePersons", payload, self._timeout())
+
+        self._run_async("DeletePersons", payload, task)
 
     def _on_get_face(self) -> None:
         employee_id = self.employee_edit.text().strip()

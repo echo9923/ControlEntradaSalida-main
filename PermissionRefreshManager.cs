@@ -15,6 +15,7 @@ namespace ControlEntradaSalida
         private static readonly string DefaultBeginTime = "2022-01-01T00:00:00";
         private static readonly string DefaultEndTime = "2035-12-31T23:59:59";
         private const string UserInfoSetupUrl = "PUT /ISAPI/AccessControl/UserInfo/SetUp?format=json";
+        private const string UserInfoDeleteUrl = "PUT /ISAPI/AccessControl/UserInfo/Delete?format=json";
         private const string FaceSetupUrl = "PUT /ISAPI/Intelligent/FDLib/FDSetUp?format=json";
         private const string FaceDeleteUrl = "PUT /ISAPI/Intelligent/FDLib/FDSearch/Delete?format=json&FDID=1&faceLibType=blackFD";
         private const string FaceSearchUrl = "POST /ISAPI/Intelligent/FDLib/FDSearch?format=json";
@@ -1171,6 +1172,172 @@ namespace ControlEntradaSalida
             return summary;
         }
 
+        /// <summary>
+        /// 从所有在线门禁设备中彻底删除指定人员（包括人员信息和人脸数据）。
+        /// 此操作会遍历所有设备，跳过人脸录入仪设备。
+        /// </summary>
+        /// <param name="employeeIds">要删除的人员工号列表</param>
+        /// <returns>删除操作的摘要结果</returns>
+        public PersonDeleteSummary DeletePersonsFromDevices(IEnumerable<string> employeeIds)
+        {
+            if (employeeIds == null)
+            {
+                throw new ArgumentNullException(nameof(employeeIds));
+            }
+
+            List<string> ids = employeeIds
+                .Where(id => !string.IsNullOrWhiteSpace(id))
+                .Select(id => id.Trim())
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            PersonDeleteSummary summary = new PersonDeleteSummary
+            {
+                Total = ids.Count
+            };
+
+            if (ids.Count == 0)
+            {
+                summary.Errors.Add("未提供需要删除的员工编号。");
+                return summary;
+            }
+
+            lock (personSyncLock)
+            {
+                EnsureDevicesLoaded();
+
+                // 排除人脸录入仪设备，该设备仅用于连接和人脸录入功能
+                List<DeviceConnectionInfo> onlineDevices = deviceManager.GetAllDevices()
+                    .Where(d => d.IsEnabled && d.IsConnected && d.UserID >= 0 && !IsEnrollmentDevice(d))
+                    .ToList();
+
+                summary.TargetDevices = onlineDevices.Count;
+
+                if (onlineDevices.Count == 0)
+                {
+                    summary.Errors.Add("当前没有在线的门禁设备，无法删除人员。");
+                    summary.Failed = summary.Total;
+                    return summary;
+                }
+
+                foreach (string id in ids)
+                {
+                    PersonDeleteItem item = new PersonDeleteItem
+                    {
+                        EmployeeId = id
+                    };
+
+                    int successCount = 0;
+                    int failCount = 0;
+
+                    foreach (DeviceConnectionInfo device in onlineDevices)
+                    {
+                        DeviceUpdateResult result = DeletePersonOnDevice(device, id);
+                        if (result.Success)
+                        {
+                            successCount++;
+                        }
+                        else
+                        {
+                            failCount++;
+                            item.DeviceErrors.Add(string.Format(CultureInfo.InvariantCulture,
+                                "[{0}] {1}", device.Name, result.ErrorMessage));
+                        }
+                    }
+
+                    item.SuccessDevices = successCount;
+                    item.FailedDevices = failCount;
+
+                    // 只要有一个设备成功删除就视为部分成功
+                    if (successCount > 0)
+                    {
+                        item.Success = true;
+                        summary.Succeeded++;
+                    }
+                    else
+                    {
+                        item.Success = false;
+                        summary.Failed++;
+                        if (item.DeviceErrors.Count > 0)
+                        {
+                            summary.Errors.Add(string.Format(CultureInfo.InvariantCulture,
+                                "员工 {0} 在所有设备上删除失败：{1}",
+                                id,
+                                string.Join("; ", item.DeviceErrors.Take(3))));
+                        }
+                    }
+
+                    summary.Items.Add(item);
+                }
+            }
+
+            return summary;
+        }
+
+        /// <summary>
+        /// 在指定设备上删除单个人员信息。
+        /// </summary>
+        /// <param name="device">目标设备</param>
+        /// <param name="employeeId">员工编号</param>
+        /// <returns>删除结果</returns>
+        private DeviceUpdateResult DeletePersonOnDevice(DeviceConnectionInfo device, string employeeId)
+        {
+            if (device == null)
+            {
+                return DeviceUpdateResult.Fail("未找到可用的设备。");
+            }
+
+            if (!device.IsConnected || device.UserID < 0)
+            {
+                bool connected = deviceManager.ConnectToDevice(device);
+                if (!connected || device.UserID < 0)
+                {
+                    return DeviceUpdateResult.Fail(string.Format(CultureInfo.InvariantCulture,
+                        "无法连接设备 {0}，删除人员 {1} 失败。", device.Name, employeeId));
+                }
+            }
+
+            // 根据海康威视 ISAPI 规范，使用 UserInfo/Delete 接口删除人员
+            var payload = new
+            {
+                UserInfoDelCond = new
+                {
+                    EmployeeNoList = new[]
+                    {
+                        new { employeeNo = employeeId }
+                    }
+                }
+            };
+
+            bool result = commonHelper.ISAPIQuery(device.UserID,
+                UserInfoDeleteUrl,
+                JsonConvert.SerializeObject(payload),
+                out string outputResult,
+                out string outputStatus);
+
+            if (!result)
+            {
+                string errorMessage = ParseErrorMessage(outputStatus ?? outputResult);
+                return DeviceUpdateResult.Fail(string.Format(CultureInfo.InvariantCulture,
+                    "设备 {0} 删除人员 {1} 失败：{2}",
+                    device.Name,
+                    employeeId,
+                    errorMessage));
+            }
+
+            if (!IsResponseOk(outputResult))
+            {
+                string errorMessage = ParseErrorMessage(outputResult);
+                return DeviceUpdateResult.Fail(string.Format(CultureInfo.InvariantCulture,
+                    "设备 {0} 返回错误，人员 {1} 未删除：{2}",
+                    device.Name,
+                    employeeId,
+                    errorMessage));
+            }
+
+            return DeviceUpdateResult.SuccessResult;
+        }
+
         public FaceOperationSummary GetFacesFromDevices(IEnumerable<string> employeeIds)
         {
             if (employeeIds == null)
@@ -1358,34 +1525,142 @@ namespace ControlEntradaSalida
                 return result;
             }
 
-            if (!IsResponseOk(outputResult))
+            // 尝试从 multipart 响应中提取 JSON 部分
+            string jsonContent = ExtractJsonFromMultipart(outputResult);
+
+            // 检查响应是否成功
+            if (!IsResponseOkFromContent(jsonContent))
             {
-                result.ErrorMessage = ParseErrorMessage(outputResult);
+                result.ErrorMessage = ParseErrorMessage(jsonContent);
                 return result;
             }
 
             try
             {
-                JToken root = JToken.Parse(outputResult);
-                JToken dataList = root["FaceDataRecord"];
+                JToken root = JToken.Parse(jsonContent);
+
+                // 尝试从 MatchList 或 FaceDataRecord 中获取数据
+                JToken dataList = root["MatchList"] ?? root["FaceDataRecord"];
                 if (dataList is JArray arr && arr.Count > 0)
                 {
                     JToken first = arr[0];
+
+                    // 尝试多种可能的字段名称
                     string face = first.Value<string>("facePicBinary") ??
                                   first.Value<string>("FacePicBinary") ??
                                   first.Value<string>("facePic") ??
-                                  first.Value<string>("FacePic");
+                                  first.Value<string>("FacePic") ??
+                                  first.Value<string>("modelData");  // 某些设备返回模型数据而非图片
 
                     result.FaceImageBase64 = face;
+                }
+
+                // 检查是否有匹配结果
+                int numOfMatches = root.Value<int?>("numOfMatches") ?? 0;
+                int totalMatches = root.Value<int?>("totalMatches") ?? 0;
+                if (numOfMatches > 0 || totalMatches > 0)
+                {
+                    result.Success = true;
+                }
+                else
+                {
+                    result.Success = dataList != null && ((JArray)dataList).Count > 0;
                 }
             }
             catch (JsonException)
             {
-                // 解析失败不影响成功标记，仍返回原始响应
+                // 解析失败，但如果原始响应包含成功标记，仍视为成功
+                if (jsonContent.Contains("\"statusCode\":\t1") || jsonContent.Contains("\"statusCode\": 1"))
+                {
+                    result.Success = true;
+                }
             }
 
-            result.Success = true;
             return result;
+        }
+
+        /// <summary>
+        /// 从 multipart/form-data 响应中提取 JSON 内容。
+        /// 如果响应不是 multipart 格式，则原样返回。
+        /// </summary>
+        private static string ExtractJsonFromMultipart(string response)
+        {
+            if (string.IsNullOrWhiteSpace(response))
+            {
+                return response;
+            }
+
+            // 如果响应以 { 开头，说明是纯 JSON
+            string trimmed = response.TrimStart();
+            if (trimmed.StartsWith("{", StringComparison.Ordinal) || trimmed.StartsWith("[", StringComparison.Ordinal))
+            {
+                return response;
+            }
+
+            // 尝试从 multipart 响应中提取 JSON 部分
+            // 格式：Content-Type:multipart/form-data;boundary=MIME_boundary\r\n--MIME_boundary\r\nContent-Type: application/json\r\n...\r\n\r\n{JSON内容}\r\n\r\n--MIME_boundary--
+            int jsonStart = response.IndexOf("\r\n\r\n{", StringComparison.Ordinal);
+            if (jsonStart < 0)
+            {
+                jsonStart = response.IndexOf("\n\n{", StringComparison.Ordinal);
+            }
+
+            if (jsonStart >= 0)
+            {
+                // 跳过空行前缀
+                jsonStart = response.IndexOf('{', jsonStart);
+                
+                // 找到 JSON 结束位置（最后一个 } 在边界标记之前）
+                int boundaryEnd = response.LastIndexOf("--", StringComparison.Ordinal);
+                if (boundaryEnd > jsonStart)
+                {
+                    // 从 jsonStart 向 boundaryEnd 方向找最后一个 }
+                    int jsonEnd = response.LastIndexOf('}', boundaryEnd, boundaryEnd - jsonStart);
+                    if (jsonEnd > jsonStart)
+                    {
+                        return response.Substring(jsonStart, jsonEnd - jsonStart + 1);
+                    }
+                }
+
+                // 回退：从 jsonStart 开始找到最后一个 }
+                int lastBrace = response.LastIndexOf('}');
+                if (lastBrace > jsonStart)
+                {
+                    return response.Substring(jsonStart, lastBrace - jsonStart + 1);
+                }
+            }
+
+            return response;
+        }
+
+        /// <summary>
+        /// 检查响应内容是否表示成功。
+        /// </summary>
+        private bool IsResponseOkFromContent(string content)
+        {
+            if (string.IsNullOrWhiteSpace(content))
+            {
+                return false;
+            }
+
+            try
+            {
+                JObject data = JObject.Parse(content);
+                string statusCode = data.Value<string>("statusCode");
+                string statusString = data.Value<string>("statusString");
+                string subStatusCode = data.Value<string>("subStatusCode");
+
+                // statusCode 为 "1" 或 1 都表示成功
+                bool codeOk = statusCode == "1" || data.Value<int?>("statusCode") == 1;
+                bool stringOk = string.Equals(statusString, "OK", StringComparison.OrdinalIgnoreCase);
+                bool subCodeOk = string.Equals(subStatusCode, "ok", StringComparison.OrdinalIgnoreCase);
+
+                return codeOk && stringOk && subCodeOk;
+            }
+            catch
+            {
+                return false;
+            }
         }
 
         private static string NormalizeGender(string gender)
@@ -1614,5 +1889,73 @@ namespace ControlEntradaSalida
         public int UsersFailed { get; set; }
 
         public List<string> Errors { get; } = new List<string>();
+    }
+
+
+    /// <summary>
+    /// 统计人员删除操作的结果摘要。
+    /// </summary>
+    public class PersonDeleteSummary
+    {
+        /// <summary>
+        /// 请求删除的人员总数。
+        /// </summary>
+        public int Total { get; set; }
+
+        /// <summary>
+        /// 成功删除的人员数量（至少在一个设备上成功）。
+        /// </summary>
+        public int Succeeded { get; set; }
+
+        /// <summary>
+        /// 删除失败的人员数量（在所有设备上都失败）。
+        /// </summary>
+        public int Failed { get; set; }
+
+        /// <summary>
+        /// 目标设备数量。
+        /// </summary>
+        public int TargetDevices { get; set; }
+
+        /// <summary>
+        /// 错误消息列表。
+        /// </summary>
+        public List<string> Errors { get; } = new List<string>();
+
+        /// <summary>
+        /// 每个人员的详细删除结果。
+        /// </summary>
+        public List<PersonDeleteItem> Items { get; } = new List<PersonDeleteItem>();
+    }
+
+    /// <summary>
+    /// 单个人员的删除操作结果。
+    /// </summary>
+    public class PersonDeleteItem
+    {
+        /// <summary>
+        /// 员工编号。
+        /// </summary>
+        public string EmployeeId { get; set; }
+
+        /// <summary>
+        /// 是否成功删除（至少在一个设备上成功）。
+        /// </summary>
+        public bool Success { get; set; }
+
+        /// <summary>
+        /// 成功删除的设备数量。
+        /// </summary>
+        public int SuccessDevices { get; set; }
+
+        /// <summary>
+        /// 删除失败的设备数量。
+        /// </summary>
+        public int FailedDevices { get; set; }
+
+        /// <summary>
+        /// 各设备的错误消息。
+        /// </summary>
+        public List<string> DeviceErrors { get; } = new List<string>();
     }
 }
