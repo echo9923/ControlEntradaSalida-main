@@ -10,6 +10,7 @@ namespace ControlEntradaSalida
     {
         private PermissionUpdateGrpcServer grpcServer;
         private PermissionRefreshManager refreshManager;
+        private FaceEventService faceEventService;
         private bool initialized;
 
         public ControlEntradaSalidaService()
@@ -117,6 +118,9 @@ namespace ControlEntradaSalida
                 ServiceLogger.Warn("数据目录创建失败，将继续运行。");
             }
 
+            faceEventService = new FaceEventService(config);
+            faceEventService.Start();
+
             DeviceConnectionManager.Instance.ApplyConfiguration(config);
             DeviceConnectionManager.Instance.LoadAllDevices();
             DeviceConnectionManager.Instance.ResumeMonitoring();
@@ -146,6 +150,19 @@ namespace ControlEntradaSalida
             finally
             {
                 grpcServer = null;
+            }
+
+            try
+            {
+                faceEventService?.Dispose();
+            }
+            catch (Exception ex)
+            {
+                ServiceLogger.Error("释放人脸事件服务时出现异常。", ex);
+            }
+            finally
+            {
+                faceEventService = null;
             }
 
             try

@@ -1016,6 +1016,29 @@ namespace ControlEntradaSalida
             public byte[] byRes;
         }
 
+        [StructLayout(LayoutKind.Sequential)]
+        public struct NET_DVR_SETUPALARM_PARAM
+        {
+            public uint dwSize;
+            public byte byLevel;
+            public byte byAlarmInfoType;
+            public byte byRetAlarmTypeV40;
+            public byte byRetDevInfoVersion;
+            public byte byRetVQDAlarmType;
+            public byte byFaceAlarmDetection;
+            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 10)]
+            public byte[] byRes;
+
+            public void Init()
+            {
+                byRes = new byte[10];
+                dwSize = (uint)Marshal.SizeOf(typeof(NET_DVR_SETUPALARM_PARAM));
+                byAlarmInfoType = 1;      // 返回扩展报警信息
+                byRetAlarmTypeV40 = 1;    // V40 报警类型
+                byRetDevInfoVersion = 1;  // 返回新设备信息
+            }
+        }
+
 
         //Alarm Device Infor
         [StructLayoutAttribute(LayoutKind.Sequential, CharSet = CharSet.Ansi)]
@@ -3419,8 +3442,10 @@ namespace ControlEntradaSalida
         public static extern bool NET_DVR_SetDVRMessageCallBack_V50(int iIndex, MSGCallBack fMessageCallBack, IntPtr pUser);
 
         [DllImport(@".\HCNetSDK.dll")]
-        public static extern bool NET_DVR_SetDVRMessageCallBack_V31(MSGCallBack_V31 fMessageCallBack, IntPtr pUser);
+        public static extern int NET_DVR_SetupAlarmChan_V41(int lUserID, ref NET_DVR_SETUPALARM_PARAM lpSetupParam);
 
+        [DllImport(@".\HCNetSDK.dll")]
+        public static extern bool NET_DVR_CloseAlarmChan_V30(int lAlarmHandle);
         /* NET_DVR_GetDeviceAbility get device ability
          * [in] lUserID - NET_DVR_Login_V40 return value
          * [in] dwAbilityType - the configuration command(ACS_ABILITY)

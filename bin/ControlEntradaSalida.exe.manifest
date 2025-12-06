@@ -32,7 +32,7 @@
   <dependency>
     <dependentOS>
       <osVersionInfo>
-        <os majorVersion="4" minorVersion="10" buildNumber="0" servicePackMajor="0" />
+        <os majorVersion="5" minorVersion="1" buildNumber="2600" servicePackMajor="0" />
       </osVersionInfo>
     </dependentOS>
   </dependency>
@@ -54,14 +54,14 @@
     </dependentAssembly>
   </dependency>
   <dependency>
-    <dependentAssembly dependencyType="install" allowDelayedBinding="true" codebase="ControlEntradaSalida.exe" size="223232">
+    <dependentAssembly dependencyType="install" allowDelayedBinding="true" codebase="ControlEntradaSalida.exe" size="242176">
       <assemblyIdentity name="ControlEntradaSalida" version="1.0.0.0" language="neutral" processorArchitecture="msil" />
       <hash>
         <dsig:Transforms>
           <dsig:Transform Algorithm="urn:schemas-microsoft-com:HashTransforms.Identity" />
         </dsig:Transforms>
         <dsig:DigestMethod Algorithm="http://www.w3.org/2000/09/xmldsig#sha256" />
-        <dsig:DigestValue>TVF/dMbMR6pu0geg11pFkWR191b6n6A2nq7nO9g/UCM=</dsig:DigestValue>
+        <dsig:DigestValue>CnFOW3BGXIVZ3KK/Pa4Vx4JDIRlqGWIeuLHgPLo5+RU=</dsig:DigestValue>
       </hash>
     </dependentAssembly>
   </dependency>
@@ -296,13 +296,13 @@
       <dsig:DigestValue>9w81+YyK50rBkXPyLf7aZXPybeYQeCpQDJUzk+GHReY=</dsig:DigestValue>
     </hash>
   </file>
-  <file name="Configuration\appsettings.json" size="400">
+  <file name="Configuration\appsettings.json" size="563">
     <hash>
       <dsig:Transforms>
         <dsig:Transform Algorithm="urn:schemas-microsoft-com:HashTransforms.Identity" />
       </dsig:Transforms>
       <dsig:DigestMethod Algorithm="http://www.w3.org/2000/09/xmldsig#sha256" />
-      <dsig:DigestValue>RqVOObZo0y/UYWMPiwhyoDIBrlKrF8xK01QHFlWipIg=</dsig:DigestValue>
+      <dsig:DigestValue>Lu8FVj6XQwaLdcQvSaiN2Prjl/5ppiRT7CappB9p6Q4=</dsig:DigestValue>
     </hash>
   </file>
   <file name="ControlEntradaSalida.exe.config" size="1286">

@@ -24,6 +24,8 @@ namespace ControlEntradaSalida.Configuration
 
         public DatabaseSection Database { get; set; } = new DatabaseSection();
 
+        public FaceEventLoggingSection FaceEventLogging { get; set; } = new FaceEventLoggingSection();
+
         private static ExternalConfiguration Load()
         {
             string baseDirectory = AppDomain.CurrentDomain.BaseDirectory;
@@ -49,6 +51,7 @@ namespace ControlEntradaSalida.Configuration
             configuration.SourcePath = configPath;
             configuration.Service ??= new ServiceSection();
             configuration.Database ??= new DatabaseSection();
+            configuration.FaceEventLogging ??= new FaceEventLoggingSection();
 
             return configuration;
         }
@@ -92,6 +95,34 @@ namespace ControlEntradaSalida.Configuration
             /// 数据库命令超时时间（秒）。
             /// </summary>
             public int? CommandTimeoutSeconds { get; set; }
+        }
+
+        public sealed class FaceEventLoggingSection
+        {
+            /// <summary>
+            /// 是否启用人脸事件入库。
+            /// </summary>
+            public bool? Enabled { get; set; }
+
+            /// <summary>
+            /// 事件处理队列容量。
+            /// </summary>
+            public int? QueueCapacity { get; set; }
+
+            /// <summary>
+            /// 每批写库条数。
+            /// </summary>
+            public int? BatchSize { get; set; }
+
+            /// <summary>
+            /// 写库失败后的重试间隔（秒）。
+            /// </summary>
+            public int? RetryIntervalSeconds { get; set; }
+
+            /// <summary>
+            /// 设备重连后的补偿时间窗口（分钟）。
+            /// </summary>
+            public int? CompensationLookbackMinutes { get; set; }
         }
     }
 }

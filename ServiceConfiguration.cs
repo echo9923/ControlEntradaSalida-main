@@ -27,6 +27,8 @@ namespace ControlEntradaSalida
 
         public int GrpcPayloadLogMaxChars { get; private set; }
 
+        public FaceEventOptions FaceEvent { get; private set; }
+
         private ServiceConfiguration()
         {
         }
@@ -42,6 +44,7 @@ namespace ControlEntradaSalida
             configuration.LogRetentionDays = ResolveLogRetentionDays(serviceSection?.LogRetentionDays);
             configuration.LogGrpcPayloads = serviceSection?.LogGrpcPayloads ?? false;
             configuration.GrpcPayloadLogMaxChars = ResolvePayloadLogMaxChars(serviceSection?.GrpcPayloadLogMaxChars);
+            configuration.FaceEvent = ResolveFaceEventOptions(ExternalConfiguration.Current.FaceEventLogging);
 
             EnsureLogDirectory(configuration.LogDirectory);
 
@@ -89,6 +92,33 @@ namespace ControlEntradaSalida
             }
 
             return DefaultPayloadLogMaxChars;
+        }
+
+        private static FaceEventOptions ResolveFaceEventOptions(ExternalConfiguration.FaceEventLoggingSection section)
+        {
+            var options = new FaceEventOptions
+            {
+                Enabled = section?.Enabled ?? false,
+                QueueCapacity = Math.Max(100, section?.QueueCapacity ?? 2000),
+                BatchSize = Math.Max(1, section?.BatchSize ?? 20),
+                RetryIntervalSeconds = Math.Max(1, section?.RetryIntervalSeconds ?? 5),
+                CompensationLookbackMinutes = Math.Max(1, section?.CompensationLookbackMinutes ?? 60)
+            };
+
+            return options;
+        }
+
+        public sealed class FaceEventOptions
+        {
+            public bool Enabled { get; set; }
+
+            public int QueueCapacity { get; set; }
+
+            public int BatchSize { get; set; }
+
+            public int RetryIntervalSeconds { get; set; }
+
+            public int CompensationLookbackMinutes { get; set; }
         }
     }
 }

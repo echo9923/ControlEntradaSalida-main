@@ -56,6 +56,11 @@ namespace ControlEntradaSalida
         
         // 设备能力信息
         public DeviceCapabilities Capabilities { get; set; }
+
+        // 人脸事件相关状态
+        public int AlarmHandle { get; set; } = -1;
+        public long LastSerialNo { get; set; } = 0;
+        public DateTime LastFaceEventTime { get; set; } = DateTime.MinValue;
         
         // 最后一次错误信息
         public uint LastErrorCode { get; set; } = 0;

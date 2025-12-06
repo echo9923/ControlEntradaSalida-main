@@ -17,6 +17,7 @@ from __future__ import annotations
 import base64
 import json
 import sys
+import tempfile
 import traceback
 from dataclasses import dataclass
 from pathlib import Path
@@ -408,8 +409,12 @@ class MainWindow(QtWidgets.QMainWindow):
                 face_b64 = target.get("faceImageBase64")
                 if face_b64:
                     self._update_preview(face_b64)
-                    # 将抓拍结果写入本地 face_path 虚拟引用，后续 SyncPersons 可直接使用
-                    self._log("抓拍成功，可直接调用 SyncPersons 下发。")
+                    # 将抓拍的人脸保存到临时文件，方便后续 SyncPersons 使用
+                    temp_path = self._save_captured_face(face_b64)
+                    if temp_path:
+                        self.face_path_edit.setText(temp_path)
+                        self._log(f"抓拍成功，人脸已保存至: {temp_path}")
+                        self._log("可直接点击「下发人员+人脸」按钮完成下发。")
         if action == "GetEnrollmentStatus":
             self.task_label.setText(f"最近任务: {result.get('taskId', self.last_task_id) or '-'} 状态: {result.get('status')}")
 
@@ -435,6 +440,32 @@ class MainWindow(QtWidgets.QMainWindow):
         except Exception:
             return False
         return False
+
+    def _save_captured_face(self, face_b64: str) -> Optional[str]:
+        """将抓拍的人脸 base64 数据保存到临时文件，返回文件路径"""
+        try:
+            # 解码 base64 数据（处理可能存在的 data URI 前缀）
+            raw = base64.b64decode(face_b64.split(",")[-1])
+            
+            # 根据图片数据判断格式（简单检测魔数）
+            ext = ".jpg"
+            if raw[:8] == b'\x89PNG\r\n\x1a\n':
+                ext = ".png"
+            
+            # 使用员工 ID 作为文件名前缀，便于识别
+            employee_id = self.employee_edit.text().strip() or "unknown"
+            
+            # 创建临时文件（不自动删除，以便后续 SyncPersons 使用）
+            temp_dir = Path(tempfile.gettempdir()) / "face_capture"
+            temp_dir.mkdir(exist_ok=True)
+            temp_file = temp_dir / f"{employee_id}_captured{ext}"
+            
+            # 写入文件
+            temp_file.write_bytes(raw)
+            return str(temp_file)
+        except Exception as e:
+            self._log(f"保存抓拍人脸失败: {e}")
+            return None
 
 
 # -------------------- main --------------------
