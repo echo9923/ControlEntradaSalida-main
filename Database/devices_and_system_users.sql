@@ -89,6 +89,23 @@ EXEC sys.sp_addextendedproperty
     @level1type = N'TABLE',  @level1name = N'devices';
 GO
 
+/* ========== 初始化设备数据 ========== */
+INSERT INTO dbo.devices (device_id, device_name, ip_address, port, username, [password], description, status, created_at, updated_at) VALUES
+
+(10, N'物资仓库西门门禁进', N'10.98.26.50', N'8000', N'admin', N'xxzx@135', N'生产区域', 1, SYSDATETIME(), SYSDATETIME()),
+(11, N'生产区门禁右进', N'10.98.26.56', N'8000', N'admin', N'xxzx@135', N'生产区域', 1, SYSDATETIME(), SYSDATETIME()),
+(12, N'物资仓库西门门禁出', N'10.98.26.51', N'8000', N'admin', N'xxzx@135', N'生产区域', 1, SYSDATETIME(), SYSDATETIME()),
+(13, N'煤炭路门禁进', N'10.98.26.52', N'8000', N'admin', N'xxzx@135', N'生产区域', 1, SYSDATETIME(), SYSDATETIME()),
+(14, N'煤炭路门禁出', N'10.98.26.53', N'8000', N'admin', N'xxzx@135', N'生产区域', 1, SYSDATETIME(), SYSDATETIME()),
+(15, N'生产区门禁左进', N'10.98.26.54', N'8000', N'admin', N'xxzx@135', N'生产区域', 1, SYSDATETIME(), SYSDATETIME()),
+(16, N'生产区门禁左出', N'10.98.26.55', N'8000', N'admin', N'xxzx@135', N'生产区域', 1, SYSDATETIME(), SYSDATETIME()),
+(17, N'生产区门禁右出', N'10.98.26.57', N'8000', N'admin', N'xxzx@135', N'生产区域', 1, SYSDATETIME(), SYSDATETIME()),
+(18, N'生产区西门门禁左进', N'10.98.26.70', N'8000', N'admin', N'xxzx@135', N'生产区域', 1, SYSDATETIME(), SYSDATETIME()),
+(19, N'生产区西门门禁右进', N'10.98.26.69', N'8000', N'admin', N'xxzx@135', N'生产区域', 1, SYSDATETIME(), SYSDATETIME()),
+(20, N'生产区西门门禁左出', N'10.98.26.71', N'8000', N'admin', N'xxzx@135', N'生产区域', 1, SYSDATETIME(), SYSDATETIME()),
+(21, N'生产区西门门禁右出', N'10.98.26.72', N'8000', N'admin', N'xxzx@135', N'生产区域', 1, SYSDATETIME(), SYSDATETIME());
+GO
+
 /* ========== 人员表 system_users ========== */
 IF OBJECT_ID(N'dbo.system_users', N'U') IS NOT NULL
     DROP TABLE dbo.system_users;

@@ -2484,6 +2484,7 @@ CREATE TABLE [dbo].[attendance_gate] (
   [device_name] nvarchar(100) COLLATE Chinese_PRC_CI_AS  NULL,
   [device_sn] nvarchar(100) COLLATE Chinese_PRC_CI_AS  NULL,
   [card_no] nvarchar(64) COLLATE Chinese_PRC_CI_AS  NULL,
+  [snapshot_path] nvarchar(255) COLLATE Chinese_PRC_CI_AS  NULL,
   [raw_payload] varchar(max) COLLATE Chinese_PRC_CI_AS  NULL,
   [event_type] tinyint  NULL,
   [process_status] tinyint  NOT NULL,
@@ -2569,6 +2570,13 @@ EXEC sp_addextendedproperty
 'SCHEMA', N'dbo',
 'TABLE', N'attendance_gate',
 'COLUMN', N'card_no'
+GO
+
+EXEC sp_addextendedproperty
+'MS_Description', N'抓拍图片路径',
+'SCHEMA', N'dbo',
+'TABLE', N'attendance_gate',
+'COLUMN', N'snapshot_path'
 GO
 
 EXEC sp_addextendedproperty

@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.SqlClient;
+using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -26,6 +27,7 @@ namespace ControlEntradaSalida
         private readonly CancellationTokenSource cancellation = new CancellationTokenSource();
         private readonly List<Task> workers = new List<Task>();
         private readonly ConcurrentDictionary<int, int> remoteConfigHandles = new ConcurrentDictionary<int, int>();
+        private readonly ConcurrentDictionary<string, string> nicknameCache = new ConcurrentDictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
         private HCNetSDK.MSGCallBack alarmCallback;
         private bool callbackRegistered;
@@ -151,11 +153,40 @@ namespace ControlEntradaSalida
                 string deviceIp = SafeTrim(alarmer.sDeviceIP);
                 DeviceConnectionInfo device = DeviceConnectionManager.Instance.GetAllDevices()
                     .FirstOrDefault(d => string.Equals(d.IpAddress, deviceIp, StringComparison.OrdinalIgnoreCase));
+                string deviceSerialNumber = null;
+                string deviceNameFallback = null;
+
+                try
+                {
+                    if (alarmer.bySerialValid == 1 && alarmer.sSerialNumber != null && alarmer.sSerialNumber.Length > 0)
+                    {
+                        deviceSerialNumber = Encoding.ASCII.GetString(alarmer.sSerialNumber).TrimEnd('\0').Trim();
+                    }
+
+                    if (alarmer.byDeviceNameValid == 1 && !string.IsNullOrWhiteSpace(alarmer.sDeviceName))
+                    {
+                        deviceNameFallback = alarmer.sDeviceName.Trim();
+                    }
+                }
+                catch
+                {
+                    // 忽略读取报警设备信息失败
+                }
 
                 FaceEventRecord record = BuildRecordFromAlarm(info, deviceIp, device);
                 if (record == null)
                 {
                     return;
+                }
+
+                if (string.IsNullOrWhiteSpace(record.DeviceSerialNumber) && !string.IsNullOrWhiteSpace(deviceSerialNumber))
+                {
+                    record.DeviceSerialNumber = deviceSerialNumber;
+                }
+
+                if (device == null && !string.IsNullOrWhiteSpace(deviceNameFallback))
+                {
+                    record.DeviceName = deviceNameFallback;
                 }
 
                 Enqueue(record);
@@ -193,7 +224,9 @@ namespace ControlEntradaSalida
                 EventTime = eventTime,
                 UserId = acs.dwEmployeeNo != 0 ? acs.dwEmployeeNo.ToString() : string.Empty,
                 CardNo = ByteArrayToString(acs.byCardNo),
+                DeviceId = device?.Id ?? 0,
                 DeviceName = device != null ? device.Name : deviceIp,
+                DeviceSerialNumber = device?.SerialNumber,
                 DeviceIP = deviceIp,
                 VerifyMode = $"0x{info.dwMinor:X}",
                 SerialNo = GenerateSerial(eventTime, deviceIp),
@@ -363,31 +396,72 @@ namespace ControlEntradaSalida
                         cmd.Transaction = tran;
                         cmd.CommandTimeout = commandTimeoutSeconds;
                         cmd.CommandText =
-                            "IF NOT EXISTS (SELECT 1 FROM face_event_log WHERE DeviceIP=@DeviceIP AND SerialNo=@SerialNo) " +
-                            "BEGIN INSERT INTO face_event_log (EventType, EventTime, UserId, CardNo, DeviceName, DeviceIP, VerifyMode, SerialNo, Snapshot) " +
-                            "VALUES (@EventType, @EventTime, @UserId, @CardNo, @DeviceName, @DeviceIP, @VerifyMode, @SerialNo, @Snapshot); END";
+                            "IF NOT EXISTS (SELECT 1 FROM dbo.attendance_gate WHERE id=@Id) " +
+                            "BEGIN INSERT INTO dbo.attendance_gate (" +
+                            "id, username, nickname, record_datetime, record_date, record_time, direction, device_name, device_sn, snapshot_path, process_status, create_time, update_time, deleted, tenant_id" +
+                            ") VALUES (" +
+                            "@Id, @Username, @Nickname, @RecordDateTime, @RecordDate, @RecordTime, @Direction, @DeviceName, @DeviceSn, @SnapshotPath, @ProcessStatus, @CreateTime, @UpdateTime, @Deleted, @TenantId" +
+                            "); END";
 
-                        cmd.Parameters.Add("@EventType", SqlDbType.TinyInt);
-                        cmd.Parameters.Add("@EventTime", SqlDbType.DateTime2);
-                        cmd.Parameters.Add("@UserId", SqlDbType.NVarChar, 64);
-                        cmd.Parameters.Add("@CardNo", SqlDbType.NVarChar, 32);
-                        cmd.Parameters.Add("@DeviceName", SqlDbType.NVarChar, 128);
-                        cmd.Parameters.Add("@DeviceIP", SqlDbType.NVarChar, 45);
-                        cmd.Parameters.Add("@VerifyMode", SqlDbType.NVarChar, 32);
-                        cmd.Parameters.Add("@SerialNo", SqlDbType.BigInt);
-                        cmd.Parameters.Add("@Snapshot", SqlDbType.VarBinary, -1);
+                        cmd.Parameters.Add("@Id", SqlDbType.BigInt);
+                        cmd.Parameters.Add("@Username", SqlDbType.NVarChar, 30);
+                        cmd.Parameters.Add("@Nickname", SqlDbType.NVarChar, 50);
+                        cmd.Parameters.Add("@RecordDateTime", SqlDbType.DateTime2);
+                        cmd.Parameters.Add("@RecordDate", SqlDbType.Date);
+                        cmd.Parameters.Add("@RecordTime", SqlDbType.Time);
+                        cmd.Parameters.Add("@Direction", SqlDbType.TinyInt);
+                        cmd.Parameters.Add("@DeviceName", SqlDbType.NVarChar, 100);
+                        cmd.Parameters.Add("@DeviceSn", SqlDbType.NVarChar, 100);
+                        cmd.Parameters.Add("@SnapshotPath", SqlDbType.NVarChar, 255);
+                        cmd.Parameters.Add("@ProcessStatus", SqlDbType.TinyInt);
+                        cmd.Parameters.Add("@CreateTime", SqlDbType.DateTime2);
+                        cmd.Parameters.Add("@UpdateTime", SqlDbType.DateTime2);
+                        cmd.Parameters.Add("@Deleted", SqlDbType.VarChar, 1);
+                        cmd.Parameters.Add("@TenantId", SqlDbType.BigInt);
+
+                        DateTime now = DateTime.Now;
 
                         foreach (var item in batch)
                         {
-                            cmd.Parameters["@EventType"].Value = (byte)item.EventType;
-                            cmd.Parameters["@EventTime"].Value = item.EventTime;
-                            cmd.Parameters["@UserId"].Value = (object)item.UserId ?? DBNull.Value;
-                            cmd.Parameters["@CardNo"].Value = (object)item.CardNo ?? DBNull.Value;
-                            cmd.Parameters["@DeviceName"].Value = (object)item.DeviceName ?? DBNull.Value;
-                            cmd.Parameters["@DeviceIP"].Value = item.DeviceIP ?? string.Empty;
-                            cmd.Parameters["@VerifyMode"].Value = (object)item.VerifyMode ?? DBNull.Value;
-                            cmd.Parameters["@SerialNo"].Value = item.SerialNo;
-                            cmd.Parameters["@Snapshot"].Value = item.Snapshot ?? (object)DBNull.Value;
+                            string username = item.UserId?.Trim();
+                            if (string.IsNullOrWhiteSpace(username))
+                            {
+                                ServiceLogger.Warn($"人脸事件缺少员工工号，已跳过写入。设备: {item.DeviceName ?? item.DeviceIP}");
+                                continue;
+                            }
+
+                            string deviceName = !string.IsNullOrWhiteSpace(item.DeviceName)
+                                ? item.DeviceName
+                                : item.DeviceIP;
+
+                            string deviceSn = !string.IsNullOrWhiteSpace(item.DeviceSerialNumber)
+                                ? item.DeviceSerialNumber
+                                : item.DeviceIP;
+
+                            if (string.IsNullOrWhiteSpace(deviceSn))
+                            {
+                                ServiceLogger.Warn($"人脸事件缺少设备序列号，device_sn 将为空。设备: {deviceName}");
+                            }
+
+                            long id = BuildAttendanceGateId(item);
+                            string nickname = ResolveNickname(conn, tran, username);
+                            string snapshotPath = PersistSnapshot(item);
+
+                            cmd.Parameters["@Id"].Value = id;
+                            cmd.Parameters["@Username"].Value = username;
+                            cmd.Parameters["@Nickname"].Value = (object)nickname ?? DBNull.Value;
+                            cmd.Parameters["@RecordDateTime"].Value = item.EventTime;
+                            cmd.Parameters["@RecordDate"].Value = item.EventTime.Date;
+                            cmd.Parameters["@RecordTime"].Value = item.EventTime.TimeOfDay;
+                            cmd.Parameters["@Direction"].Value = (byte)1;
+                            cmd.Parameters["@DeviceName"].Value = (object)deviceName ?? DBNull.Value;
+                            cmd.Parameters["@DeviceSn"].Value = (object)deviceSn ?? DBNull.Value;
+                            cmd.Parameters["@SnapshotPath"].Value = (object)snapshotPath ?? DBNull.Value;
+                            cmd.Parameters["@ProcessStatus"].Value = (byte)0;
+                            cmd.Parameters["@CreateTime"].Value = now;
+                            cmd.Parameters["@UpdateTime"].Value = now;
+                            cmd.Parameters["@Deleted"].Value = "0";
+                            cmd.Parameters["@TenantId"].Value = 1;
 
                             cmd.ExecuteNonQuery();
                         }
@@ -409,7 +483,7 @@ namespace ControlEntradaSalida
                         ckCmd.Transaction = tran;
                         ckCmd.CommandTimeout = commandTimeoutSeconds;
                         ckCmd.CommandText =
-                            "MERGE face_event_checkpoint AS t " +
+                            "MERGE dbo.face_event_checkpoint AS t " +
                             "USING (VALUES (@DeviceIP, @LastSerialNo, @LastEventTime)) AS s(DeviceIP, LastSerialNo, LastEventTime) " +
                             "ON t.DeviceIP = s.DeviceIP " +
                             "WHEN MATCHED THEN UPDATE SET LastSerialNo = CASE WHEN s.LastSerialNo > t.LastSerialNo THEN s.LastSerialNo ELSE t.LastSerialNo END, " +
@@ -433,6 +507,197 @@ namespace ControlEntradaSalida
                     tran.Commit();
                 }
             }
+        }
+
+        private long BuildAttendanceGateId(FaceEventRecord record)
+        {
+            if (record == null)
+            {
+                return 0;
+            }
+
+            int deviceId = record.DeviceId > 0 ? record.DeviceId : 0;
+            uint serialNo = record.SerialNo > 0 && record.SerialNo <= uint.MaxValue ? (uint)record.SerialNo : 0;
+            if (deviceId > 0 && serialNo > 0)
+            {
+                return ((long)deviceId << 32) | serialNo;
+            }
+
+            return GenerateAttendanceGateHashId(record);
+        }
+
+        private static long GenerateAttendanceGateHashId(FaceEventRecord record)
+        {
+            string eventTime = record.EventTime.ToString("yyyy-MM-dd'T'HH:mm:ss");
+            string key = $"{record.UserId}|{record.DeviceIP}|{record.DeviceSerialNumber}|{eventTime}|{(byte)record.EventType}|{record.VerifyMode}";
+            ulong hash = Fnv1a64(key);
+            long id = (long)(hash & 0x7FFFFFFFFFFFFFFFUL);
+            return id == 0 ? 1 : id;
+        }
+
+        private static ulong Fnv1a64(string value)
+        {
+            const ulong offsetBasis = 14695981039346656037UL;
+            const ulong prime = 1099511628211UL;
+
+            ulong hash = offsetBasis;
+            if (string.IsNullOrEmpty(value))
+            {
+                return hash;
+            }
+
+            byte[] data = Encoding.UTF8.GetBytes(value);
+            for (int i = 0; i < data.Length; i++)
+            {
+                hash ^= data[i];
+                hash *= prime;
+            }
+
+            return hash;
+        }
+
+        private string ResolveNickname(SqlConnection conn, SqlTransaction tran, string username)
+        {
+            if (string.IsNullOrWhiteSpace(username) || conn == null)
+            {
+                return null;
+            }
+
+            if (nicknameCache.TryGetValue(username, out string cached))
+            {
+                return string.IsNullOrWhiteSpace(cached) ? null : cached;
+            }
+
+            try
+            {
+                using (SqlCommand cmd = conn.CreateCommand())
+                {
+                    cmd.Transaction = tran;
+                    cmd.CommandTimeout = commandTimeoutSeconds;
+                    cmd.CommandText = "SELECT TOP 1 nickname FROM dbo.system_users WHERE username=@Username AND deleted=0";
+                    cmd.Parameters.Add("@Username", SqlDbType.NVarChar, 30).Value = username;
+                    object result = cmd.ExecuteScalar();
+                    string nickname = result == null || result == DBNull.Value ? null : Convert.ToString(result);
+                    nicknameCache[username] = nickname ?? string.Empty;
+                    return string.IsNullOrWhiteSpace(nickname) ? null : nickname;
+                }
+            }
+            catch (Exception ex)
+            {
+                ServiceLogger.Error($"查询人员姓名失败，username={username}", ex);
+                nicknameCache.TryAdd(username, string.Empty);
+                return null;
+            }
+        }
+
+        private string PersistSnapshot(FaceEventRecord record)
+        {
+            if (record?.Snapshot == null || record.Snapshot.Length == 0)
+            {
+                return null;
+            }
+
+            string baseDir = ResolveDataDirectory();
+            if (string.IsNullOrWhiteSpace(baseDir))
+            {
+                return null;
+            }
+
+            string dateFolder = record.EventTime.ToString("yyyy-MM-dd");
+            string snapshotRoot = Path.Combine(baseDir, "snapshots", dateFolder);
+
+            try
+            {
+                Directory.CreateDirectory(snapshotRoot);
+            }
+            catch (Exception ex)
+            {
+                ServiceLogger.Error($"创建抓拍目录失败: {snapshotRoot}", ex);
+                return null;
+            }
+
+            string username = SanitizeFileNamePart(record.UserId);
+            if (string.IsNullOrWhiteSpace(username))
+            {
+                username = "unknown";
+            }
+
+            string timePart = record.EventTime.ToString("yyyy-MM-dd'T'HH-mm-ss");
+            string baseName = $"{username}_{timePart}";
+            string fileName = $"{baseName}.jpg";
+            string fullPath = Path.Combine(snapshotRoot, fileName);
+
+            if (File.Exists(fullPath))
+            {
+                for (int i = 1; i <= 1000; i++)
+                {
+                    fileName = $"{baseName}_{i}.jpg";
+                    fullPath = Path.Combine(snapshotRoot, fileName);
+                    if (!File.Exists(fullPath))
+                    {
+                        break;
+                    }
+                }
+            }
+            
+            if (File.Exists(fullPath))
+            {
+                fileName = $"{baseName}_{Guid.NewGuid():N}.jpg";
+                fullPath = Path.Combine(snapshotRoot, fileName);
+            }
+
+            try
+            {
+                File.WriteAllBytes(fullPath, record.Snapshot);
+
+                return Path.Combine("snapshots", dateFolder, fileName);
+            }
+            catch (Exception ex)
+            {
+                ServiceLogger.Error($"写入抓拍图片失败: {fullPath}", ex);
+                return null;
+            }
+        }
+
+        private static string ResolveDataDirectory()
+        {
+            if (!string.IsNullOrWhiteSpace(Common.datadir))
+            {
+                return Common.datadir;
+            }
+
+            try
+            {
+                Common.CrearDirectorioData();
+            }
+            catch
+            {
+                // ignore
+            }
+
+            if (!string.IsNullOrWhiteSpace(Common.datadir))
+            {
+                return Common.datadir;
+            }
+
+            string commonData = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+            return Path.Combine(commonData, "Neapps", "ControlEntradaSalida", "data");
+        }
+
+        private static string SanitizeFileNamePart(string value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return string.Empty;
+            }
+
+            string cleaned = value.Trim();
+            foreach (char c in Path.GetInvalidFileNameChars())
+            {
+                cleaned = cleaned.Replace(c.ToString(), string.Empty);
+            }
+
+            return cleaned;
         }
 
         private void FetchHistory(DeviceConnectionInfo device, CancellationToken token)
@@ -551,7 +816,9 @@ namespace ControlEntradaSalida
                 EventTime = ConvertToDateTime(cfg.struTime),
                 UserId = detail.dwEmployeeNo != 0 ? detail.dwEmployeeNo.ToString() : string.Empty,
                 CardNo = ByteArrayToString(detail.byCardNo),
+                DeviceId = device?.Id ?? 0,
                 DeviceName = device != null ? device.Name : device?.IpAddress,
+                DeviceSerialNumber = device?.SerialNumber,
                 DeviceIP = device?.IpAddress,
                 VerifyMode = $"0x{cfg.dwMinor:X}",
                 SerialNo = detail.dwSerialNo,
@@ -572,7 +839,7 @@ namespace ControlEntradaSalida
                 using (SqlCommand cmd = conn.CreateCommand())
                 {
                     cmd.CommandTimeout = commandTimeoutSeconds;
-                    cmd.CommandText = "SELECT LastSerialNo, LastEventTime FROM face_event_checkpoint WHERE DeviceIP=@DeviceIP";
+                    cmd.CommandText = "SELECT LastSerialNo, LastEventTime FROM dbo.face_event_checkpoint WHERE DeviceIP=@DeviceIP";
                     cmd.Parameters.Add("@DeviceIP", SqlDbType.NVarChar, 45).Value = deviceIp;
 
                     using (var reader = cmd.ExecuteReader())
@@ -717,7 +984,9 @@ namespace ControlEntradaSalida
             public DateTime EventTime { get; set; }
             public string UserId { get; set; }
             public string CardNo { get; set; }
+            public int DeviceId { get; set; }
             public string DeviceName { get; set; }
+            public string DeviceSerialNumber { get; set; }
             public string DeviceIP { get; set; }
             public string VerifyMode { get; set; }
             public long SerialNo { get; set; }

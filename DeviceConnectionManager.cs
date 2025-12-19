@@ -18,6 +18,7 @@ namespace ControlEntradaSalida
     {
         public int Id { get; set; }
         public string Name { get; set; }
+        public string SerialNumber { get; set; }
         public string IpAddress { get; set; }
         public string Port { get; set; }
         public string Username { get; set; }
@@ -535,6 +536,7 @@ namespace ControlEntradaSalida
                         device.IsConnected = true;
                         device.IsReconnecting = false;
                         device.RecordConnectionSuccess();
+                        device.SerialNumber = Encoding.ASCII.GetString(struDeviceInfoV40.struDeviceV30.sSerialNumber).TrimEnd('\0').Trim();
                         
                         // 获取设备能力信息
                         device.Capabilities = _statusEngine.GetDeviceCapabilities(lUserID);
