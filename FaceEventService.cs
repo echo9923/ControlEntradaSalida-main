@@ -23,11 +23,17 @@ namespace ControlEntradaSalida
         private readonly int commandTimeoutSeconds;
         private static readonly DateTime UnixEpoch = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
 
+        private const byte DefaultDirection = 1;
+        private const byte DefaultProcessStatus = 0;
+        private const long DefaultTenantId = 1;
+        private const string DefaultDeleted = "0";
+
         private readonly BlockingCollection<FaceEventRecord> eventQueue;
         private readonly CancellationTokenSource cancellation = new CancellationTokenSource();
         private readonly List<Task> workers = new List<Task>();
         private readonly ConcurrentDictionary<int, int> remoteConfigHandles = new ConcurrentDictionary<int, int>();
         private readonly ConcurrentDictionary<string, string> nicknameCache = new ConcurrentDictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        private readonly string snapshotRootDirectory;
 
         private HCNetSDK.MSGCallBack alarmCallback;
         private bool callbackRegistered;
@@ -56,6 +62,11 @@ namespace ControlEntradaSalida
             commandTimeoutSeconds = dbSection.CommandTimeoutSeconds.HasValue && dbSection.CommandTimeoutSeconds.Value > 0
                 ? dbSection.CommandTimeoutSeconds.Value
                 : 30;
+
+            string dataDirectory = ResolveDataDirectory();
+            snapshotRootDirectory = string.IsNullOrWhiteSpace(dataDirectory)
+                ? null
+                : Path.Combine(dataDirectory, "snapshots");
         }
 
         public void Start()
@@ -92,7 +103,7 @@ namespace ControlEntradaSalida
                 Task.Run(() => FetchHistory(device, cancellation.Token), cancellation.Token);
             }
 
-            ServiceLogger.Info("人脸事件入库服务已启动。");
+            ServiceLogger.Info("人脸事件入库服务已启动（写入进出记录表 attendance_gate）。");
         }
 
         private void OnDeviceConnectionStateChanged(object sender, DeviceConnectionEventArgs e)
@@ -223,7 +234,6 @@ namespace ControlEntradaSalida
                 EventType = eventType,
                 EventTime = eventTime,
                 UserId = acs.dwEmployeeNo != 0 ? acs.dwEmployeeNo.ToString() : string.Empty,
-                CardNo = ByteArrayToString(acs.byCardNo),
                 DeviceId = device?.Id ?? 0,
                 DeviceName = device != null ? device.Name : deviceIp,
                 DeviceSerialNumber = device?.SerialNumber,
@@ -377,7 +387,7 @@ namespace ControlEntradaSalida
                 }
                 catch (Exception ex)
                 {
-                    ServiceLogger.Error($"写入人脸事件失败，准备重试（第 {attempts} 次）。", ex);
+                    ServiceLogger.Error($"写入进出记录失败，准备重试（第 {attempts} 次）。", ex);
                     int delay = Math.Min(options.RetryIntervalSeconds * (int)Math.Pow(2, attempts - 1), 60);
                     Thread.Sleep(TimeSpan.FromSeconds(delay));
                 }
@@ -445,7 +455,7 @@ namespace ControlEntradaSalida
 
                             long id = BuildAttendanceGateId(item);
                             string nickname = ResolveNickname(conn, tran, username);
-                            string snapshotPath = PersistSnapshot(item);
+                            string snapshotPath = PersistSnapshot(id, item.EventTime, username, item.Snapshot);
 
                             cmd.Parameters["@Id"].Value = id;
                             cmd.Parameters["@Username"].Value = username;
@@ -453,15 +463,15 @@ namespace ControlEntradaSalida
                             cmd.Parameters["@RecordDateTime"].Value = item.EventTime;
                             cmd.Parameters["@RecordDate"].Value = item.EventTime.Date;
                             cmd.Parameters["@RecordTime"].Value = item.EventTime.TimeOfDay;
-                            cmd.Parameters["@Direction"].Value = (byte)1;
+                            cmd.Parameters["@Direction"].Value = DefaultDirection;
                             cmd.Parameters["@DeviceName"].Value = (object)deviceName ?? DBNull.Value;
                             cmd.Parameters["@DeviceSn"].Value = (object)deviceSn ?? DBNull.Value;
                             cmd.Parameters["@SnapshotPath"].Value = (object)snapshotPath ?? DBNull.Value;
-                            cmd.Parameters["@ProcessStatus"].Value = (byte)0;
+                            cmd.Parameters["@ProcessStatus"].Value = DefaultProcessStatus;
                             cmd.Parameters["@CreateTime"].Value = now;
                             cmd.Parameters["@UpdateTime"].Value = now;
-                            cmd.Parameters["@Deleted"].Value = "0";
-                            cmd.Parameters["@TenantId"].Value = 1;
+                            cmd.Parameters["@Deleted"].Value = DefaultDeleted;
+                            cmd.Parameters["@TenantId"].Value = DefaultTenantId;
 
                             cmd.ExecuteNonQuery();
                         }
@@ -590,70 +600,68 @@ namespace ControlEntradaSalida
             }
         }
 
-        private string PersistSnapshot(FaceEventRecord record)
+        private string PersistSnapshot(long attendanceGateId, DateTime eventTime, string username, byte[] snapshot)
         {
-            if (record?.Snapshot == null || record.Snapshot.Length == 0)
+            if (snapshot == null || snapshot.Length == 0)
             {
                 return null;
             }
 
-            string baseDir = ResolveDataDirectory();
-            if (string.IsNullOrWhiteSpace(baseDir))
+            if (string.IsNullOrWhiteSpace(snapshotRootDirectory))
             {
                 return null;
             }
 
-            string dateFolder = record.EventTime.ToString("yyyy-MM-dd");
-            string snapshotRoot = Path.Combine(baseDir, "snapshots", dateFolder);
+            string dateFolder = eventTime.ToString("yyyy-MM-dd");
+            string snapshotFolder = Path.Combine(snapshotRootDirectory, dateFolder);
 
             try
             {
-                Directory.CreateDirectory(snapshotRoot);
+                Directory.CreateDirectory(snapshotFolder);
             }
             catch (Exception ex)
             {
-                ServiceLogger.Error($"创建抓拍目录失败: {snapshotRoot}", ex);
+                ServiceLogger.Error($"创建抓拍目录失败: {snapshotFolder}", ex);
                 return null;
             }
 
-            string username = SanitizeFileNamePart(record.UserId);
-            if (string.IsNullOrWhiteSpace(username))
+            string safeUsername = SanitizeFileNamePart(username);
+            if (string.IsNullOrWhiteSpace(safeUsername))
             {
-                username = "unknown";
+                safeUsername = "unknown";
             }
 
-            string timePart = record.EventTime.ToString("yyyy-MM-dd'T'HH-mm-ss");
-            string baseName = $"{username}_{timePart}";
-            string fileName = $"{baseName}.jpg";
-            string fullPath = Path.Combine(snapshotRoot, fileName);
+            long stableId = attendanceGateId > 0 ? attendanceGateId : 1;
+            string timePart = eventTime.ToString("yyyy-MM-dd'T'HH-mm-ss");
+            string fileName = $"{safeUsername}_{timePart}_{stableId}.jpg";
+            string relativePath = Path.Combine("snapshots", dateFolder, fileName);
+            string fullPath = Path.Combine(snapshotFolder, fileName);
 
             if (File.Exists(fullPath))
             {
-                for (int i = 1; i <= 1000; i++)
+                return relativePath;
+            }
+
+            string tempPath = fullPath + ".tmp";
+            try
+            {
+                File.WriteAllBytes(tempPath, snapshot);
+
+                try
                 {
-                    fileName = $"{baseName}_{i}.jpg";
-                    fullPath = Path.Combine(snapshotRoot, fileName);
-                    if (!File.Exists(fullPath))
-                    {
-                        break;
-                    }
+                    File.Move(tempPath, fullPath);
                 }
-            }
-            
-            if (File.Exists(fullPath))
-            {
-                fileName = $"{baseName}_{Guid.NewGuid():N}.jpg";
-                fullPath = Path.Combine(snapshotRoot, fileName);
-            }
+                catch (IOException)
+                {
+                    // 并发或重试场景下文件已存在，视为成功
+                    TryDeleteFile(tempPath);
+                }
 
-            try
-            {
-                File.WriteAllBytes(fullPath, record.Snapshot);
-
-                return Path.Combine("snapshots", dateFolder, fileName);
+                return relativePath;
             }
             catch (Exception ex)
             {
+                TryDeleteFile(tempPath);
                 ServiceLogger.Error($"写入抓拍图片失败: {fullPath}", ex);
                 return null;
             }
@@ -698,6 +706,27 @@ namespace ControlEntradaSalida
             }
 
             return cleaned;
+        }
+
+
+        private static void TryDeleteFile(string path)
+        {
+            if (string.IsNullOrWhiteSpace(path))
+            {
+                return;
+            }
+
+            try
+            {
+                if (File.Exists(path))
+                {
+                    File.Delete(path);
+                }
+            }
+            catch
+            {
+                // 忽略清理临时文件时的异常
+            }
         }
 
         private void FetchHistory(DeviceConnectionInfo device, CancellationToken token)
@@ -815,7 +844,6 @@ namespace ControlEntradaSalida
                 EventType = eventType,
                 EventTime = ConvertToDateTime(cfg.struTime),
                 UserId = detail.dwEmployeeNo != 0 ? detail.dwEmployeeNo.ToString() : string.Empty,
-                CardNo = ByteArrayToString(detail.byCardNo),
                 DeviceId = device?.Id ?? 0,
                 DeviceName = device != null ? device.Name : device?.IpAddress,
                 DeviceSerialNumber = device?.SerialNumber,
@@ -895,21 +923,6 @@ namespace ControlEntradaSalida
             };
         }
 
-        private static string ByteArrayToString(byte[] data)
-        {
-            if (data == null || data.Length == 0)
-            {
-                return string.Empty;
-            }
-
-            int length = Array.IndexOf<byte>(data, 0);
-            if (length < 0)
-            {
-                length = data.Length;
-            }
-
-            return length == 0 ? string.Empty : Encoding.UTF8.GetString(data, 0, length).Trim();
-        }
 
         private static string SafeTrim(string value)
         {
@@ -983,7 +996,6 @@ namespace ControlEntradaSalida
             public FaceEventType EventType { get; set; }
             public DateTime EventTime { get; set; }
             public string UserId { get; set; }
-            public string CardNo { get; set; }
             public int DeviceId { get; set; }
             public string DeviceName { get; set; }
             public string DeviceSerialNumber { get; set; }
