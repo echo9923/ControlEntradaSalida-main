@@ -45,12 +45,7 @@ namespace ControlEntradaSalida
         /// <returns>如果是人脸录入仪则返回 true</returns>
         private static bool IsEnrollmentDevice(DeviceConnectionInfo device)
         {
-            if (device == null)
-            {
-                return false;
-            }
-
-            return string.Equals(device.Name, EnrollmentDeviceName, StringComparison.OrdinalIgnoreCase);
+            return IsEnrollmentDevice(device?.Name);
         }
 
         /// <summary>
@@ -78,23 +73,8 @@ namespace ControlEntradaSalida
                     return summary;
                 }
 
-                List<UserPermissionRecord> users = LoadUserPermissions(out List<string> newlyCreatedRecords);
+                List<UserPermissionRecord> users = LoadUserPermissions();
                 summary.TotalUsers = users.Count;
-
-                if (newlyCreatedRecords.Count > 0)
-                {
-                    try
-                    {
-                        InsertDefaultPermissionRecords(newlyCreatedRecords);
-                    }
-                    catch (Exception ex)
-                    {
-                        summary.Errors.Add(string.Format(CultureInfo.InvariantCulture,
-                            "初始化权限记录时发生错误：{0}", ex.Message));
-                        summary.UsersFailed = summary.TotalUsers;
-                        return summary;
-                    }
-                }
 
                 foreach (UserPermissionRecord user in users)
                 {
@@ -290,12 +270,7 @@ namespace ControlEntradaSalida
 
             lock (personSyncLock)
             {
-                EnsureDevicesLoaded();
-
-                // 排除人脸录入仪设备，该设备仅用于连接和人脸录入功能
-                List<DeviceConnectionInfo> onlineDevices = deviceManager.GetAllDevices()
-                    .Where(d => d.IsEnabled && d.IsConnected && d.UserID >= 0 && !IsEnrollmentDevice(d))
-                    .ToList();
+                List<DeviceConnectionInfo> onlineDevices = GetOnlineGateDevices();
 
                 summary.TargetDevices = onlineDevices.Count;
 
@@ -352,19 +327,62 @@ namespace ControlEntradaSalida
             }
         }
 
+
+        private bool TryOpenDatabase(out SqlServerDatabase db)
+        {
+            db = null;
+
+            string connStr = commonHelper.obtenerCadenaConexion();
+            db = new SqlServerDatabase(commonHelper.obtenerTiempoEsperaComando());
+            db.Connect(connStr);
+
+            if (db.Connection == null)
+            {
+                db.Dispose();
+                db = null;
+                return false;
+            }
+
+            return true;
+        }
+
+
+        private bool TryEnsureDeviceConnected(DeviceConnectionInfo device)
+        {
+            if (device == null)
+            {
+                return false;
+            }
+
+            if (device.IsConnected && device.UserID >= 0)
+            {
+                return true;
+            }
+
+            bool connected = deviceManager.ConnectToDevice(device);
+            return connected && device.UserID >= 0;
+        }
+
+        private List<DeviceConnectionInfo> GetOnlineGateDevices()
+        {
+            EnsureDevicesLoaded();
+
+            // 排除人脸录入仪设备，该设备仅用于连接和人脸录入功能
+            return deviceManager.GetAllDevices()
+                .Where(d => d.IsEnabled && d.IsConnected && d.UserID >= 0 && !IsEnrollmentDevice(d))
+                .ToList();
+        }
+
         private List<DeviceAreaInfo> LoadActiveDevices()
         {
             List<DeviceAreaInfo> devices = new List<DeviceAreaInfo>();
 
-            string connStr = commonHelper.obtenerCadenaConexion();
-            SqlServerDatabase db = new SqlServerDatabase(commonHelper.obtenerTiempoEsperaComando());
-            db.Connect(connStr);
-            if (db.Connection == null)
+            if (!TryOpenDatabase(out SqlServerDatabase db))
             {
                 return devices;
             }
 
-            try
+            using (db)
             {
                 const string sql = "SELECT device_id, device_name, description, status FROM devices";
                 using (SqlCommand cmd = db.CreateCommand(sql))
@@ -401,10 +419,6 @@ namespace ControlEntradaSalida
                     }
                 }
             }
-            finally
-            {
-                db.Disconnect();
-            }
 
             return devices;
         }
@@ -430,20 +444,16 @@ namespace ControlEntradaSalida
             return DeviceArea.Other;
         }
 
-        private List<UserPermissionRecord> LoadUserPermissions(out List<string> missingRecords)
+        private List<UserPermissionRecord> LoadUserPermissions()
         {
             List<UserPermissionRecord> users = new List<UserPermissionRecord>();
-            missingRecords = new List<string>();
 
-            string connStr = commonHelper.obtenerCadenaConexion();
-            SqlServerDatabase db = new SqlServerDatabase(commonHelper.obtenerTiempoEsperaComando());
-            db.Connect(connStr);
-            if (db.Connection == null)
+            if (!TryOpenDatabase(out SqlServerDatabase db))
             {
                 return users;
             }
 
-            try
+            using (db)
             {
                 // 从 system_users 表读取人员信息，username 字段即旧版 employee_id
                 string sql = @"SELECT username,
@@ -481,25 +491,18 @@ namespace ControlEntradaSalida
                     }
                 }
             }
-            finally
-            {
-                db.Disconnect();
-            }
 
             return users;
         }
 
         private UserPermissionRecord LoadUserPermission(string employeeId)
         {
-            string connStr = commonHelper.obtenerCadenaConexion();
-            SqlServerDatabase db = new SqlServerDatabase(commonHelper.obtenerTiempoEsperaComando());
-            db.Connect(connStr);
-            if (db.Connection == null)
+            if (!TryOpenDatabase(out SqlServerDatabase db))
             {
                 return null;
             }
 
-            try
+            using (db)
             {
                 const string sql = @"SELECT TOP (1) username,
                                              nickname,
@@ -532,25 +535,18 @@ namespace ControlEntradaSalida
                     }
                 }
             }
-            finally
-            {
-                db.Disconnect();
-            }
 
             return null;
         }
 
         private bool UpdatePermissionLevel(string employeeId, int permissionLevel)
         {
-            string connStr = commonHelper.obtenerCadenaConexion();
-            SqlServerDatabase db = new SqlServerDatabase(commonHelper.obtenerTiempoEsperaComando());
-            db.Connect(connStr);
-            if (db.Connection == null)
+            if (!TryOpenDatabase(out SqlServerDatabase db))
             {
                 return false;
             }
 
-            try
+            using (db)
             {
                 string sql = @"UPDATE system_users
                                SET access_permission = @level,
@@ -567,18 +563,8 @@ namespace ControlEntradaSalida
                     return affected > 0;
                 }
             }
-            finally
-            {
-                db.Disconnect();
-            }
         }
 
-        private void InsertDefaultPermissionRecords(IEnumerable<string> employeeIds)
-        {
-            // system_users 表中的 access_permission 已提供默认值，无需额外初始化
-            // 保留该方法仅为兼容历史流程
-            return;
-        }
 
         private RefreshResult ApplyPermissionToDevices(UserPermissionRecord user, List<DeviceAreaInfo> devices)
         {
@@ -637,15 +623,11 @@ namespace ControlEntradaSalida
                     device.DeviceName, user.EmployeeId));
             }
 
-            if (!connection.IsConnected || connection.UserID < 0)
+            if (!TryEnsureDeviceConnected(connection))
             {
-                bool connected = deviceManager.ConnectToDevice(connection);
-                if (!connected || connection.UserID < 0)
-                {
-                    return failure(string.Format(CultureInfo.InvariantCulture,
-                        "无法连接设备 {0}，刷新用户 {1} 权限失败。",
-                        device.DeviceName, user.EmployeeId));
-                }
+                return failure(string.Format(CultureInfo.InvariantCulture,
+                    "无法连接设备 {0}，刷新用户 {1} 权限失败。",
+                    device.DeviceName, user.EmployeeId));
             }
 
             string payload = BuildUserInfoPayload(user, connection, enable);
@@ -682,14 +664,10 @@ namespace ControlEntradaSalida
                     "无法定位同步人员 {0} 的目标设备。", person.EmployeeId));
             }
 
-            if (!device.IsConnected || device.UserID < 0)
+            if (!TryEnsureDeviceConnected(device))
             {
-                bool connected = deviceManager.ConnectToDevice(device);
-                if (!connected || device.UserID < 0)
-                {
-                    return DeviceUpdateResult.Fail(string.Format(CultureInfo.InvariantCulture,
-                        "无法连接设备 {0}，同步人员 {1} 失败。", device.Name, person.EmployeeId));
-                }
+                return DeviceUpdateResult.Fail(string.Format(CultureInfo.InvariantCulture,
+                    "无法连接设备 {0}，同步人员 {1} 失败。", device.Name, person.EmployeeId));
             }
 
             string payload = BuildPersonUserInfoPayload(person, device);
@@ -727,29 +705,37 @@ namespace ControlEntradaSalida
             return UploadFaceToDevice(device, person);
         }
 
-        private string BuildPersonUserInfoPayload(PersonSyncRequest person, DeviceConnectionInfo connection)
+        private static void BuildDoorRights(DeviceConnectionInfo connection, bool enable, out string doorRightValue, out object[] rightPlans)
         {
-            int doorCount = connection.Capabilities?.MaxDoorCount ?? 1;
+            int doorCount = connection?.Capabilities?.MaxDoorCount ?? 1;
             if (doorCount <= 0)
             {
                 doorCount = 1;
             }
 
-            bool enable = person.Enabled;
-            string doorRightValue = enable
-                ? string.Join(",", Enumerable.Range(1, doorCount)
-                    .Select(doorNo => doorNo.ToString(CultureInfo.InvariantCulture)))
-                : string.Empty;
+            if (!enable)
+            {
+                doorRightValue = string.Empty;
+                rightPlans = Array.Empty<object>();
+                return;
+            }
 
-            var rightPlans = enable && doorCount > 0
-                ? Enumerable.Range(1, doorCount)
-                    .Select(doorNo => new
-                    {
-                        doorNo,
-                        planTemplateNo = "1"
-                    })
-                    .ToArray()
-                : Array.Empty<object>();
+            doorRightValue = string.Join(",", Enumerable.Range(1, doorCount)
+                .Select(doorNo => doorNo.ToString(CultureInfo.InvariantCulture)));
+
+            rightPlans = Enumerable.Range(1, doorCount)
+                .Select(doorNo => (object)new
+                {
+                    doorNo,
+                    planTemplateNo = "1"
+                })
+                .ToArray();
+        }
+
+        private string BuildPersonUserInfoPayload(PersonSyncRequest person, DeviceConnectionInfo connection)
+        {
+            bool enable = person.Enabled;
+            BuildDoorRights(connection, enable, out string doorRightValue, out object[] rightPlans);
 
             string beginTime = FormatDateTimeValue(person.ValidFrom) ?? DefaultBeginTime;
             string endTime = FormatDateTimeValue(person.ValidTo) ?? DefaultEndTime;
@@ -780,28 +766,7 @@ namespace ControlEntradaSalida
 
         private string BuildUserInfoPayload(UserPermissionRecord user, DeviceConnectionInfo connection, bool enable)
         {
-            int doorCount = connection.Capabilities?.MaxDoorCount ?? 1;
-            if (doorCount <= 0)
-            {
-                doorCount = 1;
-            }
-
-            string doorRightValue = string.Empty;
-            if (enable && doorCount > 0)
-            {
-                doorRightValue = string.Join(",", Enumerable.Range(1, doorCount)
-                    .Select(doorNo => doorNo.ToString(CultureInfo.InvariantCulture)));
-            }
-
-            var rightPlans = enable && doorCount > 0
-                ? Enumerable.Range(1, doorCount)
-                    .Select(doorNo => new
-                    {
-                        doorNo,
-                        planTemplateNo = "1"
-                    })
-                    .ToArray()
-                : Array.Empty<object>();
+            BuildDoorRights(connection, enable, out string doorRightValue, out object[] rightPlans);
 
             var payload = new
             {
@@ -979,14 +944,10 @@ namespace ControlEntradaSalida
                 return FaceCaptureResult.Fail("未找到名称为'人脸录入仪'的设备。");
             }
 
-            if (!device.IsConnected || device.UserID < 0)
+            if (!TryEnsureDeviceConnected(device))
             {
-                bool connected = deviceManager.ConnectToDevice(device);
-                if (!connected || device.UserID < 0)
-                {
-                    return FaceCaptureResult.Fail(string.Format(CultureInfo.InvariantCulture,
-                        "无法连接设备 {0}。", device.Name));
-                }
+                return FaceCaptureResult.Fail(string.Format(CultureInfo.InvariantCulture,
+                    "无法连接设备 {0}。", device.Name));
             }
 
             // 根据技术规范2.4.6，使用NET_DVR_CAPTURE_FACE_INFO (2510)命令码进行人脸采集
@@ -1119,11 +1080,7 @@ namespace ControlEntradaSalida
 
             lock (personSyncLock)
             {
-                EnsureDevicesLoaded();
-                // 排除人脸录入仪设备，该设备仅用于连接和人脸录入功能
-                List<DeviceConnectionInfo> onlineDevices = deviceManager.GetAllDevices()
-                    .Where(d => d.IsEnabled && d.IsConnected && d.UserID >= 0 && !IsEnrollmentDevice(d))
-                    .ToList();
+                List<DeviceConnectionInfo> onlineDevices = GetOnlineGateDevices();
 
                 summary.TargetDevices = onlineDevices.Count;
                 if (onlineDevices.Count == 0)
@@ -1204,12 +1161,7 @@ namespace ControlEntradaSalida
 
             lock (personSyncLock)
             {
-                EnsureDevicesLoaded();
-
-                // 排除人脸录入仪设备，该设备仅用于连接和人脸录入功能
-                List<DeviceConnectionInfo> onlineDevices = deviceManager.GetAllDevices()
-                    .Where(d => d.IsEnabled && d.IsConnected && d.UserID >= 0 && !IsEnrollmentDevice(d))
-                    .ToList();
+                List<DeviceConnectionInfo> onlineDevices = GetOnlineGateDevices();
 
                 summary.TargetDevices = onlineDevices.Count;
 
@@ -1287,14 +1239,10 @@ namespace ControlEntradaSalida
                 return DeviceUpdateResult.Fail("未找到可用的设备。");
             }
 
-            if (!device.IsConnected || device.UserID < 0)
+            if (!TryEnsureDeviceConnected(device))
             {
-                bool connected = deviceManager.ConnectToDevice(device);
-                if (!connected || device.UserID < 0)
-                {
-                    return DeviceUpdateResult.Fail(string.Format(CultureInfo.InvariantCulture,
-                        "无法连接设备 {0}，删除人员 {1} 失败。", device.Name, employeeId));
-                }
+                return DeviceUpdateResult.Fail(string.Format(CultureInfo.InvariantCulture,
+                    "无法连接设备 {0}，删除人员 {1} 失败。", device.Name, employeeId));
             }
 
             // 根据海康威视 ISAPI 规范，使用 UserInfo/Delete 接口删除人员
@@ -1364,11 +1312,7 @@ namespace ControlEntradaSalida
 
             lock (personSyncLock)
             {
-                EnsureDevicesLoaded();
-                // 排除人脸录入仪设备，该设备仅用于连接和人脸录入功能
-                List<DeviceConnectionInfo> onlineDevices = deviceManager.GetAllDevices()
-                    .Where(d => d.IsEnabled && d.IsConnected && d.UserID >= 0 && !IsEnrollmentDevice(d))
-                    .ToList();
+                List<DeviceConnectionInfo> onlineDevices = GetOnlineGateDevices();
 
                 summary.TargetDevices = onlineDevices.Count;
                 if (onlineDevices.Count == 0)
@@ -1427,14 +1371,10 @@ namespace ControlEntradaSalida
                 return DeviceUpdateResult.Fail("未找到可用的设备。");
             }
 
-            if (!device.IsConnected || device.UserID < 0)
+            if (!TryEnsureDeviceConnected(device))
             {
-                bool connected = deviceManager.ConnectToDevice(device);
-                if (!connected || device.UserID < 0)
-                {
-                    return DeviceUpdateResult.Fail(string.Format(CultureInfo.InvariantCulture,
-                        "无法连接设备 {0}，删除人员 {1} 的人脸失败。", device.Name, employeeId));
-                }
+                return DeviceUpdateResult.Fail(string.Format(CultureInfo.InvariantCulture,
+                    "无法连接设备 {0}，删除人员 {1} 的人脸失败。", device.Name, employeeId));
             }
 
             // 根据技术规范2.4.3.3，FPID为数组格式，支持批量删除
@@ -1490,15 +1430,11 @@ namespace ControlEntradaSalida
                 return result;
             }
 
-            if (!device.IsConnected || device.UserID < 0)
+            if (!TryEnsureDeviceConnected(device))
             {
-                bool connected = deviceManager.ConnectToDevice(device);
-                if (!connected || device.UserID < 0)
-                {
-                    result.ErrorMessage = string.Format(CultureInfo.InvariantCulture,
-                        "无法连接设备 {0}，查询人员 {1} 人脸失败。", device.Name, employeeId);
-                    return result;
-                }
+                result.ErrorMessage = string.Format(CultureInfo.InvariantCulture,
+                    "无法连接设备 {0}，查询人员 {1} 人脸失败。", device.Name, employeeId);
+                return result;
             }
 
             // 根据技术规范2.4.1.4，faceLibType为必填字段
@@ -1791,15 +1727,12 @@ namespace ControlEntradaSalida
 
         private bool UpdateSyncedLevel(string employeeId, int permissionLevel)
         {
-            string connStr = commonHelper.obtenerCadenaConexion();
-            SqlServerDatabase db = new SqlServerDatabase(commonHelper.obtenerTiempoEsperaComando());
-            db.Connect(connStr);
-            if (db.Connection == null)
+            if (!TryOpenDatabase(out SqlServerDatabase db))
             {
                 return false;
             }
 
-            try
+            using (db)
             {
                 // 更新 system_users 表中的同步字段
                 string sql = @"UPDATE system_users
@@ -1816,10 +1749,6 @@ namespace ControlEntradaSalida
                     int affected = cmd.ExecuteNonQuery();
                     return affected > 0;
                 }
-            }
-            finally
-            {
-                db.Disconnect();
             }
         }
 

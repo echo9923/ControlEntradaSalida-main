@@ -28,6 +28,61 @@ namespace ControlEntradaSalida
                 return false;
             }
 
+            if (!ExecuteStdXmlConfig(userID,
+                    requestURL,
+                    inputParam,
+                    3 * 1024 * 1024,
+                    4096 * 4,
+                    out byte[] outputBytes,
+                    out outputStatus))
+            {
+                outputResult = "NET_DVR_STDXMLConfig failed, error code= " + iLastErr;
+                return false;
+            }
+
+            outputResult = Encoding.UTF8.GetString(outputBytes);
+            return true;
+        }
+
+        private string PtrToStringUtf8(IntPtr ptr)
+        {
+            if (ptr == IntPtr.Zero)
+            {
+                return null;
+            }
+
+            int length = 0;
+            while (Marshal.ReadByte(ptr, length) != 0)
+            {
+                length++;
+            }
+
+            if (length == 0)
+            {
+                return string.Empty;
+            }
+
+            byte[] buffer = new byte[length];
+            Marshal.Copy(ptr, buffer, 0, length);
+            return Encoding.UTF8.GetString(buffer);
+        }
+
+
+        /// <summary>
+        /// 统一封装 NET_DVR_STDXMLConfig 调用，避免重复的非托管内存分配与释放。
+        /// </summary>
+        private bool ExecuteStdXmlConfig(
+            int userID,
+            string requestURL,
+            string inputParam,
+            int outBufferSize,
+            int statusBufferSize,
+            out byte[] outputBytes,
+            out string outputStatus)
+        {
+            outputBytes = null;
+            outputStatus = null;
+
             HCNetSDK.NET_DVR_XML_CONFIG_INPUT inputStruct = new HCNetSDK.NET_DVR_XML_CONFIG_INPUT
             {
                 byRes = new byte[32],
@@ -73,9 +128,6 @@ namespace ControlEntradaSalida
                 inputStruct.lpInBuffer = payloadPtr;
                 inputStruct.dwInBufferSize = (uint)payloadBytes.Length;
 
-                int outBufferSize = 3 * 1024 * 1024;
-                int statusBufferSize = 4096 * 4;
-
                 outputPtr = Marshal.AllocHGlobal(outBufferSize);
                 statusPtr = Marshal.AllocHGlobal(statusBufferSize);
 
@@ -85,16 +137,29 @@ namespace ControlEntradaSalida
                 outputStruct.dwStatusSize = (uint)statusBufferSize;
 
                 bool success = HCNetSDK.NET_DVR_STDXMLConfig(userID, ref inputStruct, ref outputStruct);
+                outputStatus = PtrToStringUtf8(statusPtr);
+
                 if (!success)
                 {
                     iLastErr = HCNetSDK.NET_DVR_GetLastError();
-                    outputStatus = PtrToStringUtf8(statusPtr);
-                    outputResult = "NET_DVR_STDXMLConfig failed, error code= " + iLastErr;
+                    outputBytes = null;
                     return false;
                 }
 
-                outputResult = PtrToStringUtf8(outputPtr);
-                outputStatus = PtrToStringUtf8(statusPtr);
+                int length = (int)outputStruct.dwReturnedXMLSize;
+                if (length <= 0)
+                {
+                    outputBytes = Array.Empty<byte>();
+                    return true;
+                }
+
+                if (length > outBufferSize)
+                {
+                    length = outBufferSize;
+                }
+
+                outputBytes = new byte[length];
+                Marshal.Copy(outputPtr, outputBytes, 0, length);
                 return true;
             }
             finally
@@ -119,29 +184,6 @@ namespace ControlEntradaSalida
                     Marshal.FreeHGlobal(statusPtr);
                 }
             }
-        }
-
-        private string PtrToStringUtf8(IntPtr ptr)
-        {
-            if (ptr == IntPtr.Zero)
-            {
-                return null;
-            }
-
-            int length = 0;
-            while (Marshal.ReadByte(ptr, length) != 0)
-            {
-                length++;
-            }
-
-            if (length == 0)
-            {
-                return string.Empty;
-            }
-
-            byte[] buffer = new byte[length];
-            Marshal.Copy(ptr, buffer, 0, length);
-            return Encoding.UTF8.GetString(buffer);
         }
 
 
@@ -172,117 +214,13 @@ namespace ControlEntradaSalida
                 return false;
             }
 
-            HCNetSDK.NET_DVR_XML_CONFIG_INPUT inputStruct = new HCNetSDK.NET_DVR_XML_CONFIG_INPUT
-            {
-                byRes = new byte[32],
-                dwSize = (uint)Marshal.SizeOf(typeof(HCNetSDK.NET_DVR_XML_CONFIG_INPUT))
-            };
-
-            HCNetSDK.NET_DVR_XML_CONFIG_OUTPUT outputStruct = new HCNetSDK.NET_DVR_XML_CONFIG_OUTPUT
-            {
-                byRes = new byte[32],
-                dwSize = (uint)Marshal.SizeOf(typeof(HCNetSDK.NET_DVR_XML_CONFIG_OUTPUT))
-            };
-
-            string url = requestURL ?? string.Empty;
-            byte[] urlBytes = Encoding.UTF8.GetBytes(url);
-
-            string payload = inputParam ?? string.Empty;
-            byte[] payloadBytes = Encoding.UTF8.GetBytes(payload);
-
-            IntPtr urlPtr = IntPtr.Zero;
-            IntPtr payloadPtr = IntPtr.Zero;
-            IntPtr outputPtr = IntPtr.Zero;
-            IntPtr statusPtr = IntPtr.Zero;
-
-            try
-            {
-                urlPtr = Marshal.AllocHGlobal(urlBytes.Length + 1);
-                if (urlBytes.Length > 0)
-                {
-                    Marshal.Copy(urlBytes, 0, urlPtr, urlBytes.Length);
-                }
-                Marshal.WriteByte(urlPtr, urlBytes.Length, 0);
-
-                inputStruct.lpRequestUrl = urlPtr;
-                inputStruct.dwRequestUrlLen = (uint)urlBytes.Length;
-
-                payloadPtr = Marshal.AllocHGlobal(payloadBytes.Length + 1);
-                if (payloadBytes.Length > 0)
-                {
-                    Marshal.Copy(payloadBytes, 0, payloadPtr, payloadBytes.Length);
-                }
-                Marshal.WriteByte(payloadPtr, payloadBytes.Length, 0);
-
-                inputStruct.lpInBuffer = payloadPtr;
-                inputStruct.dwInBufferSize = (uint)payloadBytes.Length;
-
-                int outBufferSize = 1024 * 1024; // 1MB 足够单帧 JPEG
-                int statusBufferSize = 4096;
-
-                outputPtr = Marshal.AllocHGlobal(outBufferSize);
-                statusPtr = Marshal.AllocHGlobal(statusBufferSize);
-
-                outputStruct.lpOutBuffer = outputPtr;
-                outputStruct.dwOutBufferSize = (uint)outBufferSize;
-                outputStruct.lpStatusBuffer = statusPtr;
-                outputStruct.dwStatusSize = (uint)statusBufferSize;
-
-                bool success = HCNetSDK.NET_DVR_STDXMLConfig(userID, ref inputStruct, ref outputStruct);
-                if (!success)
-                {
-                    iLastErr = HCNetSDK.NET_DVR_GetLastError();
-                    outputStatus = PtrToStringUtf8(statusPtr);
-                    return false;
-                }
-
-                outputStatus = PtrToStringUtf8(statusPtr);
-
-                // 读取实际长度：如果返回数据中没有 '\0'，默认整个缓冲有效；否则读到首个 0 为止
-                int length = outBufferSize;
-                for (int i = 0; i < outBufferSize; i++)
-                {
-                    if (Marshal.ReadByte(outputPtr, i) == 0)
-                    {
-                        length = i;
-                        break;
-                    }
-                }
-
-                if (length > 0)
-                {
-                    outputBytes = new byte[length];
-                    Marshal.Copy(outputPtr, outputBytes, 0, length);
-                }
-                else
-                {
-                    outputBytes = Array.Empty<byte>();
-                }
-
-                return true;
-            }
-            finally
-            {
-                if (urlPtr != IntPtr.Zero)
-                {
-                    Marshal.FreeHGlobal(urlPtr);
-                }
-
-                if (payloadPtr != IntPtr.Zero)
-                {
-                    Marshal.FreeHGlobal(payloadPtr);
-                }
-
-                if (outputPtr != IntPtr.Zero)
-                {
-                    Marshal.FreeHGlobal(outputPtr);
-                }
-
-                if (statusPtr != IntPtr.Zero)
-                {
-                    Marshal.FreeHGlobal(statusPtr);
-                }
-            }
+            return ExecuteStdXmlConfig(userID,
+                requestURL,
+                inputParam,
+                1024 * 1024,
+                4096,
+                out outputBytes,
+                out outputStatus);
         }
 
         public int obtenerTiempoEsperaComando()

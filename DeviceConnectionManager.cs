@@ -287,71 +287,66 @@ namespace ControlEntradaSalida
         private int LoadDevicesFromDatabase()
         {
             int newDevices = 0;
-            Common cmn = new Common();
-            string connstr = cmn.obtenerCadenaConexion();
-            SqlServerDatabase db = new SqlServerDatabase(cmn.obtenerTiempoEsperaComando());
-            db.Connect(connstr);
 
-            if (db.Connection == null)
+            if (!TryOpenDatabase(out SqlServerDatabase db))
             {
                 ServiceLogger.Warn("数据库连接失败，无法加载设备列表。");
                 return newDevices;
             }
 
-            string sql = "SELECT device_id, device_name, ip_address, port, username, password, status, last_used_time FROM devices";
-
-            try
+            using (db)
             {
-                HashSet<int> knownDeviceIds = new HashSet<int>(_devices.Select(d => d.Id));
+                string sql = "SELECT device_id, device_name, ip_address, port, username, password, status, last_used_time FROM devices";
 
-                using (SqlCommand cmd = db.CreateCommand(sql))
-                using (SqlDataReader rdr = cmd.ExecuteReader())
+                try
                 {
-                    while (rdr.Read())
+                    HashSet<int> knownDeviceIds = new HashSet<int>(_devices.Select(d => d.Id));
+
+                    using (SqlCommand cmd = db.CreateCommand(sql))
+                    using (SqlDataReader rdr = cmd.ExecuteReader())
                     {
-                        int deviceId = Convert.ToInt32(rdr["device_id"]);
-                        if (!knownDeviceIds.Add(deviceId))
+                        while (rdr.Read())
                         {
-                            continue;
+                            int deviceId = Convert.ToInt32(rdr["device_id"]);
+                            if (!knownDeviceIds.Add(deviceId))
+                            {
+                                continue;
+                            }
+
+                            DeviceConnectionInfo device = new DeviceConnectionInfo
+                            {
+                                Id = deviceId,
+                                Name = rdr["device_name"].ToString(),
+                                IpAddress = rdr["ip_address"].ToString(),
+                                Port = rdr["port"].ToString(),
+                                Username = rdr["username"].ToString(),
+                                Password = rdr["password"].ToString(),
+                                IsEnabled = Convert.ToInt32(rdr["status"]) == 1,
+                                LastUsed = rdr["last_used_time"] != DBNull.Value ? Convert.ToDateTime(rdr["last_used_time"]) : DateTime.MinValue
+                            };
+
+                            _connectionSemaphores.TryAdd(device.Id,
+                                SynchronizationHelper.CreateSemaphore(1, 1, $"Device-{device.Id}-Connection"));
+
+                            _devices.Add(device);
+                            newDevices++;
                         }
+                    }
 
-                        DeviceConnectionInfo device = new DeviceConnectionInfo
-                        {
-                            Id = deviceId,
-                            Name = rdr["device_name"].ToString(),
-                            IpAddress = rdr["ip_address"].ToString(),
-                            Port = rdr["port"].ToString(),
-                            Username = rdr["username"].ToString(),
-                            Password = rdr["password"].ToString(),
-                            IsEnabled = Convert.ToInt32(rdr["status"]) == 1,
-                            LastUsed = rdr["last_used_time"] != DBNull.Value ? Convert.ToDateTime(rdr["last_used_time"]) : DateTime.MinValue
-                        };
-
-                        _connectionSemaphores.TryAdd(device.Id,
-                            SynchronizationHelper.CreateSemaphore(1, 1, $"Device-{device.Id}-Connection"));
-
-                        _devices.Add(device);
-                        newDevices++;
+                    if (newDevices > 0)
+                    {
+                        ServiceLogger.Info($"数据库查询完成，共加载 {newDevices} 台设备。");
+                    }
+                    else
+                    {
+                        ServiceLogger.Warn("数据库查询完成，但未找到任何设备记录。");
                     }
                 }
-
-                if (newDevices > 0)
+                catch (Exception ex)
                 {
-                    ServiceLogger.Info($"数据库查询完成，共加载 {newDevices} 台设备。");
+                    ServiceLogger.Error("加载设备信息失败。", ex);
+                    OnDeviceError(new DeviceErrorEventArgs(null, 0, $"加载设备信息失败: {ex.Message}", ex, "Database"));
                 }
-                else
-                {
-                    ServiceLogger.Warn("数据库查询完成，但未找到任何设备记录。");
-                }
-            }
-            catch (Exception ex)
-            {
-                ServiceLogger.Error("加载设备信息失败。", ex);
-                OnDeviceError(new DeviceErrorEventArgs(null, 0, $"加载设备信息失败: {ex.Message}", ex, "Database"));
-            }
-            finally
-            {
-                db.Disconnect();
             }
 
             return newDevices;
@@ -1015,18 +1010,37 @@ namespace ControlEntradaSalida
         /// 更新设备最后使用时间
         /// </summary>
         /// <param name="deviceId">设备ID</param>
+        private bool TryOpenDatabase(out SqlServerDatabase db)
+        {
+            db = null;
+
+            Common common = new Common();
+            string connStr = common.obtenerCadenaConexion();
+            db = new SqlServerDatabase(common.obtenerTiempoEsperaComando());
+            db.Connect(connStr);
+
+            if (db.Connection == null)
+            {
+                db.Dispose();
+                db = null;
+                return false;
+            }
+
+            return true;
+        }
+
         private void UpdateDeviceLastUsed(int deviceId)
         {
-            try
+            Task.Run(() =>
             {
-                Task.Run(() =>
+                try
                 {
-                    Common cmn = new Common();
-                    string connstr = cmn.obtenerCadenaConexion();
-                    SqlServerDatabase db = new SqlServerDatabase(cmn.obtenerTiempoEsperaComando());
-                    db.Connect(connstr);
-                    
-                    if (db.Connection != null)
+                    if (!TryOpenDatabase(out SqlServerDatabase db))
+                    {
+                        return;
+                    }
+
+                    using (db)
                     {
                         const string sql = "UPDATE devices SET last_used_time = SYSDATETIME() WHERE device_id = @device_id";
                         using (SqlCommand cmd = db.CreateCommand(sql))
@@ -1034,16 +1048,14 @@ namespace ControlEntradaSalida
                             cmd.Parameters.AddWithValue("@device_id", deviceId);
                             cmd.ExecuteNonQuery();
                         }
-
-                        db.Disconnect();
                     }
-                });
-            }
-            catch (Exception ex)
-            {
-                // 记录错误但不中断流程
-                ServiceLogger.Error("更新设备最后使用时间时出错。", ex);
-            }
+                }
+                catch (Exception ex)
+                {
+                    // 记录错误但不中断流程
+                    ServiceLogger.Error("更新设备最后使用时间时出错。", ex);
+                }
+            });
         }
         
         #endregion
