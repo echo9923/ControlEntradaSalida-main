@@ -1097,29 +1097,43 @@ namespace ControlEntradaSalida
                         EmployeeId = id
                     };
 
+                    int failedDevices = 0;
+                    List<string> deviceErrors = new List<string>();
+
                     foreach (DeviceConnectionInfo device in onlineDevices)
                     {
                         DeviceUpdateResult result = DeleteFaceOnDevice(device, id);
-                        if (result.Success)
+                        if (!result.Success)
                         {
-                            item.Success = true;
-                            break;
+                            failedDevices++;
+                            if (!string.IsNullOrWhiteSpace(result.ErrorMessage))
+                            {
+                                deviceErrors.Add(result.ErrorMessage);
+                            }
                         }
-
-                        item.Error = result.ErrorMessage;
                     }
 
-                    if (item.Success)
+                    if (failedDevices == 0)
                     {
+                        item.Success = true;
                         summary.Succeeded++;
                     }
                     else
                     {
+                        item.Success = false;
                         summary.Failed++;
-                        if (!string.IsNullOrWhiteSpace(item.Error))
-                        {
-                            summary.Errors.Add(item.Error);
-                        }
+
+                        string detail = deviceErrors.Count == 0
+                            ? string.Format(CultureInfo.InvariantCulture,
+                                "员工 {0} 在 {1} 台设备上删除人脸失败。", id, failedDevices)
+                            : string.Format(CultureInfo.InvariantCulture,
+                                "员工 {0} 在 {1} 台设备上删除人脸失败：{2}",
+                                id,
+                                failedDevices,
+                                string.Join("; ", deviceErrors.Take(3)));
+
+                        item.Error = detail;
+                        summary.Errors.Add(detail);
                     }
 
                     summary.Items.Add(item);
@@ -1393,9 +1407,11 @@ namespace ControlEntradaSalida
                 out string outputResult,
                 out string outputStatus);
 
+            string responseContent = string.IsNullOrWhiteSpace(outputResult) ? outputStatus : outputResult;
+
             if (!result)
             {
-                string errorMessage = ParseErrorMessage(outputStatus ?? outputResult);
+                string errorMessage = ParseErrorMessage(responseContent);
                 return DeviceUpdateResult.Fail(string.Format(CultureInfo.InvariantCulture,
                     "设备 {0} 删除人员 {1} 的人脸失败：{2}",
                     device.Name,
@@ -1403,9 +1419,11 @@ namespace ControlEntradaSalida
                     errorMessage));
             }
 
-            if (!IsResponseOk(outputResult))
+            responseContent = ExtractJsonFromMultipart(responseContent);
+
+            if (!IsResponseOkFromContent(responseContent))
             {
-                string errorMessage = ParseErrorMessage(outputResult);
+                string errorMessage = ParseErrorMessage(responseContent);
                 return DeviceUpdateResult.Fail(string.Format(CultureInfo.InvariantCulture,
                     "设备 {0} 返回错误，人员 {1} 人脸未删除：{2}",
                     device.Name,
