@@ -966,40 +966,104 @@ namespace ControlEntradaSalida
             public string sInfo;
         }
 
-        //  ACS event informations
-        public struct NET_DVR_ACS_EVENT_INFO
+        // ACS event informations（门禁事件参数）
+        // 说明：为兼容不同设备/SDK 版本，保留旧版结构体（V1）作为回退使用。
+        public struct NET_DVR_ACS_EVENT_INFO_V1
         {
             public uint dwSize;
             [MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = ACS_CARD_NO_LEN, ArraySubType = UnmanagedType.I1)]
-            public byte[] byCardNo; // card No, 0 means invalid 
-            public byte byCardType; // card type,1-ordinary card,2-disable card,3-black list card, 4-patrol card,5-stress card,6-super card,7-client card, 0 means invalid
-            public byte byWhiteListNo;  // white list No, 1-8, 0 means invalid
-            public byte byReportChannel; // report channel, 1-alarmin updata, 2-center group 1, 3-center group 2, 0 means invalid
-            public byte byCardReaderKind; // card reader type: 0-invalid, 1-IC card reader, 2-Id card reader, 3-Qr code reader, 4-Fingerprint head
-            public uint dwCardReaderNo;  // card reader No, 0 means invalid
-            public uint dwDoorNo;   // door No(floor No), 0 means invalid
-            public uint dwVerifyNo;  // mutilcard verify No. 0 means invalid
-            public uint dwAlarmInNo;  // alarm in No, 0 means invalid
-            public uint dwAlarmOutNo;  // alarm out No 0 means invalid
-            public uint dwCaseSensorNo;   // case sensor No 0 means invalid
-            public uint dwRs485No;  // RS485 channel,0 means invalid
-            public uint dwMultiCardGroupNo;  // multicard group No.
-            public ushort wAccessChannel;      // Staff channel number 
-            public byte byDeviceNo;  // device No,0 means invalid
-            public byte byDistractControlNo;  // distract control,0 means invalid
-            public uint dwEmployeeNo;   // employee No,0 means invalid
-            public ushort wLocalControllerID; // On the controller number, 0 - access the host, 1-64 on behalf of the local controller 
-            public byte byInternetAccess;  // Internet access ID (1-uplink network port 1, 2-uplink network port 2,3- downstream network interface 1
-            public byte byType; // protection zone type, 0-real time, 1-24 hours, 2-delay, 3-internal, 4-the key, 5-fire, 6-perimeter, 7-24 hours of silent
-                                // 8-24 hours auxiliary, 9-24 hours vibration, 10-door emergency open, 11-door emergency shutdown, 0xff-null
+            public byte[] byCardNo; // card No, 0 means invalid
+            public byte byCardType;
+            public byte byWhiteListNo;
+            public byte byReportChannel;
+            public byte byCardReaderKind;
+            public uint dwCardReaderNo;
+            public uint dwDoorNo;
+            public uint dwVerifyNo;
+            public uint dwAlarmInNo;
+            public uint dwAlarmOutNo;
+            public uint dwCaseSensorNo;
+            public uint dwRs485No;
+            public uint dwMultiCardGroupNo;
+            public ushort wAccessChannel;
+            public byte byDeviceNo;
+            public byte byDistractControlNo;
+            public uint dwEmployeeNo;
+            public ushort wLocalControllerID;
+            public byte byInternetAccess;
+            public byte byType;
             [MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = MACADDR_LEN, ArraySubType = UnmanagedType.I1)]
-            public byte[] byMACAddr; // mac addr 0 means invalid
-            public byte bySwipeCardType;// swipe card type, 0-invalid,1-Qr code
+            public byte[] byMACAddr;
+            public byte bySwipeCardType;
             [MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = 13, ArraySubType = UnmanagedType.I1)]
             public byte[] byRes;
         }
 
-        // Entrance guard alarm information structure
+        /// <summary>
+        /// 门禁事件参数（按《设备网络SDK编程指南（明眸-以人为中心）/技术规范.md》补齐关键字段）。
+        /// </summary>
+        public struct NET_DVR_ACS_EVENT_INFO
+        {
+            public uint dwSize;
+            [MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = ACS_CARD_NO_LEN, ArraySubType = UnmanagedType.I1)]
+            public byte[] byCardNo; // 卡号，为 0 无效
+            public byte byCardType; // 卡类型
+            public byte byAllowListNo; // 授权名单单号
+            public byte byReportChannel;
+            public byte byCardReaderKind;
+            public uint dwCardReaderNo;
+            public uint dwDoorNo;
+            public uint dwVerifyNo;
+            public uint dwAlarmInNo;
+            public uint dwAlarmOutNo;
+            public uint dwCaseSensorNo;
+            public uint dwRs485No;
+            public uint dwMultiCardGroupNo;
+            public ushort wAccessChannel;
+            public byte byDeviceNo;
+            public byte byDistractControlNo;
+            public uint dwEmployeeNo; // 工号（数值形式），0 为无效
+            public ushort wLocalControllerID;
+            public byte byInternetAccess;
+            public byte byType;
+            [MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = MACADDR_LEN, ArraySubType = UnmanagedType.I1)]
+            public byte[] byMACAddr;
+            public byte bySwipeCardType;
+            public byte byMask; // 是否带口罩：0-保留，1-未知，2-不戴口罩，3-戴口罩
+            public uint dwSerialNo; // 事件流水号，为 0 无效
+            public byte byChannelControllerID;
+            public byte byChannelControllerLampID;
+            public byte byChannelControllerIRAdaptorID;
+            public byte byChannelControllerIREmitterID;
+            public byte byHelmet; // 是否戴安全帽：0-保留，1-未知，2-不戴，3-戴
+            [MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = 3, ArraySubType = UnmanagedType.I1)]
+            public byte[] byRes;
+        }
+
+        // Entrance guard alarm information structure（报警回调结构体）
+        public struct NET_DVR_ACS_ALARM_INFO_V1
+        {
+            public uint dwSize;
+            public uint dwMajor;
+            public uint dwMinor;
+            public NET_DVR_TIME struTime;
+            [MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = MAX_NAMELEN, ArraySubType = UnmanagedType.I1)]
+            public byte[] sNetUser;
+            public NET_DVR_IPADDR struRemoteHostAddr;
+            public NET_DVR_ACS_EVENT_INFO_V1 struAcsEventInfo;
+            public uint dwPicDataLen;
+            public IntPtr pPicData;
+            [MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = 24, ArraySubType = UnmanagedType.I1)]
+            public byte[] byRes;
+        }
+
+        /// <summary>
+        /// 门禁报警信息结构体（COMM_ALARM_ACS 回调参数）。
+        /// 
+        /// 关键字段：
+        /// - byPicTransType：图片传输方式（0-二进制，1-URL）
+        /// - pAcsEventInfoExtend：扩展信息指针（dwFrontSerialNo、byEmployeeNo 等）
+        /// </summary>
         public struct NET_DVR_ACS_ALARM_INFO
         {
             public uint dwSize;
@@ -1010,10 +1074,34 @@ namespace ControlEntradaSalida
             public byte[] sNetUser;  // net operator user
             public NET_DVR_IPADDR struRemoteHostAddr; // remote host address
             public NET_DVR_ACS_EVENT_INFO struAcsEventInfo;
-            public uint dwPicDataLen; // picture length, when 0 ,means has no picture
-            public IntPtr pPicData;  // picture data
-            [MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = 24, ArraySubType = UnmanagedType.I1)]
+            public uint dwPicDataLen; // picture length
+            public IntPtr pPicData;  // picture data / URL
+            public ushort wInductiveEventType;
+            public byte byPicTransType; // 0-binary, 1-URL
+            public byte byRes1;
+            public uint dwIOTChannelNo;
+            public IntPtr pAcsEventInfoExtend;
+            public byte byAcsEventInfoExtend;
+            public byte byTimeType; // 0-设备本地时间，1-UTC
+            public byte byRes2;
+            public byte byAcsEventInfoExtendV20;
+            public IntPtr pAcsEventInfoExtendV20;
+            [MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = 4, ArraySubType = UnmanagedType.I1)]
             public byte[] byRes;
+        }
+
+        /// <summary>
+        /// 门禁事件扩展信息（仅定义本项目用到的前缀字段，降低不同版本结构体差异风险）。
+        /// </summary>
+        public struct NET_DVR_ACS_EVENT_INFO_EXTEND
+        {
+            public uint dwFrontSerialNo;
+            public byte byUserType;
+            public byte byCurrentVerifyMode;
+            public byte byCurrentEvent;
+            public byte byPurePwdVerifyEnable;
+            [MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = NET_SDK_EMPLOYEE_NO_LEN, ArraySubType = UnmanagedType.I1)]
+            public byte[] byEmployeeNo;
         }
 
         [StructLayout(LayoutKind.Sequential)]
@@ -1036,6 +1124,33 @@ namespace ControlEntradaSalida
                 byAlarmInfoType = 1;      // 返回扩展报警信息
                 byRetAlarmTypeV40 = 1;    // V40 报警类型
                 byRetDevInfoVersion = 1;  // 返回新设备信息
+            }
+
+            /// <summary>
+            /// 设置布防类型（技术规范：0-客户端布防（支持实时+离线），1-实时布防（仅实时））。
+            /// 
+            /// 说明：厂商《技术规范.md》给出的 NET_DVR_SETUPALARM_PARAM 字段与本项目当前结构体字段存在差异。
+            /// 按规范，byDeployType 位于 dwSize + byRes2[10] 之后（整体偏移 14）。
+            /// 本结构体通过 byRes[4] 映射该字段以尽量兼容不同版本。
+            /// </summary>
+            public void SetDeployType(byte deployType)
+            {
+                if (byRes == null || byRes.Length < 5)
+                {
+                    byRes = new byte[10];
+                }
+
+                byRes[4] = deployType;
+            }
+
+            public byte GetDeployType()
+            {
+                if (byRes == null || byRes.Length < 5)
+                {
+                    return 0;
+                }
+
+                return byRes[4];
             }
         }
 

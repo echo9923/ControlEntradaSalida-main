@@ -102,7 +102,8 @@ namespace ControlEntradaSalida
                 QueueCapacity = Math.Max(100, section?.QueueCapacity ?? 2000),
                 BatchSize = Math.Max(1, section?.BatchSize ?? 20),
                 RetryIntervalSeconds = Math.Max(1, section?.RetryIntervalSeconds ?? 5),
-                CompensationLookbackMinutes = Math.Max(1, section?.CompensationLookbackMinutes ?? 60)
+                CompensationLookbackMinutes = Math.Max(1, section?.CompensationLookbackMinutes ?? 60),
+                AlarmDeployType = (byte)(((section?.AlarmDeployType ?? 0) == 1) ? 1 : 0)
             };
 
             return options;
@@ -119,6 +120,8 @@ namespace ControlEntradaSalida
             public int RetryIntervalSeconds { get; set; }
 
             public int CompensationLookbackMinutes { get; set; }
+
+            public byte AlarmDeployType { get; set; }
         }
     }
 }

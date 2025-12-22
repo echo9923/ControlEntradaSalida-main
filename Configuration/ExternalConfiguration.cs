@@ -123,6 +123,11 @@ namespace ControlEntradaSalida.Configuration
             /// 设备重连后的补偿时间窗口（分钟）。
             /// </summary>
             public int? CompensationLookbackMinutes { get; set; }
+
+            /// <summary>
+            /// 报警布防类型（技术规范：0-客户端布防（实时+离线），1-实时布防（仅实时））。
+            /// </summary>
+            public int? AlarmDeployType { get; set; }
         }
     }
 }

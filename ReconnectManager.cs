@@ -88,6 +88,7 @@ namespace ControlEntradaSalida
         private readonly System.Timers.Timer _reconnectTimer;
         private readonly Random _random;
         private readonly object _lockObject = new object();
+        private int _reconnectTimerRunning;
         private volatile bool _disposed = false;
         
         #endregion
@@ -343,25 +344,41 @@ namespace ControlEntradaSalida
         /// <summary>
         /// 重连定时器处理
         /// </summary>
-        private async void OnReconnectTimerElapsed(object sender, ElapsedEventArgs e)
+        private void OnReconnectTimerElapsed(object sender, ElapsedEventArgs e)
         {
-            if (_disposed) return;
+            if (_disposed)
+            {
+                return;
+            }
 
-            try
+            // 避免 async void 定时器重入
+            if (Interlocked.Exchange(ref _reconnectTimerRunning, 1) == 1)
             {
-                var pendingDevices = GetPendingReconnectDevices();
-                
-                if (pendingDevices.Count > 0)
+                return;
+            }
+
+            _ = Task.Run(() =>
+            {
+                try
                 {
-                    // 通知设备连接管理器处理待重连设备
-                    await Task.Run(() => ProcessPendingReconnects?.Invoke(pendingDevices));
+                    var pendingDevices = GetPendingReconnectDevices();
+
+                    if (pendingDevices.Count > 0)
+                    {
+                        // 通知设备连接管理器处理待重连设备
+                        ProcessPendingReconnects?.Invoke(pendingDevices);
+                    }
                 }
-            }
-            catch (Exception ex)
-            {
-                // 记录错误但不中断定时器
-                ServiceLogger.Error("重连定时器处理异常。", ex);
-            }
+                catch (Exception ex)
+                {
+                    // 记录错误但不中断定时器
+                    ServiceLogger.Error("重连定时器处理异常。", ex);
+                }
+                finally
+                {
+                    Interlocked.Exchange(ref _reconnectTimerRunning, 0);
+                }
+            });
         }
 
         #endregion

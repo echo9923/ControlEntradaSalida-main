@@ -21,7 +21,6 @@ namespace ControlEntradaSalida
         private readonly ServiceConfiguration.FaceEventOptions options;
         private readonly string connectionString;
         private readonly int commandTimeoutSeconds;
-        private static readonly DateTime UnixEpoch = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
 
         private const byte DefaultDirection = 1;
         private const byte DefaultProcessStatus = 0;
@@ -201,21 +200,10 @@ private readonly ConcurrentDictionary<string, string> nicknameCache = new Concur
 
             try
             {
-                var info = (HCNetSDK.NET_DVR_ACS_ALARM_INFO)Marshal.PtrToStructure(alarmInfo, typeof(HCNetSDK.NET_DVR_ACS_ALARM_INFO));
-                if (!IsFaceVerifyMinor(info.dwMinor))
-                {
-                    return;
-                }
-
-                if (info.dwPicDataLen == 0 || info.pPicData == IntPtr.Zero)
-                {
-                    ServiceLogger.Warn("收到人脸事件但未携带抓拍图片，已跳过。");
-                    return;
-                }
-
                 string deviceIp = SafeTrim(alarmer.sDeviceIP);
                 DeviceConnectionInfo device = DeviceConnectionManager.Instance.GetAllDevices()
                     .FirstOrDefault(d => string.Equals(d.IpAddress, deviceIp, StringComparison.OrdinalIgnoreCase));
+
                 string deviceSerialNumber = null;
                 string deviceNameFallback = null;
 
@@ -236,7 +224,30 @@ private readonly ConcurrentDictionary<string, string> nicknameCache = new Concur
                     // 忽略读取报警设备信息失败
                 }
 
-                FaceEventRecord record = BuildRecordFromAlarm(info, deviceIp, device);
+                FaceEventRecord record;
+                int fullSize = Marshal.SizeOf(typeof(HCNetSDK.NET_DVR_ACS_ALARM_INFO));
+
+                if (bufferLength >= (uint)fullSize)
+                {
+                    var info = (HCNetSDK.NET_DVR_ACS_ALARM_INFO)Marshal.PtrToStructure(alarmInfo, typeof(HCNetSDK.NET_DVR_ACS_ALARM_INFO));
+                    if (!IsFaceVerifyMinor(info.dwMinor))
+                    {
+                        return;
+                    }
+
+                    record = BuildRecordFromAlarm(info, deviceIp, device);
+                }
+                else
+                {
+                    var info = (HCNetSDK.NET_DVR_ACS_ALARM_INFO_V1)Marshal.PtrToStructure(alarmInfo, typeof(HCNetSDK.NET_DVR_ACS_ALARM_INFO_V1));
+                    if (!IsFaceVerifyMinor(info.dwMinor))
+                    {
+                        return;
+                    }
+
+                    record = BuildRecordFromAlarm(info, deviceIp, device);
+                }
+
                 if (record == null)
                 {
                     return;
@@ -258,7 +269,11 @@ private readonly ConcurrentDictionary<string, string> nicknameCache = new Concur
                 {
                     lock (device.LockObject)
                     {
-                        device.LastSerialNo = record.SerialNo;
+                        if (record.SerialNo > 0)
+                        {
+                            device.LastSerialNo = record.SerialNo;
+                        }
+
                         device.LastFaceEventTime = record.EventTime;
                     }
                 }
@@ -272,14 +287,85 @@ private readonly ConcurrentDictionary<string, string> nicknameCache = new Concur
         private FaceEventRecord BuildRecordFromAlarm(HCNetSDK.NET_DVR_ACS_ALARM_INFO info, string deviceIp, DeviceConnectionInfo device)
         {
             DateTime eventTime = ConvertToDateTime(info.struTime);
+            if (info.byTimeType == 1)
+            {
+                eventTime = DateTime.SpecifyKind(eventTime, DateTimeKind.Utc).ToLocalTime();
+            }
+
             var acs = info.struAcsEventInfo;
 
             FaceEventType eventType = info.dwMinor == HCNetSDK.MINOR_FACE_VERIFY_FAIL
                 ? FaceEventType.Fail
                 : FaceEventType.Pass;
 
-            byte[] snapshot = new byte[info.dwPicDataLen];
-            Marshal.Copy(info.pPicData, snapshot, 0, (int)info.dwPicDataLen);
+            string employeeNo = TryGetEmployeeNoFromExtend(info);
+            if (string.IsNullOrWhiteSpace(employeeNo) && acs.dwEmployeeNo != 0)
+            {
+                employeeNo = acs.dwEmployeeNo.ToString();
+            }
+
+            byte[] snapshot = null;
+            string snapshotUrl = null;
+
+            if (info.dwPicDataLen > 0 && info.pPicData != IntPtr.Zero)
+            {
+                if (info.byPicTransType == 1)
+                {
+                    snapshotUrl = ReadStringFromPtr(info.pPicData, info.dwPicDataLen);
+                }
+                else
+                {
+                    snapshot = new byte[info.dwPicDataLen];
+                    Marshal.Copy(info.pPicData, snapshot, 0, (int)info.dwPicDataLen);
+
+                    if (TryParseSnapshotUrl(snapshot, out string url))
+                    {
+                        snapshotUrl = url;
+                        snapshot = null;
+                    }
+                }
+            }
+
+            return new FaceEventRecord
+            {
+                EventType = eventType,
+                EventTime = eventTime,
+                UserId = employeeNo ?? string.Empty,
+                DeviceId = device?.Id ?? 0,
+                DeviceName = device != null ? device.Name : deviceIp,
+                DeviceSerialNumber = device?.SerialNumber,
+                DeviceIP = deviceIp,
+                VerifyMode = $"0x{info.dwMinor:X}",
+                SerialNo = acs.dwSerialNo,
+                Snapshot = snapshot,
+                SnapshotUrl = snapshotUrl
+            };
+        }
+
+
+        private FaceEventRecord BuildRecordFromAlarm(HCNetSDK.NET_DVR_ACS_ALARM_INFO_V1 info, string deviceIp, DeviceConnectionInfo device)
+        {
+            DateTime eventTime = ConvertToDateTime(info.struTime);
+            var acs = info.struAcsEventInfo;
+
+            FaceEventType eventType = info.dwMinor == HCNetSDK.MINOR_FACE_VERIFY_FAIL
+                ? FaceEventType.Fail
+                : FaceEventType.Pass;
+
+            byte[] snapshot = null;
+            string snapshotUrl = null;
+
+            if (info.dwPicDataLen > 0 && info.pPicData != IntPtr.Zero)
+            {
+                snapshot = new byte[info.dwPicDataLen];
+                Marshal.Copy(info.pPicData, snapshot, 0, (int)info.dwPicDataLen);
+
+                if (TryParseSnapshotUrl(snapshot, out string url))
+                {
+                    snapshotUrl = url;
+                    snapshot = null;
+                }
+            }
 
             return new FaceEventRecord
             {
@@ -291,8 +377,9 @@ private readonly ConcurrentDictionary<string, string> nicknameCache = new Concur
                 DeviceSerialNumber = device?.SerialNumber,
                 DeviceIP = deviceIp,
                 VerifyMode = $"0x{info.dwMinor:X}",
-                SerialNo = GenerateSerial(eventTime, deviceIp),
-                Snapshot = snapshot
+                SerialNo = 0,
+                Snapshot = snapshot,
+                SnapshotUrl = snapshotUrl
             };
         }
 
@@ -353,6 +440,14 @@ private readonly ConcurrentDictionary<string, string> nicknameCache = new Concur
                 param.Init();
                 param.byLevel = 1;
 
+                byte deployType = options.AlarmDeployType;
+                if (deployType != 0 && deployType != 1)
+                {
+                    deployType = 0;
+                }
+
+                param.SetDeployType(deployType);
+
                 int handle = HCNetSDK.NET_DVR_SetupAlarmChan_V41(device.UserID, ref param);
                 if (handle < 0)
                 {
@@ -366,7 +461,7 @@ private readonly ConcurrentDictionary<string, string> nicknameCache = new Concur
                     device.AlarmHandle = handle;
                 }
 
-                ServiceLogger.Info($"设备 {device.Name} 已开启人脸事件订阅。");
+                ServiceLogger.Info($"设备 {device.Name} 已开启人脸事件订阅（byDeployType={deployType}）。");
             }
         }
 
@@ -537,7 +632,9 @@ private readonly ConcurrentDictionary<string, string> nicknameCache = new Concur
 
                             long id = BuildAttendanceGateId(item);
                             string nickname = ResolveNickname(conn, tran, username);
-                            string snapshotPath = PersistSnapshot(id, item.EventTime, username, item.Snapshot);
+                            string snapshotPath = !string.IsNullOrWhiteSpace(item.SnapshotUrl)
+                                ? item.SnapshotUrl
+                                : PersistSnapshot(id, item.EventTime, username, item.Snapshot);
 
                             cmd.Parameters["@Id"].Value = id;
                             cmd.Parameters["@Username"].Value = username;
@@ -886,13 +983,11 @@ private readonly ConcurrentDictionary<string, string> nicknameCache = new Concur
                                     continue;
                                 }
 
-                                if (cfg.dwPicDataLen == 0 || cfg.pPicData == IntPtr.Zero)
-                                {
-                                    continue;
-                                }
-
                                 FaceEventRecord record = BuildRecordFromConfig(cfg, device);
-                                Enqueue(record);
+                                if (record != null)
+                                {
+                                    Enqueue(record);
+                                }
                             }
                             else if (status == (int)HCNetSDK.NET_SDK_SENDWITHRECV_STATUS.NET_SDK_CONFIG_STATUS_FINISH)
                             {
@@ -938,23 +1033,54 @@ private readonly ConcurrentDictionary<string, string> nicknameCache = new Concur
         private FaceEventRecord BuildRecordFromConfig(HCNetSDK.NET_DVR_ACS_EVENT_CFG cfg, DeviceConnectionInfo device)
         {
             var detail = cfg.struAcsEventInfo;
-            byte[] snapshot = new byte[cfg.dwPicDataLen];
-            Marshal.Copy(cfg.pPicData, snapshot, 0, (int)cfg.dwPicDataLen);
 
-            FaceEventType eventType = cfg.dwMinor == HCNetSDK.MINOR_FACE_VERIFY_FAIL ? FaceEventType.Fail : FaceEventType.Pass;
+            FaceEventType eventType = cfg.dwMinor == HCNetSDK.MINOR_FACE_VERIFY_FAIL
+                ? FaceEventType.Fail
+                : FaceEventType.Pass;
+
+            DateTime eventTime = ConvertToDateTime(cfg.struTime);
+            if (cfg.byTimeType == 1)
+            {
+                eventTime = DateTime.SpecifyKind(eventTime, DateTimeKind.Utc).ToLocalTime();
+            }
+
+            string employeeNo = DecodeFixedAsciiString(detail.byEmployeeNo);
+            if (string.IsNullOrWhiteSpace(employeeNo) && detail.dwEmployeeNo != 0)
+            {
+                employeeNo = detail.dwEmployeeNo.ToString();
+            }
+
+            byte[] snapshot = null;
+            string snapshotUrl = null;
+
+            if (cfg.dwPicDataLen > 0 && cfg.pPicData != IntPtr.Zero)
+            {
+                byte[] data = new byte[cfg.dwPicDataLen];
+                Marshal.Copy(cfg.pPicData, data, 0, (int)cfg.dwPicDataLen);
+
+                if (TryParseSnapshotUrl(data, out string url))
+                {
+                    snapshotUrl = url;
+                }
+                else
+                {
+                    snapshot = data;
+                }
+            }
 
             return new FaceEventRecord
             {
                 EventType = eventType,
-                EventTime = ConvertToDateTime(cfg.struTime),
-                UserId = detail.dwEmployeeNo != 0 ? detail.dwEmployeeNo.ToString() : string.Empty,
+                EventTime = eventTime,
+                UserId = employeeNo ?? string.Empty,
                 DeviceId = device?.Id ?? 0,
                 DeviceName = device != null ? device.Name : device?.IpAddress,
                 DeviceSerialNumber = device?.SerialNumber,
                 DeviceIP = device?.IpAddress,
                 VerifyMode = $"0x{cfg.dwMinor:X}",
                 SerialNo = detail.dwSerialNo,
-                Snapshot = snapshot
+                Snapshot = snapshot,
+                SnapshotUrl = snapshotUrl
             };
         }
 
@@ -1050,11 +1176,102 @@ private readonly ConcurrentDictionary<string, string> nicknameCache = new Concur
             return zeroIndex >= 0 ? value.Substring(0, zeroIndex) : value.Trim();
         }
 
-        private static long GenerateSerial(DateTime eventTime, string deviceIp)
+        private static string TryGetEmployeeNoFromExtend(HCNetSDK.NET_DVR_ACS_ALARM_INFO info)
         {
-            long millis = (long)(eventTime.ToUniversalTime() - UnixEpoch).TotalMilliseconds;
-            int hash = string.IsNullOrEmpty(deviceIp) ? 0 : (deviceIp.GetHashCode() & 0xFFFF);
-            return (millis << 16) | (uint)hash;
+            if (info.byAcsEventInfoExtend != 1 || info.pAcsEventInfoExtend == IntPtr.Zero)
+            {
+                return null;
+            }
+
+            try
+            {
+                var extend = (HCNetSDK.NET_DVR_ACS_EVENT_INFO_EXTEND)Marshal.PtrToStructure(
+                    info.pAcsEventInfoExtend,
+                    typeof(HCNetSDK.NET_DVR_ACS_EVENT_INFO_EXTEND));
+
+                string employeeNo = DecodeFixedAsciiString(extend.byEmployeeNo);
+                return string.IsNullOrWhiteSpace(employeeNo) ? null : employeeNo;
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        private static string DecodeFixedAsciiString(byte[] data)
+        {
+            if (data == null || data.Length == 0)
+            {
+                return string.Empty;
+            }
+
+            return Encoding.ASCII.GetString(data).TrimEnd('\0').Trim();
+        }
+
+        private static string ReadStringFromPtr(IntPtr buffer, uint length)
+        {
+            if (buffer == IntPtr.Zero)
+            {
+                return null;
+            }
+
+            uint actualLength = length;
+
+            if (actualLength == 0)
+            {
+                // 最多读取 4096 字节，避免异常指针导致的无限循环
+                const int maxScan = 4096;
+                int i = 0;
+                for (; i < maxScan; i++)
+                {
+                    if (Marshal.ReadByte(buffer, i) == 0)
+                    {
+                        break;
+                    }
+                }
+
+                actualLength = (uint)i;
+            }
+
+            if (actualLength == 0)
+            {
+                return string.Empty;
+            }
+
+            byte[] data = new byte[actualLength];
+            Marshal.Copy(buffer, data, 0, (int)actualLength);
+            return Encoding.UTF8.GetString(data).TrimEnd('\0').Trim();
+        }
+
+        private static bool TryParseSnapshotUrl(byte[] data, out string url)
+        {
+            url = null;
+
+            if (data == null || data.Length == 0)
+            {
+                return false;
+            }
+
+            // URL 一般较短；若数据过大，基本可以认为是二进制图片
+            if (data.Length > 4096)
+            {
+                return false;
+            }
+
+            string text = Encoding.UTF8.GetString(data).TrimEnd('\0').Trim();
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                return false;
+            }
+
+            if (text.StartsWith("http://", StringComparison.OrdinalIgnoreCase)
+                || text.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+            {
+                url = text;
+                return true;
+            }
+
+            return false;
         }
 
         public void Dispose()
@@ -1134,6 +1351,7 @@ private readonly ConcurrentDictionary<string, string> nicknameCache = new Concur
             public string VerifyMode { get; set; }
             public long SerialNo { get; set; }
             public byte[] Snapshot { get; set; }
+            public string SnapshotUrl { get; set; }
         }
     }
 }

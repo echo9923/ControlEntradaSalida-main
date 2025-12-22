@@ -185,6 +185,7 @@ namespace ControlEntradaSalida
         private System.Timers.Timer _statusCheckTimer;
         private readonly ReconnectManager _reconnectManager;
         private readonly DeviceStatusEngine _statusEngine;
+        private int _statusCheckLoopRunning;
         
         private const int STATUS_CHECK_INTERVAL = 30000; // 30秒检查一次设备状态
         private const int CONNECTION_TIMEOUT = 5000; // 5秒连接超时
@@ -274,8 +275,31 @@ private const int MAX_CONCURRENT_CONNECTIONS = 10; // 最大并发连接数
         private void InitializeTimer()
         {
             _statusCheckTimer = new System.Timers.Timer(STATUS_CHECK_INTERVAL);
-            _statusCheckTimer.Elapsed += async (sender, e) => await CheckAllDeviceStatusAsync();
             _statusCheckTimer.AutoReset = true;
+            _statusCheckTimer.Elapsed += (sender, e) =>
+            {
+                // 避免 async void 重入；任何异常都应被捕获并记录
+                if (Interlocked.Exchange(ref _statusCheckLoopRunning, 1) == 1)
+                {
+                    return;
+                }
+
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        await CheckAllDeviceStatusAsync().ConfigureAwait(false);
+                    }
+                    catch (Exception ex)
+                    {
+                        ServiceLogger.Error("状态轮询任务异常。", ex);
+                    }
+                    finally
+                    {
+                        Interlocked.Exchange(ref _statusCheckLoopRunning, 0);
+                    }
+                });
+            };
         }
 
         /// <summary>
@@ -474,7 +498,7 @@ private const int MAX_CONCURRENT_CONNECTIONS = 10; // 最大并发连接数
             
             // 使用安全的信号量操作
             using (var semaphoreResult = await SynchronizationHelper.SafeWaitAsync(
-                semaphore, CONNECTION_TIMEOUT, $"ConnectDevice-{device.Id}"))
+                semaphore, CONNECTION_TIMEOUT, $"ConnectDevice-{device.Id}").ConfigureAwait(false))
             {
                 if (!semaphoreResult.IsAcquired)
                 {
@@ -488,7 +512,7 @@ private const int MAX_CONCURRENT_CONNECTIONS = 10; // 最大并发连接数
                 try
                 {
                     Debug.WriteLine($"[DeviceConnectionManager] 开始连接设备 {device.Id} ({device.Name})");
-                    var result = await Task.Run(() => ConnectToDeviceInternal(device));
+                    var result = await Task.Run(() => ConnectToDeviceInternal(device)).ConfigureAwait(false);
                     Debug.WriteLine($"[DeviceConnectionManager] 设备 {device.Id} 连接结果: {result}");
                     return result;
                 }

@@ -653,11 +653,11 @@ private readonly DeviceConnectionManager deviceManager;
 
             return ExecuteWithDeviceSdkLock(
                 connection,
-                $"PermissionModify-{connection.Id}-{user.EmployeeId}",
+                $"PermissionSetUp-{connection.Id}-{user.EmployeeId}",
                 () =>
                 {
                     bool queryResult = commonHelper.ISAPIQuery(connection.UserID,
-                        "PUT /ISAPI/AccessControl/UserInfo/Modify?format=json",
+                        UserInfoSetupUrl,
                         payload,
                         out string outputResult,
                         out string outputStatus);
@@ -1668,16 +1668,33 @@ private readonly DeviceConnectionManager deviceManager;
             try
             {
                 JObject data = JObject.Parse(content);
-                string statusCode = data.Value<string>("statusCode");
+
+                int? statusCodeInt = data.Value<int?>("statusCode");
+                string statusCodeText = data.Value<string>("statusCode");
+
+                // 技术规范：以 statusCode==1 作为成功主判断；其他字段用于兼容与诊断
+                if (statusCodeInt == 1 || string.Equals(statusCodeText, "1", StringComparison.Ordinal))
+                {
+                    return true;
+                }
+
+                // 有明确 statusCode 且不为 1，则按失败处理
+                if (statusCodeInt.HasValue || !string.IsNullOrWhiteSpace(statusCodeText))
+                {
+                    return false;
+                }
+
+                // 兼容：部分设备可能不返回 statusCode，仅返回 statusString/subStatusCode
                 string statusString = data.Value<string>("statusString");
                 string subStatusCode = data.Value<string>("subStatusCode");
 
-                // statusCode 为 "1" 或 1 都表示成功
-                bool codeOk = statusCode == "1" || data.Value<int?>("statusCode") == 1;
-                bool stringOk = string.Equals(statusString, "OK", StringComparison.OrdinalIgnoreCase);
-                bool subCodeOk = string.Equals(subStatusCode, "ok", StringComparison.OrdinalIgnoreCase);
+                bool statusOk = string.Equals(statusString, "OK", StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(statusString, "ok", StringComparison.OrdinalIgnoreCase);
 
-                return codeOk && stringOk && subCodeOk;
+                bool subOk = string.IsNullOrWhiteSpace(subStatusCode)
+                    || string.Equals(subStatusCode, "ok", StringComparison.OrdinalIgnoreCase);
+
+                return statusOk && subOk;
             }
             catch
             {
@@ -1750,26 +1767,7 @@ private readonly DeviceConnectionManager deviceManager;
 
         private bool IsResponseOk(string response)
         {
-            if (string.IsNullOrWhiteSpace(response))
-            {
-                return false;
-            }
-
-            try
-            {
-                JObject data = JObject.Parse(response);
-                string statusCode = data.Value<string>("statusCode");
-                string statusString = data.Value<string>("statusString");
-                string subStatusCode = data.Value<string>("subStatusCode");
-
-                return statusCode == "1"
-                    && string.Equals(statusString, "OK", StringComparison.OrdinalIgnoreCase)
-                    && string.Equals(subStatusCode, "ok", StringComparison.OrdinalIgnoreCase);
-            }
-            catch
-            {
-                return false;
-            }
+            return IsResponseOkFromContent(response);
         }
 
         private string ParseErrorMessage(string raw)
