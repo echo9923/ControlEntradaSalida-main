@@ -28,11 +28,15 @@ namespace ControlEntradaSalida
         private const long DefaultTenantId = 1;
         private const string DefaultDeleted = "0";
 
-        private readonly BlockingCollection<FaceEventRecord> eventQueue;
+        
+        private const int DeviceSdkLockTimeoutMs = 30000; // 30秒设备级 SDK 锁等待
+private readonly BlockingCollection<FaceEventRecord> eventQueue;
         private readonly CancellationTokenSource cancellation = new CancellationTokenSource();
         private readonly List<Task> workers = new List<Task>();
         private readonly ConcurrentDictionary<int, int> remoteConfigHandles = new ConcurrentDictionary<int, int>();
-        private readonly ConcurrentDictionary<string, string> nicknameCache = new ConcurrentDictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        
+        private readonly ConcurrentDictionary<int, CancellationTokenSource> compensationTokens = new ConcurrentDictionary<int, CancellationTokenSource>();
+private readonly ConcurrentDictionary<string, string> nicknameCache = new ConcurrentDictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         private readonly string snapshotRootDirectory;
 
         private HCNetSDK.MSGCallBack alarmCallback;
@@ -118,10 +122,58 @@ namespace ControlEntradaSalida
                 if (e.Success)
                 {
                     SetupAlarm(e.Device);
-                    Task.Run(() => FetchHistory(e.Device, cancellation.Token), cancellation.Token);
+
+                    if (compensationTokens.TryRemove(e.Device.Id, out CancellationTokenSource previousCts))
+                    {
+                        try
+                        {
+                            previousCts.Cancel();
+                        }
+                        catch
+                        {
+                        }
+                        finally
+                        {
+                            previousCts.Dispose();
+                        }
+                    }
+
+                    CancellationTokenSource deviceCts = new CancellationTokenSource();
+                    compensationTokens[e.Device.Id] = deviceCts;
+
+                    CancellationTokenSource linkedCts = CancellationTokenSource.CreateLinkedTokenSource(
+                        cancellation.Token,
+                        deviceCts.Token);
+
+                    Task.Run(() =>
+                    {
+                        try
+                        {
+                            FetchHistory(e.Device, linkedCts.Token);
+                        }
+                        finally
+                        {
+                            linkedCts.Dispose();
+                        }
+                    }, linkedCts.Token);
                 }
                 else
                 {
+                    if (compensationTokens.TryRemove(e.Device.Id, out CancellationTokenSource deviceCts))
+                    {
+                        try
+                        {
+                            deviceCts.Cancel();
+                        }
+                        catch
+                        {
+                        }
+                        finally
+                        {
+                            deviceCts.Dispose();
+                        }
+                    }
+
                     CloseAlarm(e.Device);
                     StopRemoteConfig(e.Device);
                 }
@@ -275,33 +327,47 @@ namespace ControlEntradaSalida
                 return;
             }
 
+            int previousAlarmHandle = -1;
             lock (device.LockObject)
             {
-                if (device.AlarmHandle >= 0)
+                previousAlarmHandle = device.AlarmHandle;
+                device.AlarmHandle = -1;
+            }
+
+            using (var sdkLock = device.TryAcquireDeviceSdkLock(
+                DeviceSdkLockTimeoutMs,
+                $"SetupAlarm-{device.Id}"))
+            {
+                if (!sdkLock.IsAcquired)
                 {
-                    HCNetSDK.NET_DVR_CloseAlarmChan_V30(device.AlarmHandle);
-                    device.AlarmHandle = -1;
+                    ServiceLogger.Warn($"设备 {device.Name} 获取设备SDK锁超时，跳过布防。");
+                    return;
                 }
+
+                if (previousAlarmHandle >= 0)
+                {
+                    HCNetSDK.NET_DVR_CloseAlarmChan_V30(previousAlarmHandle);
+                }
+
+                HCNetSDK.NET_DVR_SETUPALARM_PARAM param = new HCNetSDK.NET_DVR_SETUPALARM_PARAM();
+                param.Init();
+                param.byLevel = 1;
+
+                int handle = HCNetSDK.NET_DVR_SetupAlarmChan_V41(device.UserID, ref param);
+                if (handle < 0)
+                {
+                    uint err = HCNetSDK.NET_DVR_GetLastError();
+                    ServiceLogger.Error($"设备 {device.Name} 报警布防失败，错误码: {err}");
+                    return;
+                }
+
+                lock (device.LockObject)
+                {
+                    device.AlarmHandle = handle;
+                }
+
+                ServiceLogger.Info($"设备 {device.Name} 已开启人脸事件订阅。");
             }
-
-            HCNetSDK.NET_DVR_SETUPALARM_PARAM param = new HCNetSDK.NET_DVR_SETUPALARM_PARAM();
-            param.Init();
-            param.byLevel = 1; // 0-一级,1-二级，使用默认
-
-            int handle = HCNetSDK.NET_DVR_SetupAlarmChan_V41(device.UserID, ref param);
-            if (handle < 0)
-            {
-                uint err = HCNetSDK.NET_DVR_GetLastError();
-                ServiceLogger.Error($"设备 {device.Name} 报警布防失败，错误码: {err}");
-                return;
-            }
-
-            lock (device.LockObject)
-            {
-                device.AlarmHandle = handle;
-            }
-
-            ServiceLogger.Info($"设备 {device.Name} 已开启人脸事件订阅。");
         }
 
         private void CloseAlarm(DeviceConnectionInfo device)
@@ -311,13 +377,29 @@ namespace ControlEntradaSalida
                 return;
             }
 
+            int alarmHandle = -1;
             lock (device.LockObject)
             {
-                if (device.AlarmHandle >= 0)
+                alarmHandle = device.AlarmHandle;
+                device.AlarmHandle = -1;
+            }
+
+            if (alarmHandle < 0)
+            {
+                return;
+            }
+
+            using (var sdkLock = device.TryAcquireDeviceSdkLock(
+                DeviceSdkLockTimeoutMs,
+                $"CloseAlarm-{device.Id}"))
+            {
+                if (!sdkLock.IsAcquired)
                 {
-                    HCNetSDK.NET_DVR_CloseAlarmChan_V30(device.AlarmHandle);
-                    device.AlarmHandle = -1;
+                    ServiceLogger.Warn($"设备 {device.Name} 获取设备SDK锁超时，跳过撤防关闭。");
+                    return;
                 }
+
+                HCNetSDK.NET_DVR_CloseAlarmChan_V30(alarmHandle);
             }
         }
 
@@ -753,76 +835,98 @@ namespace ControlEntradaSalida
                 cond.Init();
                 cond.dwSize = (uint)Marshal.SizeOf(typeof(HCNetSDK.NET_DVR_ACS_EVENT_COND));
                 cond.dwMajor = HCNetSDK.MAJOR_EVENT;
-                cond.dwMinor = 0; // 拉取全部再本地过滤
+                cond.dwMinor = 0;
                 cond.struStartTime = ToDvrTime(startTime);
                 cond.struEndTime = ToDvrTime(DateTime.Now);
                 cond.dwBeginSerialNo = beginSerial;
                 cond.byPicEnable = 1;
 
                 int size = Marshal.SizeOf(cond);
-                IntPtr ptrCond = Marshal.AllocHGlobal(size);
-                Marshal.StructureToPtr(cond, ptrCond, false);
 
-                int handle = HCNetSDK.NET_DVR_StartRemoteConfig(device.UserID, HCNetSDK.NET_DVR_GET_ACS_EVENT, ptrCond, size, null, IntPtr.Zero);
-                Marshal.FreeHGlobal(ptrCond);
-
-                if (handle < 0)
+                using (var sdkLock = device.TryAcquireDeviceSdkLock(
+                    DeviceSdkLockTimeoutMs,
+                    $"FetchHistory-{device.Id}"))
                 {
-                    uint err = HCNetSDK.NET_DVR_GetLastError();
-                    ServiceLogger.Error($"设备 {device.Name} 历史事件补偿启动失败，错误码: {err}");
-                    return;
-                }
-
-                remoteConfigHandles[device.Id] = handle;
-
-                IntPtr outPtr = IntPtr.Zero;
-                try
-                {
-                    int cfgSize = Marshal.SizeOf(typeof(HCNetSDK.NET_DVR_ACS_EVENT_CFG));
-                    outPtr = Marshal.AllocHGlobal(cfgSize);
-
-                    while (!token.IsCancellationRequested)
+                    if (!sdkLock.IsAcquired)
                     {
-                        int status = HCNetSDK.NET_DVR_GetNextRemoteConfig(handle, outPtr, (uint)cfgSize);
-                        if (status == (int)HCNetSDK.NET_SDK_SENDWITHRECV_STATUS.NET_SDK_CONFIG_STATUS_SUCCESS)
-                        {
-                            var cfg = (HCNetSDK.NET_DVR_ACS_EVENT_CFG)Marshal.PtrToStructure(outPtr, typeof(HCNetSDK.NET_DVR_ACS_EVENT_CFG));
-                            if (!IsFaceVerifyMinor(cfg.dwMinor))
-                            {
-                                continue;
-                            }
-
-                            if (cfg.dwPicDataLen == 0 || cfg.pPicData == IntPtr.Zero)
-                            {
-                                continue;
-                            }
-
-                            FaceEventRecord record = BuildRecordFromConfig(cfg, device);
-                            Enqueue(record);
-                        }
-                        else if (status == (int)HCNetSDK.NET_SDK_SENDWITHRECV_STATUS.NET_SDK_CONFIG_STATUS_FINISH)
-                        {
-                            break;
-                        }
-                        else if (status == (int)HCNetSDK.NET_SDK_SENDWITHRECV_STATUS.NET_SDK_CONFIG_STATUS_NEEDWAIT)
-                        {
-                            Thread.Sleep(200);
-                        }
-                        else
-                        {
-                            ServiceLogger.Warn($"设备 {device.Name} 补偿通道返回状态 {status}，终止补偿。");
-                            break;
-                        }
-                    }
-                }
-                finally
-                {
-                    if (outPtr != IntPtr.Zero)
-                    {
-                        Marshal.FreeHGlobal(outPtr);
+                        ServiceLogger.Warn($"设备 {device.Name} 获取设备SDK锁超时，跳过历史事件补偿。");
+                        return;
                     }
 
-                    StopRemoteConfig(device);
+                    IntPtr ptrCond = IntPtr.Zero;
+                    IntPtr outPtr = IntPtr.Zero;
+                    int handle = -1;
+
+                    try
+                    {
+                        ptrCond = Marshal.AllocHGlobal(size);
+                        Marshal.StructureToPtr(cond, ptrCond, false);
+
+                        handle = HCNetSDK.NET_DVR_StartRemoteConfig(device.UserID, HCNetSDK.NET_DVR_GET_ACS_EVENT, ptrCond, size, null, IntPtr.Zero);
+                        if (handle < 0)
+                        {
+                            uint err = HCNetSDK.NET_DVR_GetLastError();
+                            ServiceLogger.Error($"设备 {device.Name} 历史事件补偿启动失败，错误码: {err}");
+                            return;
+                        }
+
+                        remoteConfigHandles[device.Id] = handle;
+
+                        int cfgSize = Marshal.SizeOf(typeof(HCNetSDK.NET_DVR_ACS_EVENT_CFG));
+                        outPtr = Marshal.AllocHGlobal(cfgSize);
+
+                        while (!token.IsCancellationRequested)
+                        {
+                            int status = HCNetSDK.NET_DVR_GetNextRemoteConfig(handle, outPtr, (uint)cfgSize);
+                            if (status == (int)HCNetSDK.NET_SDK_SENDWITHRECV_STATUS.NET_SDK_CONFIG_STATUS_SUCCESS)
+                            {
+                                var cfg = (HCNetSDK.NET_DVR_ACS_EVENT_CFG)Marshal.PtrToStructure(outPtr, typeof(HCNetSDK.NET_DVR_ACS_EVENT_CFG));
+                                if (!IsFaceVerifyMinor(cfg.dwMinor))
+                                {
+                                    continue;
+                                }
+
+                                if (cfg.dwPicDataLen == 0 || cfg.pPicData == IntPtr.Zero)
+                                {
+                                    continue;
+                                }
+
+                                FaceEventRecord record = BuildRecordFromConfig(cfg, device);
+                                Enqueue(record);
+                            }
+                            else if (status == (int)HCNetSDK.NET_SDK_SENDWITHRECV_STATUS.NET_SDK_CONFIG_STATUS_FINISH)
+                            {
+                                break;
+                            }
+                            else if (status == (int)HCNetSDK.NET_SDK_SENDWITHRECV_STATUS.NET_SDK_CONFIG_STATUS_NEEDWAIT)
+                            {
+                                Thread.Sleep(200);
+                            }
+                            else
+                            {
+                                ServiceLogger.Warn($"设备 {device.Name} 补偿通道返回状态 {status}，终止补偿。");
+                                break;
+                            }
+                        }
+                    }
+                    finally
+                    {
+                        if (ptrCond != IntPtr.Zero)
+                        {
+                            Marshal.FreeHGlobal(ptrCond);
+                        }
+
+                        if (outPtr != IntPtr.Zero)
+                        {
+                            Marshal.FreeHGlobal(outPtr);
+                        }
+
+                        if (handle >= 0)
+                        {
+                            remoteConfigHandles.TryRemove(device.Id, out _);
+                            HCNetSDK.NET_DVR_StopRemoteConfig(handle);
+                        }
+                    }
                 }
             }
             catch (Exception ex)
@@ -892,9 +996,20 @@ namespace ControlEntradaSalida
                 return;
             }
 
-            if (remoteConfigHandles.TryRemove(device.Id, out int handle))
+            using (var sdkLock = device.TryAcquireDeviceSdkLock(
+                DeviceSdkLockTimeoutMs,
+                $"StopRemoteConfig-{device.Id}"))
             {
-                HCNetSDK.NET_DVR_StopRemoteConfig(handle);
+                if (!sdkLock.IsAcquired)
+                {
+                    ServiceLogger.Warn($"设备 {device.Name} 获取设备SDK锁超时，跳过停止远程配置。" );
+                    return;
+                }
+
+                if (remoteConfigHandles.TryRemove(device.Id, out int handle))
+                {
+                    HCNetSDK.NET_DVR_StopRemoteConfig(handle);
+                }
             }
         }
 
@@ -963,10 +1078,27 @@ namespace ControlEntradaSalida
             }
             catch
             {
-                // ignore
             }
 
             cancellation.Cancel();
+
+            foreach (var kvp in compensationTokens)
+            {
+                try
+                {
+                    kvp.Value.Cancel();
+                }
+                catch
+                {
+                }
+                finally
+                {
+                    kvp.Value.Dispose();
+                }
+            }
+
+            compensationTokens.Clear();
+
             eventQueue.CompleteAdding();
 
             try
@@ -975,7 +1107,6 @@ namespace ControlEntradaSalida
             }
             catch
             {
-                // ignore
             }
 
             foreach (var device in DeviceConnectionManager.Instance.GetAllDevices())

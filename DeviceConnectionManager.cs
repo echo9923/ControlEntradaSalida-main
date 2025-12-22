@@ -71,7 +71,29 @@ namespace ControlEntradaSalida
         [System.ComponentModel.Browsable(false)]
         public object LockObject { get; } = new object();
         
-        /// <summary>
+        
+        // 设备级 SDK/ISAPI/远程配置互斥锁：确保同一设备上的 HCNetSDK 调用串行化
+        private readonly Lazy<SemaphoreSlim> deviceSdkLock;
+
+        [System.ComponentModel.Browsable(false)]
+        public SemaphoreSlim DeviceSdkLock => deviceSdkLock.Value;
+
+        public DeviceConnectionInfo()
+        {
+            deviceSdkLock = new Lazy<SemaphoreSlim>(() =>
+                SynchronizationHelper.CreateSemaphore(1, 1, $"Device-{Id}-SDK"));
+        }
+
+        public SynchronizationHelper.SemaphoreOperationResult TryAcquireDeviceSdkLock(int timeoutMs, string operationName)
+        {
+            return SynchronizationHelper.SafeWait(DeviceSdkLock, timeoutMs, operationName);
+        }
+
+        public Task<SynchronizationHelper.SemaphoreOperationResult> TryAcquireDeviceSdkLockAsync(int timeoutMs, string operationName)
+        {
+            return SynchronizationHelper.SafeWaitAsync(DeviceSdkLock, timeoutMs, operationName);
+        }
+/// <summary>
         /// 更新设备状态
         /// </summary>
         /// <param name="newStatus">新状态</param>
@@ -167,7 +189,10 @@ namespace ControlEntradaSalida
         
         private const int STATUS_CHECK_INTERVAL = 30000; // 30秒检查一次设备状态
         private const int CONNECTION_TIMEOUT = 5000; // 5秒连接超时
-        private const int MAX_CONCURRENT_CONNECTIONS = 10; // 最大并发连接数
+        
+        private const int DEVICE_SDK_LOCK_TIMEOUT = 30000; // 30秒设备级 SDK 锁等待（避免远程配置/ISAPI 并发）
+        private const int STATUS_SDK_LOCK_TIMEOUT = 1000;  // 1秒状态检查锁等待（超时则跳过本次检查）
+private const int MAX_CONCURRENT_CONNECTIONS = 10; // 最大并发连接数
         
         private volatile bool _disposed = false;
         
@@ -504,60 +529,99 @@ namespace ControlEntradaSalida
         {
             if (device == null) return false;
 
-            try
+            string ipAddress;
+            string username;
+            string password;
+            string port;
+
+            lock (device.LockObject)
             {
-                lock (device.LockObject)
+                ipAddress = device.IpAddress;
+                username = device.Username;
+                password = device.Password;
+                port = device.Port;
+            }
+
+            using (var sdkLock = device.TryAcquireDeviceSdkLock(
+                DEVICE_SDK_LOCK_TIMEOUT,
+                $"ConnectDeviceSdk-{device.Id}"))
+            {
+                if (!sdkLock.IsAcquired)
                 {
-                    // 设置连接状态
-                    device.IsReconnecting = true;
+                    var errorMsg = "设备忙，获取设备SDK锁超时，稍后重试。";
+
+                    lock (device.LockObject)
+                    {
+                        device.UserID = -1;
+                        device.IsConnected = false;
+                        device.IsReconnecting = false;
+                        device.RecordConnectionFailure(0, errorMsg);
+                        device.UpdateStatus(DeviceStatus.Offline, errorMsg);
+                    }
+
+                    _reconnectManager.ScheduleReconnect(device.Id, errorMsg);
+
+                    OnDeviceConnectionStateChanged(new DeviceConnectionEventArgs(device, false, errorMsg));
+                    OnDeviceStatusChanged(new DeviceStatusChangedEventArgs(device, false, errorMsg, "Connection"));
+
+                    return false;
                 }
-                
-                HCNetSDK.NET_DVR_USER_LOGIN_INFO struLoginInfo = new HCNetSDK.NET_DVR_USER_LOGIN_INFO();
-                HCNetSDK.NET_DVR_DEVICEINFO_V40 struDeviceInfoV40 = new HCNetSDK.NET_DVR_DEVICEINFO_V40();
-                struDeviceInfoV40.struDeviceV30.sSerialNumber = new byte[HCNetSDK.SERIALNO_LEN];
 
-                struLoginInfo.sDeviceAddress = device.IpAddress;
-                struLoginInfo.sUserName = device.Username;
-                struLoginInfo.sPassword = device.Password;
-                ushort.TryParse(device.Port, out struLoginInfo.wPort);
-
-                int lUserID = HCNetSDK.NET_DVR_Login_V40(ref struLoginInfo, ref struDeviceInfoV40);
-                
-                if (lUserID >= 0)
+                try
                 {
                     lock (device.LockObject)
                     {
-                        device.UserID = lUserID;
-                        device.IsConnected = true;
-                        device.IsReconnecting = false;
-                        device.RecordConnectionSuccess();
-                        device.SerialNumber = Encoding.ASCII.GetString(struDeviceInfoV40.struDeviceV30.sSerialNumber).TrimEnd('\0').Trim();
-                        
-                        // 获取设备能力信息
-                        device.Capabilities = _statusEngine.GetDeviceCapabilities(lUserID);
-                        
-                        // 获取设备真实状态
-                        var workStatus = _statusEngine.GetDeviceWorkStatus(lUserID);
-                        device.UpdateStatus(workStatus.Status, workStatus.StatusMessage);
+                        device.IsReconnecting = true;
                     }
-                    
-                    // 更新数据库中的最后使用时间
-                    UpdateDeviceLastUsed(device.Id);
-                    
-                    // 重置重连状态
-                    _reconnectManager.ResetReconnectState(device.Id);
-                    
-                    // 触发连接成功事件
-                    OnDeviceConnectionStateChanged(new DeviceConnectionEventArgs(device, true, "连接成功"));
-                    OnDeviceStatusChanged(new DeviceStatusChangedEventArgs(device, true, "连接成功", "Connection"));
-                    
-                    return true;
-                }
-                else
-                {
+
+                    HCNetSDK.NET_DVR_USER_LOGIN_INFO struLoginInfo = new HCNetSDK.NET_DVR_USER_LOGIN_INFO();
+                    HCNetSDK.NET_DVR_DEVICEINFO_V40 struDeviceInfoV40 = new HCNetSDK.NET_DVR_DEVICEINFO_V40();
+                    struDeviceInfoV40.struDeviceV30.sSerialNumber = new byte[HCNetSDK.SERIALNO_LEN];
+
+                    struLoginInfo.sDeviceAddress = ipAddress;
+                    struLoginInfo.sUserName = username;
+                    struLoginInfo.sPassword = password;
+                    ushort.TryParse(port, out struLoginInfo.wPort);
+
+                    int lUserID = HCNetSDK.NET_DVR_Login_V40(ref struLoginInfo, ref struDeviceInfoV40);
+
+                    if (lUserID >= 0)
+                    {
+                        string serialNumber = Encoding.ASCII.GetString(struDeviceInfoV40.struDeviceV30.sSerialNumber)
+                            .TrimEnd('\0')
+                            .Trim();
+
+                        DeviceCapabilities capabilities = _statusEngine.GetDeviceCapabilities(lUserID);
+                        DeviceWorkStatus workStatus = _statusEngine.GetDeviceWorkStatus(lUserID);
+
+                        lock (device.LockObject)
+                        {
+                            device.UserID = lUserID;
+                            device.IsConnected = true;
+                            device.IsReconnecting = false;
+                            device.RecordConnectionSuccess();
+
+                            if (!string.IsNullOrWhiteSpace(serialNumber))
+                            {
+                                device.SerialNumber = serialNumber;
+                            }
+
+                            device.Capabilities = capabilities;
+                            device.UpdateStatus(workStatus.Status, workStatus.StatusMessage);
+                        }
+
+                        UpdateDeviceLastUsed(device.Id);
+                        _reconnectManager.ResetReconnectState(device.Id);
+
+                        OnDeviceConnectionStateChanged(new DeviceConnectionEventArgs(device, true, "连接成功"));
+                        OnDeviceStatusChanged(new DeviceStatusChangedEventArgs(device, true, "连接成功", "Connection"));
+
+                        return true;
+                    }
+
                     uint nErr = HCNetSDK.NET_DVR_GetLastError();
                     var errorMsg = $"连接失败，错误代码: {nErr}";
-                    
+
                     lock (device.LockObject)
                     {
                         device.UserID = -1;
@@ -566,38 +630,34 @@ namespace ControlEntradaSalida
                         device.RecordConnectionFailure(nErr, errorMsg);
                         device.UpdateStatus(DeviceStatus.Offline, errorMsg);
                     }
-                    
-                    // 安排重连
+
                     _reconnectManager.ScheduleReconnect(device.Id, errorMsg);
-                    
-                    // 触发事件
+
                     OnDeviceConnectionStateChanged(new DeviceConnectionEventArgs(device, false, errorMsg, nErr));
                     OnDeviceStatusChanged(new DeviceStatusChangedEventArgs(device, false, errorMsg, "Connection"));
-                    
+
                     return false;
                 }
-            }
-            catch (Exception ex)
-            {
-                var errorMsg = $"连接异常: {ex.Message}";
-                
-                lock (device.LockObject)
+                catch (Exception ex)
                 {
-                    device.UserID = -1;
-                    device.IsConnected = false;
-                    device.IsReconnecting = false;
-                    device.RecordConnectionFailure(0, errorMsg);
-                    device.UpdateStatus(DeviceStatus.Offline, errorMsg);
+                    var errorMsg = $"连接异常: {ex.Message}";
+
+                    lock (device.LockObject)
+                    {
+                        device.UserID = -1;
+                        device.IsConnected = false;
+                        device.IsReconnecting = false;
+                        device.RecordConnectionFailure(0, errorMsg);
+                        device.UpdateStatus(DeviceStatus.Offline, errorMsg);
+                    }
+
+                    _reconnectManager.ScheduleReconnect(device.Id, errorMsg);
+
+                    OnDeviceError(new DeviceErrorEventArgs(device, 0, errorMsg, ex, "ConnectionException"));
+                    OnDeviceStatusChanged(new DeviceStatusChangedEventArgs(device, false, errorMsg, "Exception"));
+
+                    return false;
                 }
-                
-                // 安排重连
-                _reconnectManager.ScheduleReconnect(device.Id, errorMsg);
-                
-                // 触发事件
-                OnDeviceError(new DeviceErrorEventArgs(device, 0, errorMsg, ex, "ConnectionException"));
-                OnDeviceStatusChanged(new DeviceStatusChangedEventArgs(device, false, errorMsg, "Exception"));
-                
-                return false;
             }
         }
 
@@ -608,11 +668,10 @@ namespace ControlEntradaSalida
         public void DisconnectDevice(DeviceConnectionInfo device)
         {
             if (device == null) return;
-            
-            var semaphore = _connectionSemaphores.GetOrAdd(device.Id, _ => 
+
+            var semaphore = _connectionSemaphores.GetOrAdd(device.Id, _ =>
                 SynchronizationHelper.CreateSemaphore(1, 1, $"Device-{device.Id}-Disconnect"));
-            
-            // 使用安全的信号量操作
+
             using (var semaphoreResult = SynchronizationHelper.SafeWait(
                 semaphore, CONNECTION_TIMEOUT, $"DisconnectDevice-{device.Id}"))
             {
@@ -627,25 +686,43 @@ namespace ControlEntradaSalida
                 try
                 {
                     Debug.WriteLine($"[DeviceConnectionManager] 开始断开设备 {device.Id} ({device.Name})");
-                    
-                    lock (device.LockObject)
+
+                    using (var sdkLock = device.TryAcquireDeviceSdkLock(
+                        DEVICE_SDK_LOCK_TIMEOUT,
+                        $"DisconnectDeviceSdk-{device.Id}"))
                     {
-                        if (device.UserID >= 0)
+                        if (!sdkLock.IsAcquired)
                         {
-                            HCNetSDK.NET_DVR_Logout_V30(device.UserID);
+                            var errorMsg = "断开连接获取设备SDK锁超时，设备可能忙碌";
+                            Debug.WriteLine($"[DeviceConnectionManager] {errorMsg} - 设备ID: {device.Id}");
+                            OnDeviceError(new DeviceErrorEventArgs(device, 0, errorMsg, null, "Timeout"));
+                            return;
+                        }
+
+                        int userIdToLogout;
+                        lock (device.LockObject)
+                        {
+                            userIdToLogout = device.UserID;
+                        }
+
+                        if (userIdToLogout >= 0)
+                        {
+                            HCNetSDK.NET_DVR_Logout_V30(userIdToLogout);
                             Debug.WriteLine($"[DeviceConnectionManager] 设备 {device.Id} SDK登出完成");
                         }
-                        
-                        device.UserID = -1;
-                        device.IsConnected = false;
-                        device.IsReconnecting = false;
-                        device.UpdateStatus(DeviceStatus.Offline, "已断开连接");
+
+                        lock (device.LockObject)
+                        {
+                            device.UserID = -1;
+                            device.IsConnected = false;
+                            device.IsReconnecting = false;
+                            device.UpdateStatus(DeviceStatus.Offline, "已断开连接");
+                        }
                     }
-                    
-                    // 触发事件
+
                     OnDeviceConnectionStateChanged(new DeviceConnectionEventArgs(device, false, "手动断开连接"));
                     OnDeviceStatusChanged(new DeviceStatusChangedEventArgs(device, false, "手动断开连接", "Manual"));
-                    
+
                     Debug.WriteLine($"[DeviceConnectionManager] 设备 {device.Id} 断开连接完成");
                 }
                 catch (Exception ex)
@@ -653,7 +730,7 @@ namespace ControlEntradaSalida
                     Debug.WriteLine($"[DeviceConnectionManager] 断开设备 {device.Id} 连接时发生异常: {ex.Message}");
                     OnDeviceError(new DeviceErrorEventArgs(device, 0, $"断开连接异常: {ex.Message}", ex, "DisconnectException"));
                 }
-            } // using语句确保信号量正确释放
+            }
         }
 
         /// <summary>
@@ -717,26 +794,39 @@ namespace ControlEntradaSalida
                 bool previousConnectionState;
                 DeviceStatus previousStatus;
                 DateTime lastConnectionSuccess;
+                int currentUserId;
 
                 lock (device.LockObject)
                 {
                     previousConnectionState = device.IsConnected;
                     previousStatus = device.Status;
                     lastConnectionSuccess = device.LastUsed;
+                    currentUserId = device.UserID;
                 }
 
-                // 如果设备未连接，尝试连接
-                if (device.UserID < 0)
+                if (currentUserId < 0)
                 {
                     return ConnectToDevice(device);
                 }
 
-                // 修复：增加连接状态容错检查
-                // 如果设备刚刚连接成功（30秒内），给予更多容错时间
                 bool isRecentlyConnected = (DateTime.Now - lastConnectionSuccess).TotalSeconds < 30;
 
-                // 使用设备状态引擎检测状态
-                var workStatus = _statusEngine.GetDeviceWorkStatus(device.UserID);
+                DeviceWorkStatus workStatus;
+                using (var sdkLock = device.TryAcquireDeviceSdkLock(
+                    STATUS_SDK_LOCK_TIMEOUT,
+                    $"StatusCheckSdk-{device.Id}"))
+                {
+                    if (!sdkLock.IsAcquired)
+                    {
+                        ServiceLogger.Debug($"[状态检查] 设备 {device.Id}({device.Name}) 忙碌，跳过本次状态检查。");
+                        return previousConnectionState;
+                    }
+
+                    workStatus = _statusEngine.GetDeviceWorkStatus(currentUserId);
+                }
+
+                bool connectionStateChanged = false;
+                bool statusChanged = false;
 
                 lock (device.LockObject)
                 {
@@ -745,32 +835,30 @@ namespace ControlEntradaSalida
                         device.IsConnected = true;
                         device.UpdateStatus(workStatus.Status, workStatus.StatusMessage);
 
-                        // 连接状态恢复，确保重连状态被重置
                         if (!previousConnectionState)
                         {
                             _reconnectManager.ResetReconnectState(device.Id);
+                            connectionStateChanged = true;
                         }
+
+                        statusChanged = previousStatus != device.Status;
                     }
                     else
                     {
-                        // 修复：对于最近连接成功的设备，增加容错机制
                         if (isRecentlyConnected && previousConnectionState)
                         {
                             ServiceLogger.Debug($"[容错机制] 设备 {device.Id}({device.Name}) 最近连接成功，忽略此次状态检查失败。");
-                            // 保持连接状态不变，不触发重连
                             return true;
                         }
 
                         device.IsConnected = false;
                         device.UpdateStatus(DeviceStatus.Offline, workStatus.StatusMessage);
 
-                        // 如果之前是连接状态，现在断开，则需要清理UserID
                         if (previousConnectionState)
                         {
                             device.UserID = -1;
                             device.RecordConnectionFailure(workStatus.LastErrorCode, workStatus.ErrorMessage);
 
-                            // 修复：检查是否已在重连队列中，避免重复调度
                             var reconnectState = _reconnectManager.GetReconnectState(device.Id);
                             if (reconnectState == null || reconnectState.NextRetry == DateTime.MinValue)
                             {
@@ -781,12 +869,15 @@ namespace ControlEntradaSalida
                             {
                                 ServiceLogger.Debug($"[状态检查] 设备 {device.Id}({device.Name}) 已在重连队列中，跳过重复调度。");
                             }
+
+                            connectionStateChanged = true;
                         }
+
+                        statusChanged = previousStatus != device.Status;
                     }
                 }
 
-                // 如果连接状态或设备状态发生改变，触发事件
-                if (previousConnectionState != device.IsConnected || previousStatus != device.Status)
+                if (connectionStateChanged || statusChanged)
                 {
                     OnDeviceStatusChanged(new DeviceStatusChangedEventArgs(device, device.IsConnected,
                         device.StatusMessage, "StatusCheck"));
@@ -806,11 +897,10 @@ namespace ControlEntradaSalida
 
                     device.IsConnected = false;
                     device.UpdateStatus(DeviceStatus.Unknown, $"状态检查异常: {ex.Message}");
-                    device.UserID = -1; // 出现异常时重置连接ID
+                    device.UserID = -1;
                     device.RecordConnectionFailure(0, ex.Message);
                 }
 
-                // 修复：异常情况下也要检查重连状态，避免重复调度
                 var reconnectState = _reconnectManager.GetReconnectState(device.Id);
                 if (reconnectState == null || reconnectState.NextRetry == DateTime.MinValue)
                 {
@@ -822,7 +912,6 @@ namespace ControlEntradaSalida
                     ServiceLogger.Debug($"[异常处理] 设备 {device.Id}({device.Name}) 已在重连队列中，跳过重复调度。");
                 }
 
-                // 如果状态发生改变，触发事件
                 if (previousConnectionState != device.IsConnected || previousStatus != device.Status)
                 {
                     OnDeviceError(new DeviceErrorEventArgs(device, 0, ex.Message, ex, "StatusCheckException"));

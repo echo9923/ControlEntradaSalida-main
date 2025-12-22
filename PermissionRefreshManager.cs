@@ -26,7 +26,9 @@ namespace ControlEntradaSalida
         private const string UserVerifyModeFace = "face";
         private const int MaxFaceImageBytes = 200 * 1024;
 
-        private readonly DeviceConnectionManager deviceManager;
+        
+        private const int DeviceSdkLockTimeoutMs = 30000; // 30秒设备级 SDK 锁等待（避免远程配置/ISAPI 并发）
+private readonly DeviceConnectionManager deviceManager;
         private readonly Common commonHelper;
         private readonly object refreshLock = new object();
         private readonly object personSyncLock = new object();
@@ -35,6 +37,24 @@ namespace ControlEntradaSalida
         {
             deviceManager = DeviceConnectionManager.Instance;
             commonHelper = new Common();
+        }
+
+        private T ExecuteWithDeviceSdkLock<T>(DeviceConnectionInfo device, string operationName, Func<T> action, Func<T> timeoutResult)
+        {
+            if (device == null)
+            {
+                return timeoutResult();
+            }
+
+            using (var sdkLock = device.TryAcquireDeviceSdkLock(DeviceSdkLockTimeoutMs, operationName))
+            {
+                if (!sdkLock.IsAcquired)
+                {
+                    return timeoutResult();
+                }
+
+                return action();
+            }
         }
 
         /// <summary>
@@ -631,29 +651,39 @@ namespace ControlEntradaSalida
             }
 
             string payload = BuildUserInfoPayload(user, connection, enable);
-            bool queryResult = commonHelper.ISAPIQuery(connection.UserID,
-                "PUT /ISAPI/AccessControl/UserInfo/Modify?format=json",
-                payload,
-                out string outputResult,
-                out string outputStatus);
 
-            if (!queryResult)
-            {
-                string errorMessage = ParseErrorMessage(outputStatus ?? outputResult);
-                return failure(string.Format(CultureInfo.InvariantCulture,
-                    "设备 {0} 同步用户 {1} 权限失败：{2}",
-                    device.DeviceName, user.EmployeeId, errorMessage));
-            }
+            return ExecuteWithDeviceSdkLock(
+                connection,
+                $"PermissionModify-{connection.Id}-{user.EmployeeId}",
+                () =>
+                {
+                    bool queryResult = commonHelper.ISAPIQuery(connection.UserID,
+                        "PUT /ISAPI/AccessControl/UserInfo/Modify?format=json",
+                        payload,
+                        out string outputResult,
+                        out string outputStatus);
 
-            if (!IsResponseOk(outputResult))
-            {
-                string errorMessage = ParseErrorMessage(outputResult);
-                return failure(string.Format(CultureInfo.InvariantCulture,
-                    "设备 {0} 返回错误，用户 {1} 权限未更新：{2}",
-                    device.DeviceName, user.EmployeeId, errorMessage));
-            }
+                    if (!queryResult)
+                    {
+                        string errorMessage = ParseErrorMessage(outputStatus ?? outputResult);
+                        return failure(string.Format(CultureInfo.InvariantCulture,
+                            "设备 {0} 同步用户 {1} 权限失败：{2}",
+                            device.DeviceName, user.EmployeeId, errorMessage));
+                    }
 
-            return DeviceUpdateResult.SuccessResult;
+                    if (!IsResponseOk(outputResult))
+                    {
+                        string errorMessage = ParseErrorMessage(outputResult);
+                        return failure(string.Format(CultureInfo.InvariantCulture,
+                            "设备 {0} 返回错误，用户 {1} 权限未更新：{2}",
+                            device.DeviceName, user.EmployeeId, errorMessage));
+                    }
+
+                    return DeviceUpdateResult.SuccessResult;
+                },
+                () => failure(string.Format(CultureInfo.InvariantCulture,
+                    "设备 {0} 忙碌，等待设备SDK锁超时，跳过用户 {1} 权限刷新。",
+                    device.DeviceName, user.EmployeeId)));
         }
 
         private DeviceUpdateResult UpsertPersonOnDevice(DeviceConnectionInfo device, PersonSyncRequest person)
@@ -661,48 +691,59 @@ namespace ControlEntradaSalida
             if (device == null)
             {
                 return DeviceUpdateResult.Fail(string.Format(CultureInfo.InvariantCulture,
-                    "无法定位同步人员 {0} 的目标设备。", person.EmployeeId));
+                    "无法定位同步人员 {0} 的目标设备。", person?.EmployeeId));
             }
 
             if (!TryEnsureDeviceConnected(device))
             {
                 return DeviceUpdateResult.Fail(string.Format(CultureInfo.InvariantCulture,
-                    "无法连接设备 {0}，同步人员 {1} 失败。", device.Name, person.EmployeeId));
+                    "无法连接设备 {0}，同步人员 {1} 失败。", device.Name, person?.EmployeeId));
             }
 
             string payload = BuildPersonUserInfoPayload(person, device);
-            bool queryResult = commonHelper.ISAPIQuery(device.UserID,
-                UserInfoSetupUrl,
-                payload,
-                out string outputResult,
-                out string outputStatus);
 
-            if (!queryResult)
-            {
-                string errorMessage = ParseErrorMessage(outputStatus ?? outputResult);
-                return DeviceUpdateResult.Fail(string.Format(CultureInfo.InvariantCulture,
-                    "设备 {0} 下发人员 {1} 信息失败：{2}",
+            return ExecuteWithDeviceSdkLock(
+                device,
+                $"UpsertPerson-{device.Id}-{person?.EmployeeId}",
+                () =>
+                {
+                    bool queryResult = commonHelper.ISAPIQuery(device.UserID,
+                        UserInfoSetupUrl,
+                        payload,
+                        out string outputResult,
+                        out string outputStatus);
+
+                    if (!queryResult)
+                    {
+                        string errorMessage = ParseErrorMessage(outputStatus ?? outputResult);
+                        return DeviceUpdateResult.Fail(string.Format(CultureInfo.InvariantCulture,
+                            "设备 {0} 下发人员 {1} 信息失败：{2}",
+                            device.Name,
+                            person.EmployeeId,
+                            errorMessage));
+                    }
+
+                    if (!IsResponseOk(outputResult))
+                    {
+                        string errorMessage = ParseErrorMessage(outputResult);
+                        return DeviceUpdateResult.Fail(string.Format(CultureInfo.InvariantCulture,
+                            "设备 {0} 返回错误，人员 {1} 信息未更新：{2}",
+                            device.Name,
+                            person.EmployeeId,
+                            errorMessage));
+                    }
+
+                    if (!person.HasFace)
+                    {
+                        return DeviceUpdateResult.SuccessResult;
+                    }
+
+                    return UploadFaceToDeviceInternal(device, person);
+                },
+                () => DeviceUpdateResult.Fail(string.Format(CultureInfo.InvariantCulture,
+                    "设备 {0} 忙碌，等待设备SDK锁超时，人员 {1} 同步失败。",
                     device.Name,
-                    person.EmployeeId,
-                    errorMessage));
-            }
-
-            if (!IsResponseOk(outputResult))
-            {
-                string errorMessage = ParseErrorMessage(outputResult);
-                return DeviceUpdateResult.Fail(string.Format(CultureInfo.InvariantCulture,
-                    "设备 {0} 返回错误，人员 {1} 信息未更新：{2}",
-                    device.Name,
-                    person.EmployeeId,
-                    errorMessage));
-            }
-
-            if (!person.HasFace)
-            {
-                return DeviceUpdateResult.SuccessResult;
-            }
-
-            return UploadFaceToDevice(device, person);
+                    person?.EmployeeId)));
         }
 
         private static void BuildDoorRights(DeviceConnectionInfo connection, bool enable, out string doorRightValue, out object[] rightPlans)
@@ -792,6 +833,36 @@ namespace ControlEntradaSalida
 
         private DeviceUpdateResult UploadFaceToDevice(DeviceConnectionInfo device, PersonSyncRequest person)
         {
+            if (device == null)
+            {
+                return DeviceUpdateResult.Fail("未找到可用的设备。");
+            }
+
+            if (!TryEnsureDeviceConnected(device))
+            {
+                return DeviceUpdateResult.Fail(string.Format(CultureInfo.InvariantCulture,
+                    "无法连接设备 {0}，同步人员 {1} 的人脸失败。",
+                    device.Name,
+                    person?.EmployeeId));
+            }
+
+            return ExecuteWithDeviceSdkLock(
+                device,
+                $"UploadFace-{device.Id}-{person?.EmployeeId}",
+                () => UploadFaceToDeviceInternal(device, person),
+                () => DeviceUpdateResult.Fail(string.Format(CultureInfo.InvariantCulture,
+                    "设备 {0} 忙碌，等待设备SDK锁超时，上传人员 {1} 人脸失败。",
+                    device.Name,
+                    person?.EmployeeId)));
+        }
+
+        private DeviceUpdateResult UploadFaceToDeviceInternal(DeviceConnectionInfo device, PersonSyncRequest person)
+        {
+            if (person == null)
+            {
+                return DeviceUpdateResult.Fail("未提供需要同步的人脸信息。");
+            }
+
             if (!person.HasFace)
             {
                 return DeviceUpdateResult.SuccessResult;
@@ -950,108 +1021,105 @@ namespace ControlEntradaSalida
                     "无法连接设备 {0}。", device.Name));
             }
 
-            // 根据技术规范2.4.6，使用NET_DVR_CAPTURE_FACE_INFO (2510)命令码进行人脸采集
-            // 此接口适用于DS-K1F600U-D6E-F等专用人脸录入仪
-            int handle = -1;
-            IntPtr condPtr = IntPtr.Zero;
-            try
-            {
-                // 1. 准备采集条件结构体
-                HCNetSDK_Facial.NET_DVR_CAPTURE_FACE_COND cond = new HCNetSDK_Facial.NET_DVR_CAPTURE_FACE_COND();
-                cond.init();
-                cond.dwSize = Marshal.SizeOf(cond);
-
-                condPtr = Marshal.AllocHGlobal(Marshal.SizeOf(cond));
-                Marshal.StructureToPtr(cond, condPtr, false);
-
-                // 2. 开启远程配置
-                handle = HCNetSDK_Facial.NET_DVR_StartRemoteConfig(
-                    device.UserID,
-                    HCNetSDK_Facial.NET_DVR_CAPTURE_FACE_INFO,
-                    condPtr,
-                    Marshal.SizeOf(cond),
-                    null,
-                    IntPtr.Zero);
-
-                if (handle < 0)
+            return ExecuteWithDeviceSdkLock(
+                device,
+                $"CaptureFace-{device.Id}",
+                () =>
                 {
-                    uint errorCode = HCNetSDK.NET_DVR_GetLastError();
-                    return FaceCaptureResult.Fail(string.Format(CultureInfo.InvariantCulture,
-                        "启动人脸采集失败，错误码：{0}。", errorCode));
-                }
+                    int handle = -1;
+                    IntPtr condPtr = IntPtr.Zero;
 
-                // 3. 循环获取采集结果（等待用户将人脸对准设备）
-                int maxAttempts = 100; // 最大尝试次数，约10秒
-                for (int i = 0; i < maxAttempts; i++)
-                {
-                    HCNetSDK_Facial.NET_DVR_CAPTURE_FACE_CFG faceCfg = new HCNetSDK_Facial.NET_DVR_CAPTURE_FACE_CFG();
-                    faceCfg.init();
-                    faceCfg.dwSize = Marshal.SizeOf(faceCfg);
-
-                    int status = HCNetSDK_Facial.NET_DVR_GetNextRemoteConfig(
-                        handle,
-                        ref faceCfg,
-                        Marshal.SizeOf(faceCfg));
-
-                    if (status == HCNetSDK_Facial.NET_SDK_GET_NEXT_STATUS_SUCCESS)
+                    try
                     {
-                        // 检查采集进度：0-未采集到人脸，100-采集到人脸
-                        if (faceCfg.byCaptureProgress == 100)
+                        HCNetSDK_Facial.NET_DVR_CAPTURE_FACE_COND cond = new HCNetSDK_Facial.NET_DVR_CAPTURE_FACE_COND();
+                        cond.init();
+                        cond.dwSize = Marshal.SizeOf(cond);
+
+                        condPtr = Marshal.AllocHGlobal(Marshal.SizeOf(cond));
+                        Marshal.StructureToPtr(cond, condPtr, false);
+
+                        handle = HCNetSDK_Facial.NET_DVR_StartRemoteConfig(
+                            device.UserID,
+                            HCNetSDK_Facial.NET_DVR_CAPTURE_FACE_INFO,
+                            condPtr,
+                            Marshal.SizeOf(cond),
+                            null,
+                            IntPtr.Zero);
+
+                        if (handle < 0)
                         {
-                            // 采集成功，提取人脸图片
-                            if (faceCfg.dwFacePicSize > 0 && faceCfg.pFacePicBuffer != IntPtr.Zero)
-                            {
-                                byte[] faceData = new byte[faceCfg.dwFacePicSize];
-                                Marshal.Copy(faceCfg.pFacePicBuffer, faceData, 0, faceCfg.dwFacePicSize);
+                            uint errorCode = HCNetSDK.NET_DVR_GetLastError();
+                            return FaceCaptureResult.Fail(string.Format(CultureInfo.InvariantCulture,
+                                "启动人脸采集失败，错误码：{0}。", errorCode));
+                        }
 
-                                if (faceData.Length > MaxFaceImageBytes)
+                        int maxAttempts = 100;
+                        for (int i = 0; i < maxAttempts; i++)
+                        {
+                            HCNetSDK_Facial.NET_DVR_CAPTURE_FACE_CFG faceCfg = new HCNetSDK_Facial.NET_DVR_CAPTURE_FACE_CFG();
+                            faceCfg.init();
+                            faceCfg.dwSize = Marshal.SizeOf(faceCfg);
+
+                            int status = HCNetSDK_Facial.NET_DVR_GetNextRemoteConfig(
+                                handle,
+                                ref faceCfg,
+                                Marshal.SizeOf(faceCfg));
+
+                            if (status == HCNetSDK_Facial.NET_SDK_GET_NEXT_STATUS_SUCCESS)
+                            {
+                                if (faceCfg.byCaptureProgress == 100)
                                 {
-                                    return FaceCaptureResult.Fail(string.Format(CultureInfo.InvariantCulture,
-                                        "采集图片大小 {0} 字节超过 200KB。", faceData.Length));
-                                }
+                                    if (faceCfg.dwFacePicSize > 0 && faceCfg.pFacePicBuffer != IntPtr.Zero)
+                                    {
+                                        byte[] faceData = new byte[faceCfg.dwFacePicSize];
+                                        Marshal.Copy(faceCfg.pFacePicBuffer, faceData, 0, faceCfg.dwFacePicSize);
 
-                                string base64 = Convert.ToBase64String(faceData);
-                                return FaceCaptureResult.Ok(base64, "jpg");
+                                        if (faceData.Length > MaxFaceImageBytes)
+                                        {
+                                            return FaceCaptureResult.Fail(string.Format(CultureInfo.InvariantCulture,
+                                                "采集图片大小 {0} 字节超过 200KB。", faceData.Length));
+                                        }
+
+                                        string base64 = Convert.ToBase64String(faceData);
+                                        return FaceCaptureResult.Ok(base64, "jpg");
+                                    }
+
+                                    return FaceCaptureResult.Fail("采集成功但未获取到人脸图片数据。");
+                                }
                             }
-                            else
+                            else if (status == HCNetSDK_Facial.NET_SDK_GET_NEXT_STATUS_NEED_WAIT)
                             {
-                                return FaceCaptureResult.Fail("采集成功但未获取到人脸图片数据。");
+                                System.Threading.Thread.Sleep(100);
+                            }
+                            else if (status == HCNetSDK_Facial.NET_SDK_GET_NEXT_STATUS_FINISH)
+                            {
+                                return FaceCaptureResult.Fail("人脸采集完成但未检测到有效人脸。");
+                            }
+                            else if (status == HCNetSDK_Facial.NET_SDK_GET_NEXT_STATUS_FAILED)
+                            {
+                                uint errorCode = HCNetSDK.NET_DVR_GetLastError();
+                                return FaceCaptureResult.Fail(string.Format(CultureInfo.InvariantCulture,
+                                    "人脸采集失败，错误码：{0}。", errorCode));
                             }
                         }
-                        // 进度为0，继续等待
-                    }
-                    else if (status == HCNetSDK_Facial.NET_SDK_GET_NEXT_STATUS_NEED_WAIT)
-                    {
-                        // 需要等待，休眠一段时间后继续
-                        System.Threading.Thread.Sleep(100);
-                    }
-                    else if (status == HCNetSDK_Facial.NET_SDK_GET_NEXT_STATUS_FINISH)
-                    {
-                        // 采集完成但未获取到人脸
-                        return FaceCaptureResult.Fail("人脸采集完成但未检测到有效人脸。");
-                    }
-                    else if (status == HCNetSDK_Facial.NET_SDK_GET_NEXT_STATUS_FAILED)
-                    {
-                        uint errorCode = HCNetSDK.NET_DVR_GetLastError();
-                        return FaceCaptureResult.Fail(string.Format(CultureInfo.InvariantCulture,
-                            "人脸采集失败，错误码：{0}。", errorCode));
-                    }
-                }
 
-                return FaceCaptureResult.Fail("人脸采集超时，请确保人脸正对设备摄像头。");
-            }
-            finally
-            {
-                // 4. 关闭远程配置
-                if (handle >= 0)
-                {
-                    HCNetSDK_Facial.NET_DVR_StopRemoteConfig(handle);
-                }
-                if (condPtr != IntPtr.Zero)
-                {
-                    Marshal.FreeHGlobal(condPtr);
-                }
-            }
+                        return FaceCaptureResult.Fail("人脸采集超时，请确保人脸正对设备摄像头。");
+                    }
+                    finally
+                    {
+                        if (handle >= 0)
+                        {
+                            HCNetSDK_Facial.NET_DVR_StopRemoteConfig(handle);
+                        }
+                        if (condPtr != IntPtr.Zero)
+                        {
+                            Marshal.FreeHGlobal(condPtr);
+                        }
+                    }
+                },
+                () => FaceCaptureResult.Fail(string.Format(CultureInfo.InvariantCulture,
+                    "设备 {0} 忙碌，等待设备SDK锁超时，人脸采集启动失败。",
+                    device.Name)));
         }
 
         public FaceOperationSummary DeleteFacesOnDevices(IEnumerable<string> employeeIds)
@@ -1259,7 +1327,6 @@ namespace ControlEntradaSalida
                     "无法连接设备 {0}，删除人员 {1} 失败。", device.Name, employeeId));
             }
 
-            // 根据海康威视 ISAPI 规范，使用 UserInfo/Delete 接口删除人员
             var payload = new
             {
                 UserInfoDelCond = new
@@ -1271,33 +1338,43 @@ namespace ControlEntradaSalida
                 }
             };
 
-            bool result = commonHelper.ISAPIQuery(device.UserID,
-                UserInfoDeleteUrl,
-                JsonConvert.SerializeObject(payload),
-                out string outputResult,
-                out string outputStatus);
+            return ExecuteWithDeviceSdkLock(
+                device,
+                $"DeletePerson-{device.Id}-{employeeId}",
+                () =>
+                {
+                    bool result = commonHelper.ISAPIQuery(device.UserID,
+                        UserInfoDeleteUrl,
+                        JsonConvert.SerializeObject(payload),
+                        out string outputResult,
+                        out string outputStatus);
 
-            if (!result)
-            {
-                string errorMessage = ParseErrorMessage(outputStatus ?? outputResult);
-                return DeviceUpdateResult.Fail(string.Format(CultureInfo.InvariantCulture,
-                    "设备 {0} 删除人员 {1} 失败：{2}",
+                    if (!result)
+                    {
+                        string errorMessage = ParseErrorMessage(outputStatus ?? outputResult);
+                        return DeviceUpdateResult.Fail(string.Format(CultureInfo.InvariantCulture,
+                            "设备 {0} 删除人员 {1} 失败：{2}",
+                            device.Name,
+                            employeeId,
+                            errorMessage));
+                    }
+
+                    if (!IsResponseOk(outputResult))
+                    {
+                        string errorMessage = ParseErrorMessage(outputResult);
+                        return DeviceUpdateResult.Fail(string.Format(CultureInfo.InvariantCulture,
+                            "设备 {0} 返回错误，人员 {1} 未删除：{2}",
+                            device.Name,
+                            employeeId,
+                            errorMessage));
+                    }
+
+                    return DeviceUpdateResult.SuccessResult;
+                },
+                () => DeviceUpdateResult.Fail(string.Format(CultureInfo.InvariantCulture,
+                    "设备 {0} 忙碌，等待设备SDK锁超时，删除人员 {1} 失败。",
                     device.Name,
-                    employeeId,
-                    errorMessage));
-            }
-
-            if (!IsResponseOk(outputResult))
-            {
-                string errorMessage = ParseErrorMessage(outputResult);
-                return DeviceUpdateResult.Fail(string.Format(CultureInfo.InvariantCulture,
-                    "设备 {0} 返回错误，人员 {1} 未删除：{2}",
-                    device.Name,
-                    employeeId,
-                    errorMessage));
-            }
-
-            return DeviceUpdateResult.SuccessResult;
+                    employeeId)));
         }
 
         public FaceOperationSummary GetFacesFromDevices(IEnumerable<string> employeeIds)
@@ -1391,8 +1468,6 @@ namespace ControlEntradaSalida
                     "无法连接设备 {0}，删除人员 {1} 的人脸失败。", device.Name, employeeId));
             }
 
-            // 根据技术规范2.4.3.3，FPID为数组格式，支持批量删除
-            // FDID和faceLibType已在URL参数中指定
             var payload = new
             {
                 FPID = new[]
@@ -1401,37 +1476,47 @@ namespace ControlEntradaSalida
                 }
             };
 
-            bool result = commonHelper.ISAPIQuery(device.UserID,
-                FaceDeleteUrl,
-                JsonConvert.SerializeObject(payload),
-                out string outputResult,
-                out string outputStatus);
+            return ExecuteWithDeviceSdkLock(
+                device,
+                $"DeleteFace-{device.Id}-{employeeId}",
+                () =>
+                {
+                    bool result = commonHelper.ISAPIQuery(device.UserID,
+                        FaceDeleteUrl,
+                        JsonConvert.SerializeObject(payload),
+                        out string outputResult,
+                        out string outputStatus);
 
-            string responseContent = string.IsNullOrWhiteSpace(outputResult) ? outputStatus : outputResult;
+                    string responseContent = string.IsNullOrWhiteSpace(outputResult) ? outputStatus : outputResult;
 
-            if (!result)
-            {
-                string errorMessage = ParseErrorMessage(responseContent);
-                return DeviceUpdateResult.Fail(string.Format(CultureInfo.InvariantCulture,
-                    "设备 {0} 删除人员 {1} 的人脸失败：{2}",
+                    if (!result)
+                    {
+                        string errorMessage = ParseErrorMessage(responseContent);
+                        return DeviceUpdateResult.Fail(string.Format(CultureInfo.InvariantCulture,
+                            "设备 {0} 删除人员 {1} 的人脸失败：{2}",
+                            device.Name,
+                            employeeId,
+                            errorMessage));
+                    }
+
+                    responseContent = ExtractJsonFromMultipart(responseContent);
+
+                    if (!IsResponseOkFromContent(responseContent))
+                    {
+                        string errorMessage = ParseErrorMessage(responseContent);
+                        return DeviceUpdateResult.Fail(string.Format(CultureInfo.InvariantCulture,
+                            "设备 {0} 返回错误，人员 {1} 人脸未删除：{2}",
+                            device.Name,
+                            employeeId,
+                            errorMessage));
+                    }
+
+                    return DeviceUpdateResult.SuccessResult;
+                },
+                () => DeviceUpdateResult.Fail(string.Format(CultureInfo.InvariantCulture,
+                    "设备 {0} 忙碌，等待设备SDK锁超时，删除人员 {1} 人脸失败。",
                     device.Name,
-                    employeeId,
-                    errorMessage));
-            }
-
-            responseContent = ExtractJsonFromMultipart(responseContent);
-
-            if (!IsResponseOkFromContent(responseContent))
-            {
-                string errorMessage = ParseErrorMessage(responseContent);
-                return DeviceUpdateResult.Fail(string.Format(CultureInfo.InvariantCulture,
-                    "设备 {0} 返回错误，人员 {1} 人脸未删除：{2}",
-                    device.Name,
-                    employeeId,
-                    errorMessage));
-            }
-
-            return DeviceUpdateResult.SuccessResult;
+                    employeeId)));
         }
 
         private FaceQueryResult QueryFaceOnDevice(DeviceConnectionInfo device, string employeeId)
@@ -1455,7 +1540,6 @@ namespace ControlEntradaSalida
                 return result;
             }
 
-            // 根据技术规范2.4.1.4，faceLibType为必填字段
             var payload = new
             {
                 searchResultPosition = 0,
@@ -1465,24 +1549,38 @@ namespace ControlEntradaSalida
                 FPID = employeeId
             };
 
-            bool ok = commonHelper.ISAPIQuery(device.UserID,
-                FaceSearchUrl,
-                JsonConvert.SerializeObject(payload),
-                out string outputResult,
-                out string outputStatus);
+            string outputResult = null;
+            string outputStatus = null;
+
+            bool ok = ExecuteWithDeviceSdkLock(
+                device,
+                $"QueryFace-{device.Id}-{employeeId}",
+                () => commonHelper.ISAPIQuery(device.UserID,
+                    FaceSearchUrl,
+                    JsonConvert.SerializeObject(payload),
+                    out outputResult,
+                    out outputStatus),
+                () => false);
 
             result.RawResponse = string.IsNullOrWhiteSpace(outputResult) ? outputStatus : outputResult;
 
             if (!ok)
             {
+                if (outputResult == null && outputStatus == null)
+                {
+                    result.ErrorMessage = string.Format(CultureInfo.InvariantCulture,
+                        "设备 {0} 忙碌，等待设备SDK锁超时，查询人员 {1} 人脸失败。",
+                        device.Name,
+                        employeeId);
+                    return result;
+                }
+
                 result.ErrorMessage = ParseErrorMessage(outputStatus ?? outputResult);
                 return result;
             }
 
-            // 尝试从 multipart 响应中提取 JSON 部分
             string jsonContent = ExtractJsonFromMultipart(outputResult);
 
-            // 检查响应是否成功
             if (!IsResponseOkFromContent(jsonContent))
             {
                 result.ErrorMessage = ParseErrorMessage(jsonContent);
@@ -1493,23 +1591,20 @@ namespace ControlEntradaSalida
             {
                 JToken root = JToken.Parse(jsonContent);
 
-                // 尝试从 MatchList 或 FaceDataRecord 中获取数据
                 JToken dataList = root["MatchList"] ?? root["FaceDataRecord"];
                 if (dataList is JArray arr && arr.Count > 0)
                 {
                     JToken first = arr[0];
 
-                    // 尝试多种可能的字段名称
                     string face = first.Value<string>("facePicBinary") ??
                                   first.Value<string>("FacePicBinary") ??
                                   first.Value<string>("facePic") ??
                                   first.Value<string>("FacePic") ??
-                                  first.Value<string>("modelData");  // 某些设备返回模型数据而非图片
+                                  first.Value<string>("modelData");
 
                     result.FaceImageBase64 = face;
                 }
 
-                // 检查是否有匹配结果
                 int numOfMatches = root.Value<int?>("numOfMatches") ?? 0;
                 int totalMatches = root.Value<int?>("totalMatches") ?? 0;
                 if (numOfMatches > 0 || totalMatches > 0)
@@ -1523,7 +1618,6 @@ namespace ControlEntradaSalida
             }
             catch (JsonException)
             {
-                // 解析失败，但如果原始响应包含成功标记，仍视为成功
                 if (jsonContent.Contains("\"statusCode\":\t1") || jsonContent.Contains("\"statusCode\": 1"))
                 {
                     result.Success = true;
