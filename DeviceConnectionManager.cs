@@ -33,7 +33,6 @@ namespace ControlEntradaSalida
         
         // 重连相关属性
         public int ReconnectAttempts { get; set; } = 0;
-        public DateTime LastReconnectTime { get; set; } = DateTime.MinValue;
         public TimeSpan ReconnectDelay { get; set; } = TimeSpan.Zero;
         public bool IsReconnecting { get; set; } = false;
         public bool IsPermanentFailure { get; set; } = false;
@@ -922,84 +921,6 @@ private const int MAX_CONCURRENT_CONNECTIONS = 10; // 最大并发连接数
             }
         }
         
-        // 获取设备详细状态（实际实现）
-        // 通过设备API获取真实状态
-        private DeviceStatus GetDeviceDetailedStatus(DeviceConnectionInfo device)
-        {
-            try
-            {
-                // 使用NET_DVR_GetDVRConfig获取门禁设备工作状态
-                HCNetSDK.NET_DVR_ACS_WORK_STATUS_V50 statusInfo = new HCNetSDK.NET_DVR_ACS_WORK_STATUS_V50();
-                statusInfo.Init();
-                
-                uint dwReturned = 0;
-                uint dwCommand = (uint)HCNetSDK.NET_DVR_GET_ACS_WORK_STATUS_V50;
-                int nSize = Marshal.SizeOf(statusInfo);
-                IntPtr ptrStatusInfo = Marshal.AllocHGlobal(nSize);
-                Marshal.StructureToPtr(statusInfo, ptrStatusInfo, false);
-                
-                bool bRet = HCNetSDK.NET_DVR_GetDVRConfig(device.UserID, dwCommand, -1, ptrStatusInfo, (uint)nSize, ref dwReturned);
-                
-                if (bRet)
-                {
-                    // 成功获取状态信息
-                    statusInfo = (HCNetSDK.NET_DVR_ACS_WORK_STATUS_V50)Marshal.PtrToStructure(ptrStatusInfo, typeof(HCNetSDK.NET_DVR_ACS_WORK_STATUS_V50));
-                    
-                    // 根据门状态判断设备状态
-                    // 通常门状态：1-休眠状态, 2-常开状态, 3-常闭状态, 4-普通状态
-                    if (statusInfo.byDoorStatus != null && statusInfo.byDoorStatus.Length > 0)
-                    {
-                        byte doorStatus = statusInfo.byDoorStatus[0];
-                        switch (doorStatus)
-                        {
-                            case 2: // 常开状态
-                                return DeviceStatus.AlwaysOpen;
-                            case 3: // 常闭状态
-                                return DeviceStatus.AlwaysClose;
-                            case 1: // 休眠状态
-                            case 4: // 普通状态
-                            default:
-                                return DeviceStatus.Online;
-                        }
-                    }
-                    else
-                    {
-                        // 如果没有门状态信息，默认返回在线
-                        return DeviceStatus.Online;
-                    }
-                }
-                else
-                {
-                    // 获取状态失败，返回离线
-                    return DeviceStatus.Offline;
-                }
-            }
-            catch (Exception ex)
-            {
-                // 出现异常，返回离线
-                ServiceLogger.Error("获取设备详细状态时出错。", ex);
-                return DeviceStatus.Offline;
-            }
-        }
-        
-        // 根据设备状态获取状态消息
-        private string GetStatusMessage(DeviceStatus status)
-        {
-            switch (status)
-            {
-                case DeviceStatus.Online:
-                    return "在线";
-                case DeviceStatus.Offline:
-                    return "离线";
-                case DeviceStatus.AlwaysOpen:
-                    return "常开";
-                case DeviceStatus.AlwaysClose:
-                    return "常闭";
-                default:
-                    return "未知";
-            }
-        }
-
         /// <summary>
         /// 异步检查所有设备状态
         /// </summary>

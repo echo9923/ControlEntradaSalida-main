@@ -19,7 +19,6 @@ namespace ControlEntradaSalida
         private const string FaceSetupUrl = "PUT /ISAPI/Intelligent/FDLib/FDSetUp?format=json";
         private const string FaceDeleteUrl = "PUT /ISAPI/Intelligent/FDLib/FDSearch/Delete?format=json&FDID=1&faceLibType=blackFD";
         private const string FaceSearchUrl = "POST /ISAPI/Intelligent/FDLib/FDSearch?format=json";
-        private const string SnapshotUrl = "GET /ISAPI/Streaming/channels/101/picture";
         private const string EnrollmentDeviceName = "人脸录入仪";
         private const string DefaultFaceLibType = "blackFD";
         private const string DefaultFaceLibId = "1";
@@ -829,31 +828,6 @@ private readonly DeviceConnectionManager deviceManager;
             };
 
             return JsonConvert.SerializeObject(payload);
-        }
-
-        private DeviceUpdateResult UploadFaceToDevice(DeviceConnectionInfo device, PersonSyncRequest person)
-        {
-            if (device == null)
-            {
-                return DeviceUpdateResult.Fail("未找到可用的设备。");
-            }
-
-            if (!TryEnsureDeviceConnected(device))
-            {
-                return DeviceUpdateResult.Fail(string.Format(CultureInfo.InvariantCulture,
-                    "无法连接设备 {0}，同步人员 {1} 的人脸失败。",
-                    device.Name,
-                    person?.EmployeeId));
-            }
-
-            return ExecuteWithDeviceSdkLock(
-                device,
-                $"UploadFace-{device.Id}-{person?.EmployeeId}",
-                () => UploadFaceToDeviceInternal(device, person),
-                () => DeviceUpdateResult.Fail(string.Format(CultureInfo.InvariantCulture,
-                    "设备 {0} 忙碌，等待设备SDK锁超时，上传人员 {1} 人脸失败。",
-                    device.Name,
-                    person?.EmployeeId)));
         }
 
         private DeviceUpdateResult UploadFaceToDeviceInternal(DeviceConnectionInfo device, PersonSyncRequest person)

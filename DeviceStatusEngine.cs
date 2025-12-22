@@ -11,11 +11,8 @@ namespace ControlEntradaSalida
     {
         public bool SupportsFaceRecognition { get; set; }
         public bool SupportsCardAccess { get; set; }
-        public bool SupportsFingerprint { get; set; }
         public bool SupportsRemoteControl { get; set; }
         public int MaxDoorCount { get; set; }
-        public string DeviceModel { get; set; }
-        public string FirmwareVersion { get; set; }
     }
 
     /// <summary>
