@@ -296,13 +296,13 @@
       <dsig:DigestValue>9w81+YyK50rBkXPyLf7aZXPybeYQeCpQDJUzk+GHReY=</dsig:DigestValue>
     </hash>
   </file>
-  <file name="Configuration\appsettings.json" size="563">
+  <file name="Configuration\appsettings.json" size="602">
     <hash>
       <dsig:Transforms>
         <dsig:Transform Algorithm="urn:schemas-microsoft-com:HashTransforms.Identity" />
       </dsig:Transforms>
       <dsig:DigestMethod Algorithm="http://www.w3.org/2000/09/xmldsig#sha256" />
-      <dsig:DigestValue>Lu8FVj6XQwaLdcQvSaiN2Prjl/5ppiRT7CappB9p6Q4=</dsig:DigestValue>
+      <dsig:DigestValue>S39Ot4qj93XwRwPGm0C0EbzjiqtrUcI7O6b5X7E2ph4=</dsig:DigestValue>
     </hash>
   </file>
   <file name="ControlEntradaSalida.exe.config" size="1286">
