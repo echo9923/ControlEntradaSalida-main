@@ -415,13 +415,6 @@ private readonly ConcurrentDictionary<string, string> nicknameCache = new Concur
                 return;
             }
 
-            int previousAlarmHandle = -1;
-            lock (device.LockObject)
-            {
-                previousAlarmHandle = device.AlarmHandle;
-                device.AlarmHandle = -1;
-            }
-
             using (var sdkLock = device.TryAcquireDeviceSdkLock(
                 deviceSdkLockTimeoutMs,
                 $"SetupAlarm-{device.Id}"))
@@ -430,6 +423,13 @@ private readonly ConcurrentDictionary<string, string> nicknameCache = new Concur
                 {
                     ServiceLogger.Warn($"设备 {device.Name} 获取设备SDK锁超时，跳过布防。");
                     return;
+                }
+
+                int previousAlarmHandle;
+                lock (device.LockObject)
+                {
+                    previousAlarmHandle = device.AlarmHandle;
+                    device.AlarmHandle = -1;
                 }
 
                 if (previousAlarmHandle >= 0)
@@ -473,18 +473,6 @@ private readonly ConcurrentDictionary<string, string> nicknameCache = new Concur
                 return;
             }
 
-            int alarmHandle = -1;
-            lock (device.LockObject)
-            {
-                alarmHandle = device.AlarmHandle;
-                device.AlarmHandle = -1;
-            }
-
-            if (alarmHandle < 0)
-            {
-                return;
-            }
-
             using (var sdkLock = device.TryAcquireDeviceSdkLock(
                 deviceSdkLockTimeoutMs,
                 $"CloseAlarm-{device.Id}"))
@@ -492,6 +480,18 @@ private readonly ConcurrentDictionary<string, string> nicknameCache = new Concur
                 if (!sdkLock.IsAcquired)
                 {
                     ServiceLogger.Warn($"设备 {device.Name} 获取设备SDK锁超时，跳过撤防关闭。");
+                    return;
+                }
+
+                int alarmHandle;
+                lock (device.LockObject)
+                {
+                    alarmHandle = device.AlarmHandle;
+                    device.AlarmHandle = -1;
+                }
+
+                if (alarmHandle < 0)
+                {
                     return;
                 }
 
