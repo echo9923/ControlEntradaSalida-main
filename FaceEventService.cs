@@ -27,6 +27,10 @@ namespace ControlEntradaSalida
         private const long DefaultTenantId = 1;
         private const string DefaultDeleted = "0";
 
+        private static readonly int AcsAlarmInfoSize = Marshal.SizeOf(typeof(HCNetSDK.NET_DVR_ACS_ALARM_INFO));
+        private static readonly int AcsEventCondSize = Marshal.SizeOf(typeof(HCNetSDK.NET_DVR_ACS_EVENT_COND));
+        private static readonly int AcsEventCfgSize = Marshal.SizeOf(typeof(HCNetSDK.NET_DVR_ACS_EVENT_CFG));
+
         private readonly int deviceSdkLockTimeoutMs;
         private readonly BlockingCollection<FaceEventRecord> eventQueue;
         private readonly CancellationTokenSource cancellation = new CancellationTokenSource();
@@ -34,7 +38,7 @@ namespace ControlEntradaSalida
         private readonly ConcurrentDictionary<int, int> remoteConfigHandles = new ConcurrentDictionary<int, int>();
         
         private readonly ConcurrentDictionary<int, CancellationTokenSource> compensationTokens = new ConcurrentDictionary<int, CancellationTokenSource>();
-private readonly ConcurrentDictionary<string, string> nicknameCache = new ConcurrentDictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        private readonly ConcurrentDictionary<string, string> nicknameCache = new ConcurrentDictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         private readonly string snapshotRootDirectory;
 
         private HCNetSDK.MSGCallBack alarmCallback;
@@ -202,35 +206,14 @@ private readonly ConcurrentDictionary<string, string> nicknameCache = new Concur
             try
             {
                 string deviceIp = SafeTrim(alarmer.sDeviceIP);
-                DeviceConnectionInfo device = null;
+
+                DeviceConnectionInfo device;
                 DeviceConnectionManager.Instance.TryGetDeviceByIp(deviceIp, out device);
 
-                string deviceSerialNumber = null;
-                string deviceNameFallback = null;
-
-                try
-                {
-                    if (alarmer.bySerialValid == 1 && alarmer.sSerialNumber != null && alarmer.sSerialNumber.Length > 0)
-                    {
-                        deviceSerialNumber = Encoding.ASCII.GetString(alarmer.sSerialNumber).TrimEnd('\0').Trim();
-                    }
-
-                    if (alarmer.byDeviceNameValid == 1 && !string.IsNullOrWhiteSpace(alarmer.sDeviceName))
-                    {
-                        deviceNameFallback = alarmer.sDeviceName.Trim();
-                    }
-                }
-                catch
-                {
-                    // 忽略读取报警设备信息失败
-                }
-
                 FaceEventRecord record;
-                int fullSize = Marshal.SizeOf(typeof(HCNetSDK.NET_DVR_ACS_ALARM_INFO));
-
-                if (bufferLength >= (uint)fullSize)
+                if (bufferLength >= (uint)AcsAlarmInfoSize)
                 {
-                    var info = (HCNetSDK.NET_DVR_ACS_ALARM_INFO)Marshal.PtrToStructure(alarmInfo, typeof(HCNetSDK.NET_DVR_ACS_ALARM_INFO));
+                    var info = Marshal.PtrToStructure<HCNetSDK.NET_DVR_ACS_ALARM_INFO>(alarmInfo);
                     if (!IsFaceVerifyMinor(info.dwMinor))
                     {
                         return;
@@ -240,7 +223,7 @@ private readonly ConcurrentDictionary<string, string> nicknameCache = new Concur
                 }
                 else
                 {
-                    var info = (HCNetSDK.NET_DVR_ACS_ALARM_INFO_V1)Marshal.PtrToStructure(alarmInfo, typeof(HCNetSDK.NET_DVR_ACS_ALARM_INFO_V1));
+                    var info = Marshal.PtrToStructure<HCNetSDK.NET_DVR_ACS_ALARM_INFO_V1>(alarmInfo);
                     if (!IsFaceVerifyMinor(info.dwMinor))
                     {
                         return;
@@ -254,14 +237,33 @@ private readonly ConcurrentDictionary<string, string> nicknameCache = new Concur
                     return;
                 }
 
-                if (string.IsNullOrWhiteSpace(record.DeviceSerialNumber) && !string.IsNullOrWhiteSpace(deviceSerialNumber))
+                if (string.IsNullOrWhiteSpace(record.DeviceSerialNumber)
+                    && alarmer.bySerialValid == 1
+                    && alarmer.sSerialNumber != null
+                    && alarmer.sSerialNumber.Length > 0)
                 {
-                    record.DeviceSerialNumber = deviceSerialNumber;
+                    try
+                    {
+                        record.DeviceSerialNumber = Encoding.ASCII.GetString(alarmer.sSerialNumber).TrimEnd('\0').Trim();
+                    }
+                    catch
+                    {
+                        // 忽略读取报警设备信息失败
+                    }
                 }
 
-                if (device == null && !string.IsNullOrWhiteSpace(deviceNameFallback))
+                if (device == null
+                    && alarmer.byDeviceNameValid == 1
+                    && !string.IsNullOrWhiteSpace(alarmer.sDeviceName))
                 {
-                    record.DeviceName = deviceNameFallback;
+                    try
+                    {
+                        record.DeviceName = alarmer.sDeviceName.Trim();
+                    }
+                    catch
+                    {
+                        // 忽略读取报警设备信息失败
+                    }
                 }
 
                 Enqueue(record);
@@ -931,7 +933,7 @@ private readonly ConcurrentDictionary<string, string> nicknameCache = new Concur
 
                 HCNetSDK.NET_DVR_ACS_EVENT_COND cond = new HCNetSDK.NET_DVR_ACS_EVENT_COND();
                 cond.Init();
-                cond.dwSize = (uint)Marshal.SizeOf(typeof(HCNetSDK.NET_DVR_ACS_EVENT_COND));
+                cond.dwSize = (uint)AcsEventCondSize;
                 cond.dwMajor = HCNetSDK.MAJOR_EVENT;
                 cond.dwMinor = 0;
                 cond.struStartTime = ToDvrTime(startTime);
@@ -939,7 +941,7 @@ private readonly ConcurrentDictionary<string, string> nicknameCache = new Concur
                 cond.dwBeginSerialNo = beginSerial;
                 cond.byPicEnable = 1;
 
-                int size = Marshal.SizeOf(cond);
+                int size = AcsEventCondSize;
 
                 using (var sdkLock = device.TryAcquireDeviceSdkLock(
                     deviceSdkLockTimeoutMs,
@@ -970,7 +972,7 @@ private readonly ConcurrentDictionary<string, string> nicknameCache = new Concur
 
                         remoteConfigHandles[device.Id] = handle;
 
-                        int cfgSize = Marshal.SizeOf(typeof(HCNetSDK.NET_DVR_ACS_EVENT_CFG));
+                        int cfgSize = AcsEventCfgSize;
                         outPtr = Marshal.AllocHGlobal(cfgSize);
 
                         while (!token.IsCancellationRequested)
@@ -978,7 +980,7 @@ private readonly ConcurrentDictionary<string, string> nicknameCache = new Concur
                             int status = HCNetSDK.NET_DVR_GetNextRemoteConfig(handle, outPtr, (uint)cfgSize);
                             if (status == (int)HCNetSDK.NET_SDK_SENDWITHRECV_STATUS.NET_SDK_CONFIG_STATUS_SUCCESS)
                             {
-                                var cfg = (HCNetSDK.NET_DVR_ACS_EVENT_CFG)Marshal.PtrToStructure(outPtr, typeof(HCNetSDK.NET_DVR_ACS_EVENT_CFG));
+                                var cfg = Marshal.PtrToStructure<HCNetSDK.NET_DVR_ACS_EVENT_CFG>(outPtr);
                                 if (!IsFaceVerifyMinor(cfg.dwMinor))
                                 {
                                     continue;
@@ -1186,9 +1188,7 @@ private readonly ConcurrentDictionary<string, string> nicknameCache = new Concur
 
             try
             {
-                var extend = (HCNetSDK.NET_DVR_ACS_EVENT_INFO_EXTEND)Marshal.PtrToStructure(
-                    info.pAcsEventInfoExtend,
-                    typeof(HCNetSDK.NET_DVR_ACS_EVENT_INFO_EXTEND));
+                var extend = Marshal.PtrToStructure<HCNetSDK.NET_DVR_ACS_EVENT_INFO_EXTEND>(info.pAcsEventInfoExtend);
 
                 string employeeNo = DecodeFixedAsciiString(extend.byEmployeeNo);
                 return string.IsNullOrWhiteSpace(employeeNo) ? null : employeeNo;
