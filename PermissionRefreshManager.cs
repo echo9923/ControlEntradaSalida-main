@@ -25,9 +25,9 @@ namespace ControlEntradaSalida
         private const string UserVerifyModeFace = "face";
         private const int MaxFaceImageBytes = 200 * 1024;
 
-        
-        private const int DeviceSdkLockTimeoutMs = 30000; // 30秒设备级 SDK 锁等待（避免远程配置/ISAPI 并发）
-private readonly DeviceConnectionManager deviceManager;
+
+        private readonly int deviceSdkLockTimeoutMs;
+        private readonly DeviceConnectionManager deviceManager;
         private readonly Common commonHelper;
         private readonly object refreshLock = new object();
         private readonly object personSyncLock = new object();
@@ -36,6 +36,15 @@ private readonly DeviceConnectionManager deviceManager;
         {
             deviceManager = DeviceConnectionManager.Instance;
             commonHelper = new Common();
+
+            try
+            {
+                deviceSdkLockTimeoutMs = ServiceConfiguration.Current.DeviceConnection?.DeviceSdkLockTimeoutMs ?? 30000;
+            }
+            catch
+            {
+                deviceSdkLockTimeoutMs = 30000;
+            }
         }
 
         private T ExecuteWithDeviceSdkLock<T>(DeviceConnectionInfo device, string operationName, Func<T> action, Func<T> timeoutResult)
@@ -45,7 +54,7 @@ private readonly DeviceConnectionManager deviceManager;
                 return timeoutResult();
             }
 
-            using (var sdkLock = device.TryAcquireDeviceSdkLock(DeviceSdkLockTimeoutMs, operationName))
+            using (var sdkLock = device.TryAcquireDeviceSdkLock(deviceSdkLockTimeoutMs, operationName))
             {
                 if (!sdkLock.IsAcquired)
                 {

@@ -26,6 +26,10 @@ namespace ControlEntradaSalida.Configuration
 
         public FaceEventLoggingSection FaceEventLogging { get; set; } = new FaceEventLoggingSection();
 
+        public DeviceConnectionSection DeviceConnection { get; set; } = new DeviceConnectionSection();
+
+        public ReconnectSection Reconnect { get; set; } = new ReconnectSection();
+
         private static ExternalConfiguration Load()
         {
             string baseDirectory = AppDomain.CurrentDomain.BaseDirectory;
@@ -52,6 +56,8 @@ namespace ControlEntradaSalida.Configuration
             configuration.Service ??= new ServiceSection();
             configuration.Database ??= new DatabaseSection();
             configuration.FaceEventLogging ??= new FaceEventLoggingSection();
+            configuration.DeviceConnection ??= new DeviceConnectionSection();
+            configuration.Reconnect ??= new ReconnectSection();
 
             return configuration;
         }
@@ -128,6 +134,67 @@ namespace ControlEntradaSalida.Configuration
             /// 报警布防类型（技术规范：0-客户端布防（实时+离线），1-实时布防（仅实时））。
             /// </summary>
             public int? AlarmDeployType { get; set; }
+        }
+
+        public sealed class DeviceConnectionSection
+        {
+            /// <summary>
+            /// 状态检查间隔（毫秒）。
+            /// </summary>
+            public int? StatusCheckIntervalMs { get; set; }
+
+            /// <summary>
+            /// 状态检查获取设备 SDK 锁的等待时间（毫秒），超时将跳过本轮状态检查。
+            /// </summary>
+            public int? StatusCheckSdkLockTimeoutMs { get; set; }
+
+            /// <summary>
+            /// 设备级 SDK 锁等待时间（毫秒），用于登录/登出/远程配置等互斥操作。
+            /// </summary>
+            public int? DeviceSdkLockTimeoutMs { get; set; }
+
+            /// <summary>
+            /// 连接操作等待超时（毫秒）。
+            /// </summary>
+            public int? ConnectTimeoutMs { get; set; }
+
+            /// <summary>
+            /// 断开连接操作等待超时（毫秒）。
+            /// </summary>
+            public int? DisconnectTimeoutMs { get; set; }
+
+            /// <summary>
+            /// 最大并发连接/状态检查并发度。
+            /// </summary>
+            public int? MaxConcurrentConnections { get; set; }
+        }
+
+        public sealed class ReconnectSection
+        {
+            /// <summary>
+            /// 最大重连尝试次数。
+            /// </summary>
+            public int? MaxReconnectAttempts { get; set; }
+
+            /// <summary>
+            /// 重连基准延迟（毫秒）。
+            /// </summary>
+            public int? BaseDelayMs { get; set; }
+
+            /// <summary>
+            /// 重连最大延迟（毫秒）。
+            /// </summary>
+            public int? MaxDelayMs { get; set; }
+
+            /// <summary>
+            /// 达到最大重连次数后的冷却期（毫秒）。
+            /// </summary>
+            public int? PermanentFailureCooldownMs { get; set; }
+
+            /// <summary>
+            /// 重连检查间隔（毫秒）。
+            /// </summary>
+            public int? ReconnectCheckIntervalMs { get; set; }
         }
     }
 }

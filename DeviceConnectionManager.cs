@@ -187,12 +187,13 @@ namespace ControlEntradaSalida
         private readonly DeviceStatusEngine _statusEngine;
         private int _statusCheckLoopRunning;
         
-        private const int STATUS_CHECK_INTERVAL = 30000; // 30秒检查一次设备状态
-        private const int CONNECTION_TIMEOUT = 5000; // 5秒连接超时
-        
-        private const int DEVICE_SDK_LOCK_TIMEOUT = 30000; // 30秒设备级 SDK 锁等待（避免远程配置/ISAPI 并发）
-        private const int STATUS_SDK_LOCK_TIMEOUT = 1000;  // 1秒状态检查锁等待（超时则跳过本次检查）
-private const int MAX_CONCURRENT_CONNECTIONS = 10; // 最大并发连接数
+        private int statusCheckIntervalMs = 30000; // 30秒检查一次设备状态
+        private int connectTimeoutMs = 5000; // 5秒连接等待超时
+        private int disconnectTimeoutMs = 5000; // 5秒断开连接等待超时
+
+        private int deviceSdkLockTimeoutMs = 30000; // 30秒设备级 SDK 锁等待（避免远程配置/ISAPI 并发）
+        private int statusSdkLockTimeoutMs = 1000;  // 1秒状态检查锁等待（超时则跳过本次检查）
+        private int maxConcurrentConnections = 10; // 最大并发连接数
         
         private volatile bool _disposed = false;
         
@@ -274,7 +275,7 @@ private const int MAX_CONCURRENT_CONNECTIONS = 10; // 最大并发连接数
         /// </summary>
         private void InitializeTimer()
         {
-            _statusCheckTimer = new System.Timers.Timer(STATUS_CHECK_INTERVAL);
+            _statusCheckTimer = new System.Timers.Timer(statusCheckIntervalMs);
             _statusCheckTimer.AutoReset = true;
             _statusCheckTimer.Elapsed += (sender, e) =>
             {
@@ -313,7 +314,31 @@ private const int MAX_CONCURRENT_CONNECTIONS = 10; // 最大并发连接数
                 throw new ArgumentNullException(nameof(configuration));
             }
 
-            // 目前仅使用配置中的其他全局参数（例如日志目录、端口），设备列表统一从数据库加载。
+            if (_disposed)
+            {
+                return;
+            }
+
+            var deviceOptions = configuration.DeviceConnection;
+            if (deviceOptions != null)
+            {
+                statusCheckIntervalMs = deviceOptions.StatusCheckIntervalMs;
+                statusSdkLockTimeoutMs = deviceOptions.StatusCheckSdkLockTimeoutMs;
+                deviceSdkLockTimeoutMs = deviceOptions.DeviceSdkLockTimeoutMs;
+                connectTimeoutMs = deviceOptions.ConnectTimeoutMs;
+                disconnectTimeoutMs = deviceOptions.DisconnectTimeoutMs;
+                maxConcurrentConnections = deviceOptions.MaxConcurrentConnections;
+
+                if (_statusCheckTimer != null)
+                {
+                    _statusCheckTimer.Interval = statusCheckIntervalMs;
+                }
+            }
+
+            if (configuration.Reconnect != null)
+            {
+                _reconnectManager.ApplyConfiguration(configuration.Reconnect);
+            }
         }
         
         #endregion
@@ -414,7 +439,7 @@ private const int MAX_CONCURRENT_CONNECTIONS = 10; // 最大并发连接数
             // 并行检查所有启用设备的连接状态
             var options = new ParallelOptions
             {
-                MaxDegreeOfParallelism = Math.Min(Environment.ProcessorCount, MAX_CONCURRENT_CONNECTIONS)
+                MaxDegreeOfParallelism = Math.Min(Environment.ProcessorCount, maxConcurrentConnections)
             };
 
             await Task.Run(() =>
@@ -498,7 +523,7 @@ private const int MAX_CONCURRENT_CONNECTIONS = 10; // 最大并发连接数
             
             // 使用安全的信号量操作
             using (var semaphoreResult = await SynchronizationHelper.SafeWaitAsync(
-                semaphore, CONNECTION_TIMEOUT, $"ConnectDevice-{device.Id}").ConfigureAwait(false))
+                semaphore, connectTimeoutMs, $"ConnectDevice-{device.Id}").ConfigureAwait(false))
             {
                 if (!semaphoreResult.IsAcquired)
                 {
@@ -566,7 +591,7 @@ private const int MAX_CONCURRENT_CONNECTIONS = 10; // 最大并发连接数
             }
 
             using (var sdkLock = device.TryAcquireDeviceSdkLock(
-                DEVICE_SDK_LOCK_TIMEOUT,
+                deviceSdkLockTimeoutMs,
                 $"ConnectDeviceSdk-{device.Id}"))
             {
                 if (!sdkLock.IsAcquired)
@@ -696,7 +721,7 @@ private const int MAX_CONCURRENT_CONNECTIONS = 10; // 最大并发连接数
                 SynchronizationHelper.CreateSemaphore(1, 1, $"Device-{device.Id}-Disconnect"));
 
             using (var semaphoreResult = SynchronizationHelper.SafeWait(
-                semaphore, CONNECTION_TIMEOUT, $"DisconnectDevice-{device.Id}"))
+                semaphore, disconnectTimeoutMs, $"DisconnectDevice-{device.Id}"))
             {
                 if (!semaphoreResult.IsAcquired)
                 {
@@ -711,7 +736,7 @@ private const int MAX_CONCURRENT_CONNECTIONS = 10; // 最大并发连接数
                     Debug.WriteLine($"[DeviceConnectionManager] 开始断开设备 {device.Id} ({device.Name})");
 
                     using (var sdkLock = device.TryAcquireDeviceSdkLock(
-                        DEVICE_SDK_LOCK_TIMEOUT,
+                        deviceSdkLockTimeoutMs,
                         $"DisconnectDeviceSdk-{device.Id}"))
                     {
                         if (!sdkLock.IsAcquired)
@@ -836,7 +861,7 @@ private const int MAX_CONCURRENT_CONNECTIONS = 10; // 最大并发连接数
 
                 DeviceWorkStatus workStatus;
                 using (var sdkLock = device.TryAcquireDeviceSdkLock(
-                    STATUS_SDK_LOCK_TIMEOUT,
+                    statusSdkLockTimeoutMs,
                     $"StatusCheckSdk-{device.Id}"))
                 {
                     if (!sdkLock.IsAcquired)
@@ -961,7 +986,7 @@ private const int MAX_CONCURRENT_CONNECTIONS = 10; // 最大并发连接数
                 // 使用并行处理提高检查速度，但限制最大并发数
                 var options = new ParallelOptions
                 {
-                    MaxDegreeOfParallelism = Math.Min(Environment.ProcessorCount, MAX_CONCURRENT_CONNECTIONS)
+                    MaxDegreeOfParallelism = Math.Min(Environment.ProcessorCount, maxConcurrentConnections)
                 };
                 
                 await Task.Run(() =>
@@ -1019,7 +1044,7 @@ private const int MAX_CONCURRENT_CONNECTIONS = 10; // 最大并发连接数
                                 {
                                     OnDeviceReconnectAttempt(new DeviceReconnectEventArgs(
                                         deviceId, state.Attempts, state.CurrentDelay, 
-                                        state.Attempts >= 10, "重连失败"));
+                                        state.Attempts >= _reconnectManager.MaxReconnectAttempts, "重连失败"));
                                 }
                             }
                         }

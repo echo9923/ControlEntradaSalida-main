@@ -12,6 +12,19 @@ namespace ControlEntradaSalida
         private const int DefaultLogRetentionDays = 90;
         private const int DefaultPayloadLogMaxChars = 2048;
 
+        private const int DefaultStatusCheckIntervalMs = 30000;
+        private const int DefaultStatusCheckSdkLockTimeoutMs = 1000;
+        private const int DefaultDeviceSdkLockTimeoutMs = 30000;
+        private const int DefaultConnectTimeoutMs = 5000;
+        private const int DefaultDisconnectTimeoutMs = 5000;
+        private const int DefaultMaxConcurrentConnections = 10;
+
+        private const int DefaultReconnectMaxAttempts = 10;
+        private const int DefaultReconnectBaseDelayMs = 1000;
+        private const int DefaultReconnectMaxDelayMs = 300000;
+        private const int DefaultReconnectPermanentFailureCooldownMs = 600000;
+        private const int DefaultReconnectCheckIntervalMs = 5000;
+
         private static readonly Lazy<ServiceConfiguration> LazyInstance =
             new Lazy<ServiceConfiguration>(Load);
 
@@ -29,6 +42,10 @@ namespace ControlEntradaSalida
 
         public FaceEventOptions FaceEvent { get; private set; }
 
+        public DeviceConnectionOptions DeviceConnection { get; private set; }
+
+        public ReconnectOptions Reconnect { get; private set; }
+
         private ServiceConfiguration()
         {
         }
@@ -45,6 +62,8 @@ namespace ControlEntradaSalida
             configuration.LogGrpcPayloads = serviceSection?.LogGrpcPayloads ?? false;
             configuration.GrpcPayloadLogMaxChars = ResolvePayloadLogMaxChars(serviceSection?.GrpcPayloadLogMaxChars);
             configuration.FaceEvent = ResolveFaceEventOptions(ExternalConfiguration.Current.FaceEventLogging);
+            configuration.DeviceConnection = ResolveDeviceConnectionOptions(ExternalConfiguration.Current.DeviceConnection);
+            configuration.Reconnect = ResolveReconnectOptions(ExternalConfiguration.Current.Reconnect);
 
             EnsureLogDirectory(configuration.LogDirectory);
 
@@ -109,6 +128,106 @@ namespace ControlEntradaSalida
             return options;
         }
 
+        private static DeviceConnectionOptions ResolveDeviceConnectionOptions(ExternalConfiguration.DeviceConnectionSection section)
+        {
+            var options = new DeviceConnectionOptions
+            {
+                StatusCheckIntervalMs = ResolveIntInRange(
+                    section?.StatusCheckIntervalMs,
+                    DefaultStatusCheckIntervalMs,
+                    minValue: 5000,
+                    maxValue: 600000),
+                StatusCheckSdkLockTimeoutMs = ResolveIntInRange(
+                    section?.StatusCheckSdkLockTimeoutMs,
+                    DefaultStatusCheckSdkLockTimeoutMs,
+                    minValue: 1,
+                    maxValue: 10000),
+                DeviceSdkLockTimeoutMs = ResolveIntInRange(
+                    section?.DeviceSdkLockTimeoutMs,
+                    DefaultDeviceSdkLockTimeoutMs,
+                    minValue: 1000,
+                    maxValue: 120000),
+                ConnectTimeoutMs = ResolveIntInRange(
+                    section?.ConnectTimeoutMs,
+                    DefaultConnectTimeoutMs,
+                    minValue: 100,
+                    maxValue: 60000),
+                DisconnectTimeoutMs = ResolveIntInRange(
+                    section?.DisconnectTimeoutMs,
+                    DefaultDisconnectTimeoutMs,
+                    minValue: 100,
+                    maxValue: 60000),
+                MaxConcurrentConnections = ResolveIntInRange(
+                    section?.MaxConcurrentConnections,
+                    DefaultMaxConcurrentConnections,
+                    minValue: 1,
+                    maxValue: 128)
+            };
+
+            return options;
+        }
+
+        private static ReconnectOptions ResolveReconnectOptions(ExternalConfiguration.ReconnectSection section)
+        {
+            int baseDelayMs = ResolveIntInRange(
+                section?.BaseDelayMs,
+                DefaultReconnectBaseDelayMs,
+                minValue: 100,
+                maxValue: 600000);
+
+            int maxDelayMs = section?.MaxDelayMs.HasValue == true
+                ? Clamp(section.MaxDelayMs.Value, baseDelayMs, 3600000)
+                : Math.Max(DefaultReconnectMaxDelayMs, baseDelayMs);
+
+            var options = new ReconnectOptions
+            {
+                MaxReconnectAttempts = ResolveIntInRange(
+                    section?.MaxReconnectAttempts,
+                    DefaultReconnectMaxAttempts,
+                    minValue: 1,
+                    maxValue: 100),
+                BaseDelayMs = baseDelayMs,
+                MaxDelayMs = maxDelayMs,
+                PermanentFailureCooldownMs = ResolveIntInRange(
+                    section?.PermanentFailureCooldownMs,
+                    DefaultReconnectPermanentFailureCooldownMs,
+                    minValue: 0,
+                    maxValue: 86400000),
+                ReconnectCheckIntervalMs = ResolveIntInRange(
+                    section?.ReconnectCheckIntervalMs,
+                    DefaultReconnectCheckIntervalMs,
+                    minValue: 500,
+                    maxValue: 60000)
+            };
+
+            return options;
+        }
+
+        private static int ResolveIntInRange(int? configuredValue, int defaultValue, int minValue, int maxValue)
+        {
+            if (!configuredValue.HasValue)
+            {
+                return defaultValue;
+            }
+
+            return Clamp(configuredValue.Value, minValue, maxValue);
+        }
+
+        private static int Clamp(int value, int minValue, int maxValue)
+        {
+            if (value < minValue)
+            {
+                return minValue;
+            }
+
+            if (value > maxValue)
+            {
+                return maxValue;
+            }
+
+            return value;
+        }
+
         public sealed class FaceEventOptions
         {
             public bool Enabled { get; set; }
@@ -122,6 +241,34 @@ namespace ControlEntradaSalida
             public int CompensationLookbackMinutes { get; set; }
 
             public byte AlarmDeployType { get; set; }
+        }
+
+        public sealed class DeviceConnectionOptions
+        {
+            public int StatusCheckIntervalMs { get; set; }
+
+            public int StatusCheckSdkLockTimeoutMs { get; set; }
+
+            public int DeviceSdkLockTimeoutMs { get; set; }
+
+            public int ConnectTimeoutMs { get; set; }
+
+            public int DisconnectTimeoutMs { get; set; }
+
+            public int MaxConcurrentConnections { get; set; }
+        }
+
+        public sealed class ReconnectOptions
+        {
+            public int MaxReconnectAttempts { get; set; }
+
+            public int BaseDelayMs { get; set; }
+
+            public int MaxDelayMs { get; set; }
+
+            public int PermanentFailureCooldownMs { get; set; }
+
+            public int ReconnectCheckIntervalMs { get; set; }
         }
     }
 }

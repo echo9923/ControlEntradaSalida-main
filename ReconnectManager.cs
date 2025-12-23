@@ -48,38 +48,54 @@ namespace ControlEntradaSalida
     /// </summary>
     public class ReconnectManager : IDisposable
     {
-        #region 配置常量
+        #region 默认配置
         
         /// <summary>
         /// 基础重连延迟时间（毫秒）
         /// </summary>
-        private const int BASE_DELAY_MS = 1000;
+        private const int DefaultBaseDelayMs = 1000;
         
         /// <summary>
         /// 最大重连延迟时间（毫秒）
         /// </summary>
-        private const int MAX_DELAY_MS = 300000; // 5分钟
+        private const int DefaultMaxDelayMs = 300000; // 5分钟
         
         /// <summary>
         /// 最大重连尝试次数
         /// </summary>
-        private const int MAX_RECONNECT_ATTEMPTS = 10;
+        private const int DefaultMaxReconnectAttempts = 10;
         
         /// <summary>
         /// 抖动因子（0.0 - 1.0）
         /// </summary>
-        private const double JITTER_FACTOR = 0.1;
+        private const double DefaultJitterFactor = 0.1;
         
         /// <summary>
         /// 永久失败后的冷却时间（毫秒）
         /// </summary>
-        private const int PERMANENT_FAILURE_COOLDOWN_MS = 600000; // 10分钟
+        private const int DefaultPermanentFailureCooldownMs = 600000; // 10分钟
         
         /// <summary>
         /// 重连检查间隔（毫秒）
         /// </summary>
-        private const int RECONNECT_CHECK_INTERVAL_MS = 5000; // 5秒
+        private const int DefaultReconnectCheckIntervalMs = 5000; // 5秒
         
+        #endregion
+
+        #region 配置项
+
+        private int baseDelayMs = DefaultBaseDelayMs;
+        private int maxDelayMs = DefaultMaxDelayMs;
+        private int maxReconnectAttempts = DefaultMaxReconnectAttempts;
+        private double jitterFactor = DefaultJitterFactor;
+        private int permanentFailureCooldownMs = DefaultPermanentFailureCooldownMs;
+        private int reconnectCheckIntervalMs = DefaultReconnectCheckIntervalMs;
+
+        /// <summary>
+        /// 最大重连尝试次数（用于外部展示/判断）。
+        /// </summary>
+        public int MaxReconnectAttempts => maxReconnectAttempts;
+
         #endregion
 
         #region 私有成员
@@ -125,7 +141,7 @@ namespace ControlEntradaSalida
             _random = new Random();
             
             // 初始化重连定时器
-            _reconnectTimer = new System.Timers.Timer(RECONNECT_CHECK_INTERVAL_MS);
+            _reconnectTimer = new System.Timers.Timer(reconnectCheckIntervalMs);
             _reconnectTimer.Elapsed += OnReconnectTimerElapsed;
             _reconnectTimer.AutoReset = true;
             _reconnectTimer.Start();
@@ -134,6 +150,25 @@ namespace ControlEntradaSalida
         #endregion
 
         #region 公共方法
+
+        public void ApplyConfiguration(ServiceConfiguration.ReconnectOptions options)
+        {
+            if (options == null)
+            {
+                throw new ArgumentNullException(nameof(options));
+            }
+
+            lock (_lockObject)
+            {
+                maxReconnectAttempts = Math.Max(1, options.MaxReconnectAttempts);
+                baseDelayMs = Math.Max(1, options.BaseDelayMs);
+                maxDelayMs = Math.Max(baseDelayMs, options.MaxDelayMs);
+                permanentFailureCooldownMs = Math.Max(0, options.PermanentFailureCooldownMs);
+                reconnectCheckIntervalMs = Math.Max(500, options.ReconnectCheckIntervalMs);
+
+                _reconnectTimer.Interval = reconnectCheckIntervalMs;
+            }
+        }
         
         /// <summary>
         /// 安排设备重连
@@ -166,18 +201,18 @@ namespace ControlEntradaSalida
                 state.IsInCooldown = false;
 
                 // 检查是否已达到最大重连次数
-                if (state.Attempts >= MAX_RECONNECT_ATTEMPTS)
+                if (state.Attempts >= maxReconnectAttempts)
                 {
                     if (!state.IsPermanentFailure)
                     {
                         state.IsPermanentFailure = true;
                         state.IsInCooldown = true;
-                        state.CooldownUntil = DateTime.Now.AddMilliseconds(PERMANENT_FAILURE_COOLDOWN_MS);
+                        state.CooldownUntil = DateTime.Now.AddMilliseconds(permanentFailureCooldownMs);
 
                         ServiceLogger.Warn($"[重连管理器] 设备 {deviceId} 达到最大重连次数，进入冷却期。");
                         OnPermanentFailure(new DeviceReconnectEventArgs(
                             deviceId, state.Attempts, TimeSpan.Zero, true,
-                            $"已达到最大重连次数({MAX_RECONNECT_ATTEMPTS})，进入冷却期"));
+                            $"已达到最大重连次数({maxReconnectAttempts})，进入冷却期"));
                     }
                     return;
                 }
@@ -194,7 +229,7 @@ namespace ControlEntradaSalida
                 // 触发重连尝试开始事件
                 OnReconnectAttemptStarted(new DeviceReconnectEventArgs(
                     deviceId, state.Attempts, delay,
-                    state.Attempts >= MAX_RECONNECT_ATTEMPTS, reason));
+                    state.Attempts >= maxReconnectAttempts, reason));
             }
         }
 
@@ -276,14 +311,14 @@ namespace ControlEntradaSalida
         public TimeSpan GetNextRetryDelay(int attempts)
         {
             // 指数退避算法：base_delay * 2^attempts
-            var delayMs = Math.Min(BASE_DELAY_MS * Math.Pow(2, attempts), MAX_DELAY_MS);
+            var delayMs = Math.Min(baseDelayMs * Math.Pow(2, attempts), maxDelayMs);
             
             // 添加抖动因子，避免重连风暴
-            var jitter = (2 * _random.NextDouble() - 1) * JITTER_FACTOR; // -0.1 到 0.1
+            var jitter = (2 * _random.NextDouble() - 1) * jitterFactor; // 默认 -0.1 到 0.1
             delayMs = delayMs * (1 + jitter);
             
             // 确保最小延迟
-            delayMs = Math.Max(delayMs, BASE_DELAY_MS);
+            delayMs = Math.Max(delayMs, baseDelayMs);
             
             return TimeSpan.FromMilliseconds(delayMs);
         }

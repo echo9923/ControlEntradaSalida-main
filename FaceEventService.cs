@@ -27,9 +27,8 @@ namespace ControlEntradaSalida
         private const long DefaultTenantId = 1;
         private const string DefaultDeleted = "0";
 
-        
-        private const int DeviceSdkLockTimeoutMs = 30000; // 30秒设备级 SDK 锁等待
-private readonly BlockingCollection<FaceEventRecord> eventQueue;
+        private readonly int deviceSdkLockTimeoutMs;
+        private readonly BlockingCollection<FaceEventRecord> eventQueue;
         private readonly CancellationTokenSource cancellation = new CancellationTokenSource();
         private readonly List<Task> workers = new List<Task>();
         private readonly ConcurrentDictionary<int, int> remoteConfigHandles = new ConcurrentDictionary<int, int>();
@@ -48,6 +47,8 @@ private readonly ConcurrentDictionary<string, string> nicknameCache = new Concur
             {
                 throw new ArgumentNullException(nameof(configuration));
             }
+
+            deviceSdkLockTimeoutMs = configuration.DeviceConnection?.DeviceSdkLockTimeoutMs ?? 30000;
 
             options = configuration.FaceEvent ?? new ServiceConfiguration.FaceEventOptions
             {
@@ -422,7 +423,7 @@ private readonly ConcurrentDictionary<string, string> nicknameCache = new Concur
             }
 
             using (var sdkLock = device.TryAcquireDeviceSdkLock(
-                DeviceSdkLockTimeoutMs,
+                deviceSdkLockTimeoutMs,
                 $"SetupAlarm-{device.Id}"))
             {
                 if (!sdkLock.IsAcquired)
@@ -485,7 +486,7 @@ private readonly ConcurrentDictionary<string, string> nicknameCache = new Concur
             }
 
             using (var sdkLock = device.TryAcquireDeviceSdkLock(
-                DeviceSdkLockTimeoutMs,
+                deviceSdkLockTimeoutMs,
                 $"CloseAlarm-{device.Id}"))
             {
                 if (!sdkLock.IsAcquired)
@@ -941,7 +942,7 @@ private readonly ConcurrentDictionary<string, string> nicknameCache = new Concur
                 int size = Marshal.SizeOf(cond);
 
                 using (var sdkLock = device.TryAcquireDeviceSdkLock(
-                    DeviceSdkLockTimeoutMs,
+                    deviceSdkLockTimeoutMs,
                     $"FetchHistory-{device.Id}"))
                 {
                     if (!sdkLock.IsAcquired)
@@ -1123,7 +1124,7 @@ private readonly ConcurrentDictionary<string, string> nicknameCache = new Concur
             }
 
             using (var sdkLock = device.TryAcquireDeviceSdkLock(
-                DeviceSdkLockTimeoutMs,
+                deviceSdkLockTimeoutMs,
                 $"StopRemoteConfig-{device.Id}"))
             {
                 if (!sdkLock.IsAcquired)
