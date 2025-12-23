@@ -202,8 +202,8 @@ private readonly ConcurrentDictionary<string, string> nicknameCache = new Concur
             try
             {
                 string deviceIp = SafeTrim(alarmer.sDeviceIP);
-                DeviceConnectionInfo device = DeviceConnectionManager.Instance.GetAllDevices()
-                    .FirstOrDefault(d => string.Equals(d.IpAddress, deviceIp, StringComparison.OrdinalIgnoreCase));
+                DeviceConnectionInfo device = null;
+                DeviceConnectionManager.Instance.TryGetDeviceByIp(deviceIp, out device);
 
                 string deviceSerialNumber = null;
                 string deviceNameFallback = null;

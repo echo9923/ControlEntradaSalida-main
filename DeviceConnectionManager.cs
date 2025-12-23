@@ -180,7 +180,10 @@ namespace ControlEntradaSalida
         private static DeviceConnectionManager _instance;
         private static readonly object _lock = new object();
         
-        private readonly ConcurrentBag<DeviceConnectionInfo> _devices;
+        // 以 ID 为主键（唯一）
+        private readonly ConcurrentDictionary<int, DeviceConnectionInfo> _devicesById;
+        // 以 IP 为索引（回调热点路径用）
+        private readonly ConcurrentDictionary<string, int> _deviceIdByIp;
         private readonly ConcurrentDictionary<int, SemaphoreSlim> _connectionSemaphores;
         private System.Timers.Timer _statusCheckTimer;
         private readonly ReconnectManager _reconnectManager;
@@ -227,7 +230,8 @@ namespace ControlEntradaSalida
         
         private DeviceConnectionManager()
         {
-            _devices = new ConcurrentBag<DeviceConnectionInfo>();
+            _devicesById = new ConcurrentDictionary<int, DeviceConnectionInfo>();
+            _deviceIdByIp = new ConcurrentDictionary<string, int>(StringComparer.OrdinalIgnoreCase);
             _connectionSemaphores = new ConcurrentDictionary<int, SemaphoreSlim>();
             _statusEngine = new DeviceStatusEngine();
             
@@ -350,7 +354,8 @@ namespace ControlEntradaSalida
         /// </summary>
         public void LoadAllDevices()
         {
-            while (_devices.TryTake(out _)) { }
+            _devicesById.Clear();
+            _deviceIdByIp.Clear();
 
             LoadDevicesFromDatabase();
 
@@ -373,18 +378,12 @@ namespace ControlEntradaSalida
 
                 try
                 {
-                    HashSet<int> knownDeviceIds = new HashSet<int>(_devices.Select(d => d.Id));
-
                     using (SqlCommand cmd = db.CreateCommand(sql))
                     using (SqlDataReader rdr = cmd.ExecuteReader())
                     {
                         while (rdr.Read())
                         {
                             int deviceId = Convert.ToInt32(rdr["device_id"]);
-                            if (!knownDeviceIds.Add(deviceId))
-                            {
-                                continue;
-                            }
 
                             DeviceConnectionInfo device = new DeviceConnectionInfo
                             {
@@ -398,10 +397,20 @@ namespace ControlEntradaSalida
                                 LastUsed = rdr["last_used_time"] != DBNull.Value ? Convert.ToDateTime(rdr["last_used_time"]) : DateTime.MinValue
                             };
 
+                            if (!_devicesById.TryAdd(device.Id, device))
+                            {
+                                continue;
+                            }
+
                             _connectionSemaphores.TryAdd(device.Id,
                                 SynchronizationHelper.CreateSemaphore(1, 1, $"Device-{device.Id}-Connection"));
 
-                            _devices.Add(device);
+                            string ipKey = device.IpAddress?.Trim();
+                            if (!string.IsNullOrWhiteSpace(ipKey))
+                            {
+                                _deviceIdByIp.TryAdd(ipKey, device.Id);
+                            }
+
                             newDevices++;
                         }
                     }
@@ -478,7 +487,12 @@ namespace ControlEntradaSalida
         /// <returns>设备列表</returns>
         public List<DeviceConnectionInfo> GetAllDevices()
         {
-            return _devices.ToList();
+            var devices = new List<DeviceConnectionInfo>(_devicesById.Count);
+            foreach (var kvp in _devicesById)
+            {
+                devices.Add(kvp.Value);
+            }
+            return devices;
         }
 
         /// <summary>
@@ -488,18 +502,56 @@ namespace ControlEntradaSalida
         /// <returns>设备信息</returns>
         public DeviceConnectionInfo GetDeviceById(int id)
         {
-            return _devices.FirstOrDefault(d => d.Id == id);
+            return _devicesById.TryGetValue(id, out DeviceConnectionInfo device) ? device : null;
+        }
+
+        /// <summary>
+        /// 按设备 IP 快速查找设备（回调热点路径使用，避免线性扫描与频繁分配）。
+        /// </summary>
+        public bool TryGetDeviceByIp(string ip, out DeviceConnectionInfo device)
+        {
+            device = null;
+            if (string.IsNullOrWhiteSpace(ip))
+            {
+                return false;
+            }
+
+            return _deviceIdByIp.TryGetValue(ip, out int id)
+                && _devicesById.TryGetValue(id, out device);
         }
 
         /// <summary>
         /// 根据IP和端口获取设备
         /// </summary>
         /// <param name="ip">IP地址</param>
-        /// <param name="port"端口</param>
+        /// <param name="port">端口</param>
         /// <returns>设备信息</returns>
         public DeviceConnectionInfo GetDeviceByAddress(string ip, string port)
         {
-            return _devices.FirstOrDefault(d => d.IpAddress == ip && d.Port == port);
+            if (string.IsNullOrWhiteSpace(ip) || string.IsNullOrWhiteSpace(port))
+            {
+                return null;
+            }
+
+            if (_deviceIdByIp.TryGetValue(ip, out int deviceId)
+                && _devicesById.TryGetValue(deviceId, out DeviceConnectionInfo device)
+                && string.Equals(device.IpAddress, ip, StringComparison.OrdinalIgnoreCase)
+                && string.Equals(device.Port, port, StringComparison.OrdinalIgnoreCase))
+            {
+                return device;
+            }
+
+            foreach (var kvp in _devicesById)
+            {
+                DeviceConnectionInfo candidate = kvp.Value;
+                if (string.Equals(candidate.IpAddress, ip, StringComparison.OrdinalIgnoreCase)
+                    && string.Equals(candidate.Port, port, StringComparison.OrdinalIgnoreCase))
+                {
+                    return candidate;
+                }
+            }
+
+            return null;
         }
 
         #endregion
