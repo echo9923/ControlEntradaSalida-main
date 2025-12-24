@@ -149,17 +149,12 @@ namespace ControlEntradaSalida
                         cancellation.Token,
                         deviceCts.Token);
 
-                    Task.Run(() =>
-                    {
-                        try
-                        {
-                            FetchHistory(e.Device, linkedCts.Token);
-                        }
-                        finally
-                        {
-                            linkedCts.Dispose();
-                        }
-                    }, linkedCts.Token);
+                    Task task = Task.Run(() => FetchHistory(e.Device, linkedCts.Token), linkedCts.Token);
+                    _ = task.ContinueWith(
+                        _ => linkedCts.Dispose(),
+                        CancellationToken.None,
+                        TaskContinuationOptions.ExecuteSynchronously,
+                        TaskScheduler.Default);
                 }
                 else
                 {

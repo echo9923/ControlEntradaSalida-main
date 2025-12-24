@@ -177,7 +177,7 @@ namespace ControlEntradaSalida
     {
         #region 私有成员
         
-        private static DeviceConnectionManager _instance;
+        private static volatile DeviceConnectionManager _instance;
         private static readonly object _lock = new object();
         
         // 以 ID 为主键（唯一）

@@ -113,7 +113,8 @@ namespace ControlEntradaSalida
         {
             lock (lifecycleLock)
             {
-                if (grpcServer != null)
+                // 既要防止重复启动，也要覆盖“线程已启动但 grpcServer 尚未赋值”的启动中状态。
+                if (grpcServer != null || listenerThread != null || shutdownTokenSource != null)
                 {
                     return;
                 }
@@ -139,14 +140,15 @@ namespace ControlEntradaSalida
 
             lock (lifecycleLock)
             {
-                if (grpcServer == null)
+                tokenSource = shutdownTokenSource;
+                serverToShutdown = grpcServer;
+                threadToJoin = listenerThread;
+
+                // 覆盖“grpcServer 尚未创建”的启动中场景：只要线程/Token 仍存在，就需要执行 Stop。
+                if (tokenSource == null && serverToShutdown == null && threadToJoin == null)
                 {
                     return Task.CompletedTask;
                 }
-
-                serverToShutdown = grpcServer;
-                tokenSource = shutdownTokenSource;
-                threadToJoin = listenerThread;
 
                 grpcServer = null;
                 listenerThread = null;
@@ -159,7 +161,10 @@ namespace ControlEntradaSalida
             {
                 try
                 {
-                    await serverToShutdown.ShutdownAsync().ConfigureAwait(false);
+                    if (serverToShutdown != null)
+                    {
+                        await serverToShutdown.ShutdownAsync().ConfigureAwait(false);
+                    }
                 }
                 catch (InvalidOperationException)
                 {
@@ -183,34 +188,58 @@ namespace ControlEntradaSalida
 
         private void ServerThreadEntry()
         {
+            CancellationTokenSource tokenSource;
+            int port;
+
+            lock (lifecycleLock)
+            {
+                tokenSource = shutdownTokenSource;
+                port = listenPort;
+            }
+
+            if (tokenSource == null)
+            {
+                return;
+            }
+
+            Server localServer = new Server
+            {
+                Services =
+                {
+                    ServerServiceDefinition.CreateBuilder()
+                        .AddMethod(UpdatePermissionMethod, HandlePermissionUpdateAsync)
+                        .AddMethod(SyncPersonsMethod, HandlePersonSyncAsync)
+                        .AddMethod(DeleteFacesMethod, HandleFaceDeleteAsync)
+                        .AddMethod(DeletePersonsMethod, HandlePersonDeleteAsync)
+                        .AddMethod(GetFacesMethod, HandleFaceGetAsync)
+                        .AddMethod(GetStatusMethod, HandleStatusGetAsync)
+                        .AddMethod(CaptureFaceStreamMethod, HandleCaptureStreamAsync)
+                        .Build()
+                },
+                Ports =
+                {
+                    new ServerPort("0.0.0.0", port, ServerCredentials.Insecure)
+                }
+            };
+
             try
             {
-                grpcServer = new Server
+                // 关键点：在生命周期锁内完成“发布 grpcServer + Start”，避免 StopAsync 在 Start 之前抢跑。
+                lock (lifecycleLock)
                 {
-                    Services =
+                    if (shutdownTokenSource != tokenSource || tokenSource.IsCancellationRequested)
                     {
-                        ServerServiceDefinition.CreateBuilder()
-                            .AddMethod(UpdatePermissionMethod, HandlePermissionUpdateAsync)
-                            .AddMethod(SyncPersonsMethod, HandlePersonSyncAsync)
-                            .AddMethod(DeleteFacesMethod, HandleFaceDeleteAsync)
-                            .AddMethod(DeletePersonsMethod, HandlePersonDeleteAsync)
-                            .AddMethod(GetFacesMethod, HandleFaceGetAsync)
-                            .AddMethod(GetStatusMethod, HandleStatusGetAsync)
-                            .AddMethod(CaptureFaceStreamMethod, HandleCaptureStreamAsync)
-                            .Build()
-                    },
-                    Ports =
-                    {
-                        new ServerPort("0.0.0.0", listenPort, ServerCredentials.Insecure)
+                        return;
                     }
-                };
 
-                grpcServer.Start();
+                    grpcServer = localServer;
+                    grpcServer.Start();
+                }
 
                 ServiceLogger.Info(string.Format(CultureInfo.InvariantCulture,
-                    "权限GRPC服务已启动，端口：{0}。", listenPort));
+                    "权限GRPC服务已启动，端口：{0}。", port));
 
-                CancellationToken token = shutdownTokenSource.Token;
+                CancellationToken token = tokenSource.Token;
                 token.WaitHandle.WaitOne();
             }
             catch (IOException ex)
