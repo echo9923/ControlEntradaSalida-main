@@ -14,7 +14,7 @@ namespace ControlEntradaSalida
 {
     #region Namespace
     // 设备连接信息类
-    public class DeviceConnectionInfo
+    public class DeviceConnectionInfo : IDisposable
     {
         public int Id { get; set; }
         public string Name { get; set; }
@@ -157,6 +157,14 @@ namespace ControlEntradaSalida
                 ConnectionFailureCount++;
                 LastErrorCode = errorCode;
                 LastErrorMessage = errorMessage;
+            }
+        }
+
+        public void Dispose()
+        {
+            if (deviceSdkLock.IsValueCreated)
+            {
+                deviceSdkLock.Value.Dispose();
             }
         }
     }
@@ -354,6 +362,25 @@ namespace ControlEntradaSalida
         /// </summary>
         public void LoadAllDevices()
         {
+            if (_disposed)
+            {
+                return;
+            }
+
+            try
+            {
+                DisconnectAllDevices();
+
+                foreach (var device in _devicesById.Values)
+                {
+                    device?.Dispose();
+                }
+            }
+            catch (Exception ex)
+            {
+                ServiceLogger.Error("重新加载设备列表前清理旧设备资源失败。", ex);
+            }
+
             _devicesById.Clear();
             _deviceIdByIp.Clear();
 
@@ -579,10 +606,10 @@ namespace ControlEntradaSalida
             {
                 if (!semaphoreResult.IsAcquired)
                 {
-                    var errorMsg = "连接超时，设备可能忙碌";
-                    device.RecordConnectionFailure(0, errorMsg);
-                    device.UpdateStatus(DeviceStatus.Offline, errorMsg);
-                    OnDeviceError(new DeviceErrorEventArgs(device, 0, errorMsg, null, "Timeout"));
+                    var infoMsg = $"连接请求跳过：连接信号量获取超时（{connectTimeoutMs}ms），设备可能忙碌或本机并发受限。";
+                    ServiceLogger.Warn($"设备 {device.Id}({device.Name}) {infoMsg}");
+                    device.UpdateStatus(device.Status, infoMsg);
+                    OnDeviceError(new DeviceErrorEventArgs(device, 0, infoMsg, null, "BusySkip"));
                     return false;
                 }
 
@@ -677,6 +704,8 @@ namespace ControlEntradaSalida
                     HCNetSDK.NET_DVR_USER_LOGIN_INFO struLoginInfo = new HCNetSDK.NET_DVR_USER_LOGIN_INFO();
                     HCNetSDK.NET_DVR_DEVICEINFO_V40 struDeviceInfoV40 = new HCNetSDK.NET_DVR_DEVICEINFO_V40();
                     struDeviceInfoV40.struDeviceV30.sSerialNumber = new byte[HCNetSDK.SERIALNO_LEN];
+                    struDeviceInfoV40.byRes2 = new byte[246];
+                    struLoginInfo.byRes3 = new byte[120];
 
                     struLoginInfo.sDeviceAddress = ipAddress;
                     struLoginInfo.sUserName = username;
@@ -839,7 +868,12 @@ namespace ControlEntradaSalida
         public void DisconnectAllDevices()
         {
             var devices = GetAllDevices();
-            Parallel.ForEach(devices, device =>
+            var options = new ParallelOptions
+            {
+                MaxDegreeOfParallelism = Math.Max(1, maxConcurrentConnections)
+            };
+
+            Parallel.ForEach(devices, options, device =>
             {
                 if (device.UserID >= 0)
                 {
@@ -1072,7 +1106,12 @@ namespace ControlEntradaSalida
             
             try
             {
-                Parallel.ForEach(deviceIds, deviceId =>
+                var options = new ParallelOptions
+                {
+                    MaxDegreeOfParallelism = Math.Max(1, maxConcurrentConnections)
+                };
+
+                Parallel.ForEach(deviceIds, options, deviceId =>
                 {
                     try
                     {
@@ -1293,6 +1332,13 @@ namespace ControlEntradaSalida
                     DisconnectAllDevices();
                     
                     _reconnectManager?.Dispose();
+
+                    foreach (var device in _devicesById.Values)
+                    {
+                        device?.Dispose();
+                    }
+                    _devicesById.Clear();
+                    _deviceIdByIp.Clear();
                     
                     // 清理信号量
                     foreach (var semaphore in _connectionSemaphores.Values)

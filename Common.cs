@@ -273,6 +273,8 @@ namespace ControlEntradaSalida
             HCNetSDK.NET_DVR_USER_LOGIN_INFO struLoginInfo = new HCNetSDK.NET_DVR_USER_LOGIN_INFO();
             HCNetSDK.NET_DVR_DEVICEINFO_V40 struDeviceInfoV40 = new HCNetSDK.NET_DVR_DEVICEINFO_V40();
             struDeviceInfoV40.struDeviceV30.sSerialNumber = new byte[HCNetSDK.SERIALNO_LEN];
+            struDeviceInfoV40.byRes2 = new byte[246];
+            struLoginInfo.byRes3 = new byte[120];
 
             struLoginInfo.sDeviceAddress = ip;
             struLoginInfo.sUserName = usuario;
