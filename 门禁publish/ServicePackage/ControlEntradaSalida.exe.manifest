@@ -61,7 +61,7 @@
           <dsig:Transform Algorithm="urn:schemas-microsoft-com:HashTransforms.Identity" />
         </dsig:Transforms>
         <dsig:DigestMethod Algorithm="http://www.w3.org/2000/09/xmldsig#sha256" />
-        <dsig:DigestValue>F9w4g9sysmQn/iJlFK6bJUXBJUPCCNInTSKyzxxunQs=</dsig:DigestValue>
+        <dsig:DigestValue>nzmNhpBr1WrUTZ5zlnan7lioTnBQpwcckJwX6SjGBew=</dsig:DigestValue>
       </hash>
     </dependentAssembly>
   </dependency>
@@ -296,13 +296,13 @@
       <dsig:DigestValue>9w81+YyK50rBkXPyLf7aZXPybeYQeCpQDJUzk+GHReY=</dsig:DigestValue>
     </hash>
   </file>
-  <file name="Configuration\appsettings.json" size="1076">
+  <file name="Configuration\appsettings.json" size="1078">
     <hash>
       <dsig:Transforms>
         <dsig:Transform Algorithm="urn:schemas-microsoft-com:HashTransforms.Identity" />
       </dsig:Transforms>
       <dsig:DigestMethod Algorithm="http://www.w3.org/2000/09/xmldsig#sha256" />
-      <dsig:DigestValue>Rj3LP8hkenMAxpYtsbbqz8alnbuboXtJZbBw10Pifrk=</dsig:DigestValue>
+      <dsig:DigestValue>EhwM00qOmhkMQzdjztIW6/4XjNipWX/FHs0yEJM34NI=</dsig:DigestValue>
     </hash>
   </file>
   <file name="ControlEntradaSalida.exe.config" size="1286">

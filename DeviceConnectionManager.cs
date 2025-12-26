@@ -669,6 +669,11 @@ namespace ControlEntradaSalida
                 port = device.Port;
             }
 
+            DeviceConnectionEventArgs connectionEventArgs = null;
+            DeviceStatusChangedEventArgs statusEventArgs = null;
+            DeviceErrorEventArgs errorEventArgs = null;
+            bool result = false;
+
             using (var sdkLock = device.TryAcquireDeviceSdkLock(
                 deviceSdkLockTimeoutMs,
                 $"ConnectDeviceSdk-{device.Id}"))
@@ -688,106 +693,125 @@ namespace ControlEntradaSalida
 
                     _reconnectManager.ScheduleReconnect(device.Id, errorMsg);
 
-                    OnDeviceConnectionStateChanged(new DeviceConnectionEventArgs(device, false, errorMsg));
-                    OnDeviceStatusChanged(new DeviceStatusChangedEventArgs(device, false, errorMsg, "Connection"));
-
-                    return false;
+                    connectionEventArgs = new DeviceConnectionEventArgs(device, false, errorMsg);
+                    statusEventArgs = new DeviceStatusChangedEventArgs(device, false, errorMsg, "Connection");
+                    result = false;
                 }
-
-                try
+                else
                 {
-                    lock (device.LockObject)
+                    try
                     {
-                        device.IsReconnecting = true;
+                        lock (device.LockObject)
+                        {
+                            device.IsReconnecting = true;
+                        }
+
+                        HCNetSDK.NET_DVR_USER_LOGIN_INFO struLoginInfo = new HCNetSDK.NET_DVR_USER_LOGIN_INFO();
+                        HCNetSDK.NET_DVR_DEVICEINFO_V40 struDeviceInfoV40 = new HCNetSDK.NET_DVR_DEVICEINFO_V40();
+                        struDeviceInfoV40.struDeviceV30.sSerialNumber = new byte[HCNetSDK.SERIALNO_LEN];
+                        struDeviceInfoV40.byRes2 = new byte[246];
+                        struLoginInfo.byRes3 = new byte[120];
+
+                        struLoginInfo.sDeviceAddress = ipAddress;
+                        struLoginInfo.sUserName = username;
+                        struLoginInfo.sPassword = password;
+                        ushort.TryParse(port, out struLoginInfo.wPort);
+
+                        int lUserID = HCNetSDK.NET_DVR_Login_V40(ref struLoginInfo, ref struDeviceInfoV40);
+
+                        if (lUserID >= 0)
+                        {
+                            string serialNumber = Encoding.ASCII.GetString(struDeviceInfoV40.struDeviceV30.sSerialNumber)
+                                .TrimEnd('\0')
+                                .Trim();
+
+                            DeviceCapabilities capabilities = _statusEngine.GetDeviceCapabilities(lUserID);
+                            DeviceWorkStatus workStatus = _statusEngine.GetDeviceWorkStatus(lUserID);
+
+                            lock (device.LockObject)
+                            {
+                                device.UserID = lUserID;
+                                device.IsConnected = true;
+                                device.IsReconnecting = false;
+                                device.RecordConnectionSuccess();
+
+                                if (!string.IsNullOrWhiteSpace(serialNumber))
+                                {
+                                    device.SerialNumber = serialNumber;
+                                }
+
+                                device.Capabilities = capabilities;
+                                device.UpdateStatus(workStatus.Status, workStatus.StatusMessage);
+                            }
+
+                            UpdateDeviceLastUsed(device.Id);
+                            _reconnectManager.ResetReconnectState(device.Id);
+
+                            connectionEventArgs = new DeviceConnectionEventArgs(device, true, "连接成功");
+                            statusEventArgs = new DeviceStatusChangedEventArgs(device, true, "连接成功", "Connection");
+                            result = true;
+                        }
+                        else
+                        {
+                            uint nErr = HCNetSDK.NET_DVR_GetLastError();
+                            var errorMsg = $"连接失败，错误代码: {nErr}";
+
+                            lock (device.LockObject)
+                            {
+                                device.UserID = -1;
+                                device.IsConnected = false;
+                                device.IsReconnecting = false;
+                                device.RecordConnectionFailure(nErr, errorMsg);
+                                device.UpdateStatus(DeviceStatus.Offline, errorMsg);
+                            }
+
+                            _reconnectManager.ScheduleReconnect(device.Id, errorMsg);
+
+                            connectionEventArgs = new DeviceConnectionEventArgs(device, false, errorMsg, nErr);
+                            statusEventArgs = new DeviceStatusChangedEventArgs(device, false, errorMsg, "Connection");
+                            result = false;
+                        }
                     }
-
-                    HCNetSDK.NET_DVR_USER_LOGIN_INFO struLoginInfo = new HCNetSDK.NET_DVR_USER_LOGIN_INFO();
-                    HCNetSDK.NET_DVR_DEVICEINFO_V40 struDeviceInfoV40 = new HCNetSDK.NET_DVR_DEVICEINFO_V40();
-                    struDeviceInfoV40.struDeviceV30.sSerialNumber = new byte[HCNetSDK.SERIALNO_LEN];
-                    struDeviceInfoV40.byRes2 = new byte[246];
-                    struLoginInfo.byRes3 = new byte[120];
-
-                    struLoginInfo.sDeviceAddress = ipAddress;
-                    struLoginInfo.sUserName = username;
-                    struLoginInfo.sPassword = password;
-                    ushort.TryParse(port, out struLoginInfo.wPort);
-
-                    int lUserID = HCNetSDK.NET_DVR_Login_V40(ref struLoginInfo, ref struDeviceInfoV40);
-
-                    if (lUserID >= 0)
+                    catch (Exception ex)
                     {
-                        string serialNumber = Encoding.ASCII.GetString(struDeviceInfoV40.struDeviceV30.sSerialNumber)
-                            .TrimEnd('\0')
-                            .Trim();
-
-                        DeviceCapabilities capabilities = _statusEngine.GetDeviceCapabilities(lUserID);
-                        DeviceWorkStatus workStatus = _statusEngine.GetDeviceWorkStatus(lUserID);
+                        var errorMsg = $"连接异常: {ex.Message}";
 
                         lock (device.LockObject)
                         {
-                            device.UserID = lUserID;
-                            device.IsConnected = true;
+                            device.UserID = -1;
+                            device.IsConnected = false;
                             device.IsReconnecting = false;
-                            device.RecordConnectionSuccess();
-
-                            if (!string.IsNullOrWhiteSpace(serialNumber))
-                            {
-                                device.SerialNumber = serialNumber;
-                            }
-
-                            device.Capabilities = capabilities;
-                            device.UpdateStatus(workStatus.Status, workStatus.StatusMessage);
+                            device.RecordConnectionFailure(0, errorMsg);
+                            device.UpdateStatus(DeviceStatus.Offline, errorMsg);
                         }
 
-                        UpdateDeviceLastUsed(device.Id);
-                        _reconnectManager.ResetReconnectState(device.Id);
+                        _reconnectManager.ScheduleReconnect(device.Id, errorMsg);
 
-                        OnDeviceConnectionStateChanged(new DeviceConnectionEventArgs(device, true, "连接成功"));
-                        OnDeviceStatusChanged(new DeviceStatusChangedEventArgs(device, true, "连接成功", "Connection"));
-
-                        return true;
+                        errorEventArgs = new DeviceErrorEventArgs(device, 0, errorMsg, ex, "ConnectionException");
+                        statusEventArgs = new DeviceStatusChangedEventArgs(device, false, errorMsg, "Exception");
+                        result = false;
                     }
-
-                    uint nErr = HCNetSDK.NET_DVR_GetLastError();
-                    var errorMsg = $"连接失败，错误代码: {nErr}";
-
-                    lock (device.LockObject)
-                    {
-                        device.UserID = -1;
-                        device.IsConnected = false;
-                        device.IsReconnecting = false;
-                        device.RecordConnectionFailure(nErr, errorMsg);
-                        device.UpdateStatus(DeviceStatus.Offline, errorMsg);
-                    }
-
-                    _reconnectManager.ScheduleReconnect(device.Id, errorMsg);
-
-                    OnDeviceConnectionStateChanged(new DeviceConnectionEventArgs(device, false, errorMsg, nErr));
-                    OnDeviceStatusChanged(new DeviceStatusChangedEventArgs(device, false, errorMsg, "Connection"));
-
-                    return false;
-                }
-                catch (Exception ex)
-                {
-                    var errorMsg = $"连接异常: {ex.Message}";
-
-                    lock (device.LockObject)
-                    {
-                        device.UserID = -1;
-                        device.IsConnected = false;
-                        device.IsReconnecting = false;
-                        device.RecordConnectionFailure(0, errorMsg);
-                        device.UpdateStatus(DeviceStatus.Offline, errorMsg);
-                    }
-
-                    _reconnectManager.ScheduleReconnect(device.Id, errorMsg);
-
-                    OnDeviceError(new DeviceErrorEventArgs(device, 0, errorMsg, ex, "ConnectionException"));
-                    OnDeviceStatusChanged(new DeviceStatusChangedEventArgs(device, false, errorMsg, "Exception"));
-
-                    return false;
                 }
             }
+
+            // 注意：不要在持有 device.DeviceSdkLock 时触发事件，
+            // 否则订阅方（如 FaceEventService）在回调里再获取设备 SDK 锁会导致超时/假死。
+            if (connectionEventArgs != null)
+            {
+                OnDeviceConnectionStateChanged(connectionEventArgs);
+            }
+
+            if (statusEventArgs != null)
+            {
+                OnDeviceStatusChanged(statusEventArgs);
+            }
+
+            if (errorEventArgs != null)
+            {
+                OnDeviceError(errorEventArgs);
+            }
+
+            return result;
         }
 
         /// <summary>
