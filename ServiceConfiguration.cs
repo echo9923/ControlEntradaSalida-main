@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using ControlEntradaSalida.Configuration;
 
 namespace ControlEntradaSalida
@@ -115,6 +117,17 @@ namespace ControlEntradaSalida
 
         private static FaceEventOptions ResolveFaceEventOptions(ExternalConfiguration.FaceEventLoggingSection section)
         {
+            int[] excludedDeviceIds = (section?.ExcludedDeviceIds ?? Array.Empty<int>())
+                .Where(deviceId => deviceId > 0)
+                .Distinct()
+                .ToArray();
+
+            string[] excludedDeviceIps = (section?.ExcludedDeviceIps ?? Array.Empty<string>())
+                .Select(ip => ip?.Trim())
+                .Where(ip => !string.IsNullOrWhiteSpace(ip))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToArray();
+
             var options = new FaceEventOptions
             {
                 Enabled = section?.Enabled ?? false,
@@ -122,7 +135,9 @@ namespace ControlEntradaSalida
                 BatchSize = Math.Max(1, section?.BatchSize ?? 20),
                 RetryIntervalSeconds = Math.Max(1, section?.RetryIntervalSeconds ?? 5),
                 CompensationLookbackMinutes = Math.Max(1, section?.CompensationLookbackMinutes ?? 60),
-                AlarmDeployType = (byte)(((section?.AlarmDeployType ?? 0) == 1) ? 1 : 0)
+                AlarmDeployType = (byte)(((section?.AlarmDeployType ?? 0) == 1) ? 1 : 0),
+                ExcludedDeviceIds = excludedDeviceIds,
+                ExcludedDeviceIps = excludedDeviceIps
             };
 
             return options;
@@ -241,6 +256,10 @@ namespace ControlEntradaSalida
             public int CompensationLookbackMinutes { get; set; }
 
             public byte AlarmDeployType { get; set; }
+
+            public IReadOnlyCollection<int> ExcludedDeviceIds { get; set; } = Array.Empty<int>();
+
+            public IReadOnlyCollection<string> ExcludedDeviceIps { get; set; } = Array.Empty<string>();
         }
 
         public sealed class DeviceConnectionOptions

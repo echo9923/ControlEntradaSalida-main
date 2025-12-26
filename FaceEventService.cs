@@ -107,6 +107,12 @@ namespace ControlEntradaSalida
             // 已连接设备立即补充订阅与补偿
             foreach (var device in DeviceConnectionManager.Instance.GetAllDevices().Where(d => d.IsConnected))
             {
+                if (IsExcludedDevice(device))
+                {
+                    ServiceLogger.Info($"设备 {device.Name} 已配置为跳过人脸事件订阅/补偿，忽略布防。");
+                    continue;
+                }
+
                 SetupAlarm(device);
                 Task.Run(() => FetchHistory(device, cancellation.Token), cancellation.Token);
             }
@@ -125,6 +131,29 @@ namespace ControlEntradaSalida
             {
                 if (e.Success)
                 {
+                    if (IsExcludedDevice(e.Device))
+                    {
+                        CloseAlarm(e.Device);
+
+                        if (compensationTokens.TryRemove(e.Device.Id, out CancellationTokenSource excludedPreviousCts))
+                        {
+                            try
+                            {
+                                excludedPreviousCts.Cancel();
+                            }
+                            catch
+                            {
+                            }
+                            finally
+                            {
+                                excludedPreviousCts.Dispose();
+                            }
+                        }
+
+                        ServiceLogger.Info($"设备 {e.Device.Name} 已配置为跳过人脸事件订阅/补偿，忽略布防。");
+                        return;
+                    }
+
                     SetupAlarm(e.Device);
 
                     if (compensationTokens.TryRemove(e.Device.Id, out CancellationTokenSource previousCts))
@@ -412,6 +441,13 @@ namespace ControlEntradaSalida
                 return;
             }
 
+            if (IsExcludedDevice(device))
+            {
+                CloseAlarm(device);
+                ServiceLogger.Info($"设备 {device.Name} 已配置为跳过人脸事件订阅/补偿，忽略布防。");
+                return;
+            }
+
             using (var sdkLock = device.TryAcquireDeviceSdkLock(
                 deviceSdkLockTimeoutMs,
                 $"SetupAlarm-{device.Id}"))
@@ -461,6 +497,38 @@ namespace ControlEntradaSalida
 
                 ServiceLogger.Info($"设备 {device.Name} 已开启人脸事件订阅（byDeployType={deployType}）。");
             }
+        }
+
+        private bool IsExcludedDevice(DeviceConnectionInfo device)
+        {
+            if (device == null)
+            {
+                return true;
+            }
+
+            if (options?.ExcludedDeviceIds != null && options.ExcludedDeviceIds.Count > 0)
+            {
+                if (options.ExcludedDeviceIds.Contains(device.Id))
+                {
+                    return true;
+                }
+            }
+
+            string ip = device.IpAddress?.Trim();
+            if (!string.IsNullOrWhiteSpace(ip)
+                && options?.ExcludedDeviceIps != null
+                && options.ExcludedDeviceIps.Count > 0)
+            {
+                foreach (string excludedIp in options.ExcludedDeviceIps)
+                {
+                    if (string.Equals(excludedIp, ip, StringComparison.OrdinalIgnoreCase))
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
         }
 
         private void CloseAlarm(DeviceConnectionInfo device)

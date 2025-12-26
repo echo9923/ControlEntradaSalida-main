@@ -134,6 +134,16 @@ namespace ControlEntradaSalida.Configuration
             /// 报警布防类型（技术规范：0-客户端布防（实时+离线），1-实时布防（仅实时））。
             /// </summary>
             public int? AlarmDeployType { get; set; }
+
+            /// <summary>
+            /// 人脸事件订阅/补偿需要排除的设备 ID 列表（devices.device_id）。
+            /// </summary>
+            public int[] ExcludedDeviceIds { get; set; }
+
+            /// <summary>
+            /// 人脸事件订阅/补偿需要排除的设备 IP 列表（忽略大小写与首尾空格）。
+            /// </summary>
+            public string[] ExcludedDeviceIps { get; set; }
         }
 
         public sealed class DeviceConnectionSection
