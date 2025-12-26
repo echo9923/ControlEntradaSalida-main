@@ -716,7 +716,24 @@ namespace ControlEntradaSalida
         private static long GenerateAttendanceGateHashId(FaceEventRecord record)
         {
             string eventTime = record.EventTime.ToString("yyyy-MM-dd'T'HH:mm:ss");
-            string key = $"{record.UserId}|{record.DeviceIP}|{record.DeviceSerialNumber}|{eventTime}|{(byte)record.EventType}|{record.VerifyMode}";
+            string legacyKey = $"{record.UserId}|{record.DeviceIP}|{record.DeviceSerialNumber}|{eventTime}|{(byte)record.EventType}|{record.VerifyMode}";
+
+            string snapshotFingerprint = string.Empty;
+            if (!string.IsNullOrWhiteSpace(record.SnapshotUrl))
+            {
+                snapshotFingerprint = record.SnapshotUrl;
+            }
+            else if (record.Snapshot != null && record.Snapshot.Length > 0)
+            {
+                snapshotFingerprint = Fnv1a64(record.Snapshot).ToString();
+            }
+
+            string key = legacyKey;
+            if (record.SerialNo > 0 || !string.IsNullOrEmpty(snapshotFingerprint))
+            {
+                key = $"{legacyKey}|{record.SerialNo}|{snapshotFingerprint}";
+            }
+
             ulong hash = Fnv1a64(key);
             long id = (long)(hash & 0x7FFFFFFFFFFFFFFFUL);
             return id == 0 ? 1 : id;
@@ -734,6 +751,26 @@ namespace ControlEntradaSalida
             }
 
             byte[] data = Encoding.UTF8.GetBytes(value);
+            for (int i = 0; i < data.Length; i++)
+            {
+                hash ^= data[i];
+                hash *= prime;
+            }
+
+            return hash;
+        }
+
+        private static ulong Fnv1a64(byte[] data)
+        {
+            const ulong offsetBasis = 14695981039346656037UL;
+            const ulong prime = 1099511628211UL;
+
+            ulong hash = offsetBasis;
+            if (data == null || data.Length == 0)
+            {
+                return hash;
+            }
+
             for (int i = 0; i < data.Length; i++)
             {
                 hash ^= data[i];
