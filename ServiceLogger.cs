@@ -1,96 +1,466 @@
 using System;
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 
 namespace ControlEntradaSalida
 {
     /// <summary>
-    /// 简单的线程安全文件日志记录器，用于替代原有的控制台输出。
+    /// 异步文件日志记录器：业务线程只入队，后台线程批量写盘，避免日志 IO 阻塞业务。
     /// </summary>
     public static class ServiceLogger
     {
-        private static readonly ReaderWriterLockSlim LogLock = new ReaderWriterLockSlim();
         private const int DefaultLogRetentionDays = 90;
+        private const int DefaultQueueCapacity = 10000;
+        private const int DefaultFlushIntervalMs = 250;
+        private const int DefaultBatchSize = 256;
+
+        private static readonly object InitLock = new object();
+        private static readonly Stopwatch ProcessUptime = Stopwatch.StartNew();
+
         private static string logDirectory;
         private static string currentLogFile;
         private static DateTime currentLogDate = DateTime.MinValue;
         private static int logRetentionDays = DefaultLogRetentionDays;
 
+        private static BlockingCollection<LogEntry> logQueue;
+        private static Thread writerThread;
+        private static CancellationTokenSource writerCancellation;
+
+        private static volatile bool initialized;
+        private static volatile bool shutdownStarted;
+        private static bool exitHandlersRegistered;
+        private static volatile bool verboseEnabled;
+
+        private static long sequence;
+        private static long droppedCount;
+        private static DateTime lastDropReportUtc = DateTime.MinValue;
+
+        private static int processId;
+        private static string processName;
+
+        private sealed class LogEntry
+        {
+            public DateTime Timestamp { get; set; }
+            public string Level { get; set; }
+            public string Message { get; set; }
+            public int ManagedThreadId { get; set; }
+            public string ThreadName { get; set; }
+            public long Sequence { get; set; }
+            public string CallerMemberName { get; set; }
+            public string CallerFilePath { get; set; }
+            public int CallerLineNumber { get; set; }
+        }
+
         public static void Initialize(string directory, int retentionDays = DefaultLogRetentionDays)
         {
-            if (string.IsNullOrWhiteSpace(directory))
+            Initialize(directory, retentionDays, verboseLogging: false);
+        }
+
+        public static void Initialize(string directory, int retentionDays, bool verboseLogging)
+        {
+            lock (InitLock)
             {
-                directory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "logs");
+                if (shutdownStarted)
+                {
+                    return;
+                }
+
+                if (string.IsNullOrWhiteSpace(directory))
+                {
+                    directory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "logs");
+                }
+
+                logRetentionDays = retentionDays > 0 ? retentionDays : DefaultLogRetentionDays;
+                logDirectory = directory.Trim();
+                Directory.CreateDirectory(logDirectory);
+                verboseEnabled = verboseLogging;
+
+                processId = Process.GetCurrentProcess().Id;
+                processName = Process.GetCurrentProcess().ProcessName;
+
+                UpdateLogFilePath();
+
+                if (!initialized)
+                {
+                    logQueue = new BlockingCollection<LogEntry>(new ConcurrentQueue<LogEntry>(), DefaultQueueCapacity);
+                    writerCancellation = new CancellationTokenSource();
+
+                    writerThread = new Thread(WriterLoop)
+                    {
+                        IsBackground = true,
+                        Name = "ServiceLoggerWriter"
+                    };
+                    writerThread.Start();
+
+                    initialized = true;
+                }
+
+                RegisterExitHandlersIfNeeded();
+            }
+        }
+
+        public static bool IsVerboseEnabled => verboseEnabled;
+
+        public static void Verbose(
+            string message,
+            [CallerMemberName] string callerMemberName = null,
+            [CallerFilePath] string callerFilePath = null,
+            [CallerLineNumber] int callerLineNumber = 0)
+        {
+            if (!verboseEnabled)
+            {
+                return;
             }
 
-            logRetentionDays = retentionDays > 0 ? retentionDays : DefaultLogRetentionDays;
-            logDirectory = directory;
-            Directory.CreateDirectory(logDirectory);
-            UpdateLogFilePath();
+            Write("TRACE", message, callerMemberName, callerFilePath, callerLineNumber);
         }
 
-        public static void Info(string message)
+        public static void Info(
+            string message,
+            [CallerMemberName] string callerMemberName = null,
+            [CallerFilePath] string callerFilePath = null,
+            [CallerLineNumber] int callerLineNumber = 0)
         {
-            Write("INFO", message);
+            Write("INFO", message, callerMemberName, callerFilePath, callerLineNumber);
         }
 
-        public static void Warn(string message)
+        public static void Warn(
+            string message,
+            [CallerMemberName] string callerMemberName = null,
+            [CallerFilePath] string callerFilePath = null,
+            [CallerLineNumber] int callerLineNumber = 0)
         {
-            Write("WARN", message);
+            Write("WARN", message, callerMemberName, callerFilePath, callerLineNumber);
         }
 
-        public static void Error(string message, Exception ex = null)
+        public static void Error(
+            string message,
+            Exception ex = null,
+            [CallerMemberName] string callerMemberName = null,
+            [CallerFilePath] string callerFilePath = null,
+            [CallerLineNumber] int callerLineNumber = 0)
         {
-            var builder = new StringBuilder(message);
+            var builder = new StringBuilder(message ?? string.Empty);
             if (ex != null)
             {
                 builder.Append(" | 异常: ").Append(ex);
             }
-            Write("ERROR", builder.ToString());
+
+            Write("ERROR", builder.ToString(), callerMemberName, callerFilePath, callerLineNumber);
         }
 
-        public static void Debug(string message)
+        public static void Debug(
+            string message,
+            [CallerMemberName] string callerMemberName = null,
+            [CallerFilePath] string callerFilePath = null,
+            [CallerLineNumber] int callerLineNumber = 0)
         {
-            Write("DEBUG", message);
+            Write("DEBUG", message, callerMemberName, callerFilePath, callerLineNumber);
         }
 
-        private static void Write(string level, string message)
+        public static void Flush(int timeoutMs = 2000)
         {
-            if (string.IsNullOrEmpty(currentLogFile))
+            if (!initialized || logQueue == null)
+            {
+                return;
+            }
+
+            DateTime deadline = DateTime.UtcNow.AddMilliseconds(Math.Max(0, timeoutMs));
+            while (DateTime.UtcNow < deadline)
+            {
+                if (logQueue.Count == 0)
+                {
+                    return;
+                }
+
+                Thread.Sleep(20);
+            }
+        }
+
+        public static void Shutdown(int flushTimeoutMs = 2000)
+        {
+            lock (InitLock)
+            {
+                if (shutdownStarted)
+                {
+                    return;
+                }
+
+                shutdownStarted = true;
+            }
+
+            try
+            {
+                Flush(flushTimeoutMs);
+            }
+            catch
+            {
+            }
+
+            try
+            {
+                writerCancellation?.Cancel();
+            }
+            catch
+            {
+            }
+
+            try
+            {
+                logQueue?.CompleteAdding();
+            }
+            catch
+            {
+            }
+
+            try
+            {
+                if (writerThread != null && writerThread.IsAlive)
+                {
+                    writerThread.Join(Math.Max(0, flushTimeoutMs));
+                }
+            }
+            catch
+            {
+            }
+        }
+
+        private static void Write(string level, string message, string callerMemberName, string callerFilePath, int callerLineNumber)
+        {
+            if (!initialized)
             {
                 Initialize(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "logs"));
             }
 
-            EnsureLogFileForToday();
+            if (shutdownStarted)
+            {
+                return;
+            }
 
-            string line = $"{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff} [{level}] {message}";
+            var entry = new LogEntry
+            {
+                Timestamp = DateTime.Now,
+                Level = level,
+                Message = message ?? string.Empty,
+                ManagedThreadId = Thread.CurrentThread.ManagedThreadId,
+                ThreadName = Thread.CurrentThread.Name,
+                Sequence = Interlocked.Increment(ref sequence),
+                CallerMemberName = callerMemberName,
+                CallerFilePath = callerFilePath,
+                CallerLineNumber = callerLineNumber
+            };
+
+            if (!TryEnqueue(entry))
+            {
+                ReportDropIfNeeded();
+            }
+        }
+
+        private static bool TryEnqueue(LogEntry entry)
+        {
+            if (logQueue == null)
+            {
+                return false;
+            }
 
             try
             {
-                LogLock.EnterWriteLock();
-                File.AppendAllText(currentLogFile, line + Environment.NewLine, Encoding.UTF8);
+                return logQueue.TryAdd(entry, 0);
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        private static void ReportDropIfNeeded()
+        {
+            Interlocked.Increment(ref droppedCount);
+
+            DateTime nowUtc = DateTime.UtcNow;
+            DateTime last = lastDropReportUtc;
+            if (last != DateTime.MinValue && (nowUtc - last).TotalSeconds < 5)
+            {
+                return;
+            }
+
+            lastDropReportUtc = nowUtc;
+            long dropped = Interlocked.Read(ref droppedCount);
+            Trace.TraceWarning($"[ServiceLogger] 日志队列已满，已丢弃 {dropped} 条日志。建议降低日志量或增大队列容量。");
+        }
+
+        private static void WriterLoop()
+        {
+            StreamWriter writer = null;
+            DateTime writerLogDate = DateTime.MinValue;
+            string writerLogFile = null;
+
+            try
+            {
+                while (true)
+                {
+                    if (writerCancellation != null && writerCancellation.IsCancellationRequested)
+                    {
+                        DrainQueue(writer);
+                        return;
+                    }
+
+                    if (!initialized || logQueue == null)
+                    {
+                        Thread.Sleep(DefaultFlushIntervalMs);
+                        continue;
+                    }
+
+                    EnsureLogFileForToday();
+                    if (writerLogDate != currentLogDate || !string.Equals(writerLogFile, currentLogFile, StringComparison.OrdinalIgnoreCase))
+                    {
+                        try
+                        {
+                            writer?.Flush();
+                            writer?.Dispose();
+                        }
+                        catch
+                        {
+                        }
+
+                        writerLogDate = currentLogDate;
+                        writerLogFile = currentLogFile;
+                        writer = OpenWriter(writerLogFile);
+                    }
+
+                    int written = 0;
+                    var batchBuilder = new StringBuilder(8192);
+                    while (written < DefaultBatchSize && logQueue.TryTake(out LogEntry entry, DefaultFlushIntervalMs))
+                    {
+                        batchBuilder.AppendLine(FormatEntry(entry));
+                        written++;
+                    }
+
+                    if (written > 0 && writer != null)
+                    {
+                        writer.Write(batchBuilder.ToString());
+                        writer.Flush();
+                    }
+                }
             }
             catch (Exception ex)
             {
-                Trace.TraceError($"写入日志失败: {ex}");
+                Trace.TraceError($"[ServiceLogger] 后台写日志线程异常退出: {ex}");
             }
             finally
             {
-                if (LogLock.IsWriteLockHeld)
+                try
                 {
-                    LogLock.ExitWriteLock();
+                    DrainQueue(writer);
                 }
+                catch
+                {
+                }
+
+                try
+                {
+                    writer?.Flush();
+                    writer?.Dispose();
+                }
+                catch
+                {
+                }
+            }
+        }
+
+        private static void DrainQueue(StreamWriter writer)
+        {
+            if (logQueue == null || writer == null)
+            {
+                return;
+            }
+
+            int safety = 0;
+            while (safety < 200000 && logQueue.TryTake(out LogEntry entry))
+            {
+                writer.WriteLine(FormatEntry(entry));
+                safety++;
+            }
+
+            writer.Flush();
+        }
+
+        private static StreamWriter OpenWriter(string logFilePath)
+        {
+            if (string.IsNullOrWhiteSpace(logFilePath))
+            {
+                return null;
+            }
+
+            try
+            {
+                var stream = new FileStream(
+                    logFilePath,
+                    FileMode.Append,
+                    FileAccess.Write,
+                    FileShare.ReadWrite);
+                return new StreamWriter(stream, Encoding.UTF8) { AutoFlush = false };
+            }
+            catch (Exception ex)
+            {
+                Trace.TraceError($"[ServiceLogger] 打开日志文件失败: {logFilePath} | {ex}");
+                return null;
+            }
+        }
+
+        private static string FormatEntry(LogEntry entry)
+        {
+            string callerFile = TryGetFileName(entry.CallerFilePath);
+            string threadName = string.IsNullOrWhiteSpace(entry.ThreadName) ? "-" : entry.ThreadName;
+            string uptime = ProcessUptime.Elapsed.ToString("c", CultureInfo.InvariantCulture);
+
+            return string.Format(
+                CultureInfo.InvariantCulture,
+                "{0:yyyy-MM-dd HH:mm:ss.fff} [{1}] [pid:{2}] [proc:{3}] [tid:{4}] [tname:{5}] [seq:{6}] [up:{7}] {8} | at {9}:{10} {11}",
+                entry.Timestamp,
+                entry.Level,
+                processId,
+                processName,
+                entry.ManagedThreadId,
+                threadName,
+                entry.Sequence,
+                uptime,
+                entry.Message,
+                callerFile,
+                entry.CallerLineNumber,
+                entry.CallerMemberName ?? "-");
+        }
+
+        private static string TryGetFileName(string filePath)
+        {
+            if (string.IsNullOrWhiteSpace(filePath))
+            {
+                return "-";
+            }
+
+            try
+            {
+                return Path.GetFileName(filePath);
+            }
+            catch
+            {
+                return filePath;
             }
         }
 
         private static void EnsureLogFileForToday()
         {
-            if (currentLogDate != DateTime.Today || string.IsNullOrEmpty(currentLogFile))
+            lock (InitLock)
             {
-                UpdateLogFilePath();
+                if (currentLogDate != DateTime.Today || string.IsNullOrEmpty(currentLogFile))
+                {
+                    UpdateLogFilePath();
+                }
             }
         }
 
@@ -198,6 +568,49 @@ namespace ControlEntradaSalida
 
             date = default;
             return false;
+        }
+
+        private static void RegisterExitHandlersIfNeeded()
+        {
+            if (exitHandlersRegistered)
+            {
+                return;
+            }
+
+            exitHandlersRegistered = true;
+
+            AppDomain.CurrentDomain.ProcessExit += (_, __) =>
+            {
+                try
+                {
+                    Shutdown(2000);
+                }
+                catch
+                {
+                }
+            };
+
+            AppDomain.CurrentDomain.DomainUnload += (_, __) =>
+            {
+                try
+                {
+                    Shutdown(2000);
+                }
+                catch
+                {
+                }
+            };
+
+            AppDomain.CurrentDomain.UnhandledException += (_, __) =>
+            {
+                try
+                {
+                    Shutdown(2000);
+                }
+                catch
+                {
+                }
+            };
         }
     }
 }

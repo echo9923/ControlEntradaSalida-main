@@ -38,6 +38,8 @@ namespace ControlEntradaSalida
 
         public int LogRetentionDays { get; private set; }
 
+        public bool VerboseLogging { get; private set; }
+
         public bool LogGrpcPayloads { get; private set; }
 
         public int GrpcPayloadLogMaxChars { get; private set; }
@@ -61,6 +63,7 @@ namespace ControlEntradaSalida
             configuration.GrpcListenPort = serviceSection?.GrpcListenPort ?? 5001;
             configuration.LogDirectory = ResolveLogDirectory(serviceSection?.LogDirectory);
             configuration.LogRetentionDays = ResolveLogRetentionDays(serviceSection?.LogRetentionDays);
+            configuration.VerboseLogging = serviceSection?.VerboseLogging ?? false;
             configuration.LogGrpcPayloads = serviceSection?.LogGrpcPayloads ?? false;
             configuration.GrpcPayloadLogMaxChars = ResolvePayloadLogMaxChars(serviceSection?.GrpcPayloadLogMaxChars);
             configuration.FaceEvent = ResolveFaceEventOptions(ExternalConfiguration.Current.FaceEventLogging);

@@ -80,6 +80,11 @@ namespace ControlEntradaSalida.Configuration
             public int? LogRetentionDays { get; set; }
 
             /// <summary>
+            /// 是否启用超详细日志（TRACE）。开启后将记录锁等待/耗时/调用点等大量细节日志。
+            /// </summary>
+            public bool? VerboseLogging { get; set; }
+
+            /// <summary>
             /// 是否记录 gRPC 请求与响应的 JSON 载荷。
             /// </summary>
             public bool? LogGrpcPayloads { get; set; }

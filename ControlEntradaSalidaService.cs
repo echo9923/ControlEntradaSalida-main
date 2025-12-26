@@ -27,10 +27,12 @@ namespace ControlEntradaSalida
             {
                 StartCore(args);
                 ServiceLogger.Info("服务启动完成。");
+                ServiceLogger.Flush(2000);
             }
             catch (Exception ex)
             {
                 ServiceLogger.Error("服务启动失败。", ex);
+                ServiceLogger.Flush(2000);
                 throw;
             }
         }
@@ -41,10 +43,12 @@ namespace ControlEntradaSalida
             {
                 StopCore();
                 ServiceLogger.Info("服务已停止。");
+                ServiceLogger.Flush(2000);
             }
             catch (Exception ex)
             {
                 ServiceLogger.Error("服务停止过程中出现异常。", ex);
+                ServiceLogger.Flush(2000);
                 throw;
             }
         }
@@ -105,8 +109,8 @@ namespace ControlEntradaSalida
             }
 
             var config = ServiceConfiguration.Current;
-            ServiceLogger.Initialize(config.LogDirectory, config.LogRetentionDays);
-            ServiceLogger.Info("日志系统初始化完成。");
+            ServiceLogger.Initialize(config.LogDirectory, config.LogRetentionDays, config.VerboseLogging);
+            ServiceLogger.Info($"日志系统初始化完成（VerboseLogging={config.VerboseLogging}）。");
 
             if (!Common.InicializarSDKHikVision())
             {

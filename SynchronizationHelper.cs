@@ -1,5 +1,6 @@
 using System;
 using System.Diagnostics;
+using System.Globalization;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -18,15 +19,30 @@ namespace ControlEntradaSalida
             private readonly SemaphoreSlim semaphore;
             private readonly bool acquired;
             private readonly string operationId;
+            private readonly int timeoutMs;
+            private readonly int waitMs;
+            private readonly int acquiredThreadId;
+            private readonly long acquiredTick;
             private bool disposed;
 
-            internal SemaphoreOperationResult(SemaphoreSlim semaphore, bool acquired, string operationId)
+            internal SemaphoreOperationResult(
+                SemaphoreSlim semaphore,
+                bool acquired,
+                string operationId,
+                int timeoutMs,
+                int waitMs,
+                int acquiredThreadId,
+                long acquiredTick)
             {
                 this.semaphore = semaphore;
                 this.acquired = acquired;
                 this.operationId = operationId;
+                this.timeoutMs = timeoutMs;
+                this.waitMs = waitMs;
+                this.acquiredThreadId = acquiredThreadId;
+                this.acquiredTick = acquiredTick;
 
-                LogOperation($"信号量操作创建 - 获取状态: {acquired}");
+                LogOperation($"信号量操作创建 - 获取状态: {acquired}, 超时: {timeoutMs}ms, 等待: {waitMs}ms");
             }
 
             /// <summary>
@@ -46,8 +62,9 @@ namespace ControlEntradaSalida
 
                 try
                 {
+                    double heldMs = acquiredTick <= 0 ? -1 : StopwatchTicksToMs(Stopwatch.GetTimestamp() - acquiredTick);
                     semaphore.Release();
-                    LogOperation("信号量已释放");
+                    LogOperation($"信号量已释放 - 持有: {FormatMs(heldMs)}");
                 }
                 catch (SemaphoreFullException ex)
                 {
@@ -67,7 +84,14 @@ namespace ControlEntradaSalida
 
             private void LogOperation(string message)
             {
-                Debug.WriteLine($"[SynchronizationHelper] {operationId}: {message} - 线程ID: {Thread.CurrentThread.ManagedThreadId}");
+                if (ServiceLogger.IsVerboseEnabled)
+                {
+                    ServiceLogger.Verbose($"[锁] {operationId}: {message} | acquiredTid={acquiredThreadId} currentTid={Thread.CurrentThread.ManagedThreadId} semCount={SafeGetCurrentCount(semaphore)}");
+                }
+                else
+                {
+                    Debug.WriteLine($"[SynchronizationHelper] {operationId}: {message} - 线程ID: {Thread.CurrentThread.ManagedThreadId}");
+                }
             }
         }
 
@@ -92,18 +116,35 @@ namespace ControlEntradaSalida
 
             try
             {
-                LogWaitStart(operationId, timeout);
+                long startTick = Stopwatch.GetTimestamp();
+                LogWaitStart(operationId, timeout, semaphore);
 
                 bool acquired = await semaphore.WaitAsync(timeout);
+                long acquiredTick = acquired ? Stopwatch.GetTimestamp() : 0;
 
-                LogWaitResult(operationId, acquired);
+                int waitMs = (int)Math.Max(0, StopwatchTicksToMs(Stopwatch.GetTimestamp() - startTick));
+                LogWaitResult(operationId, acquired, waitMs, semaphore);
 
-                return new SemaphoreOperationResult(semaphore, acquired, operationId);
+                return new SemaphoreOperationResult(
+                    semaphore,
+                    acquired,
+                    operationId,
+                    timeout,
+                    waitMs,
+                    Thread.CurrentThread.ManagedThreadId,
+                    acquiredTick);
             }
             catch (Exception ex)
             {
-                LogWaitException(operationId, ex);
-                return new SemaphoreOperationResult(semaphore, false, operationId);
+                LogWaitException(operationId, ex, semaphore);
+                return new SemaphoreOperationResult(
+                    semaphore,
+                    false,
+                    operationId,
+                    timeout,
+                    waitMs: -1,
+                    acquiredThreadId: Thread.CurrentThread.ManagedThreadId,
+                    acquiredTick: 0);
             }
         }
 
@@ -128,18 +169,35 @@ namespace ControlEntradaSalida
 
             try
             {
-                LogWaitStart(operationId, timeout);
+                long startTick = Stopwatch.GetTimestamp();
+                LogWaitStart(operationId, timeout, semaphore);
 
                 bool acquired = semaphore.Wait(timeout);
+                long acquiredTick = acquired ? Stopwatch.GetTimestamp() : 0;
 
-                LogWaitResult(operationId, acquired);
+                int waitMs = (int)Math.Max(0, StopwatchTicksToMs(Stopwatch.GetTimestamp() - startTick));
+                LogWaitResult(operationId, acquired, waitMs, semaphore);
 
-                return new SemaphoreOperationResult(semaphore, acquired, operationId);
+                return new SemaphoreOperationResult(
+                    semaphore,
+                    acquired,
+                    operationId,
+                    timeout,
+                    waitMs,
+                    Thread.CurrentThread.ManagedThreadId,
+                    acquiredTick);
             }
             catch (Exception ex)
             {
-                LogWaitException(operationId, ex);
-                return new SemaphoreOperationResult(semaphore, false, operationId);
+                LogWaitException(operationId, ex, semaphore);
+                return new SemaphoreOperationResult(
+                    semaphore,
+                    false,
+                    operationId,
+                    timeout,
+                    waitMs: -1,
+                    acquiredThreadId: Thread.CurrentThread.ManagedThreadId,
+                    acquiredTick: 0);
             }
         }
 
@@ -152,28 +210,93 @@ namespace ControlEntradaSalida
         /// <returns>信号量对象</returns>
         public static SemaphoreSlim CreateSemaphore(int initialCount, int maxCount, string name = "Unknown")
         {
-            Debug.WriteLine($"[SynchronizationHelper] 创建信号量: {name} - 初始计数: {initialCount}, 最大计数: {maxCount}");
+            if (ServiceLogger.IsVerboseEnabled)
+            {
+                ServiceLogger.Verbose($"[锁] 创建信号量: {name} - 初始计数: {initialCount}, 最大计数: {maxCount}");
+            }
+            else
+            {
+                Debug.WriteLine($"[SynchronizationHelper] 创建信号量: {name} - 初始计数: {initialCount}, 最大计数: {maxCount}");
+            }
             return new SemaphoreSlim(initialCount, maxCount);
         }
 
         private static string CreateOperationId(string operationName)
         {
-            return $"{operationName}-{DateTime.Now:HHmmss.fff}";
+            return $"{operationName}-{DateTime.Now:HHmmss.fff}-T{Thread.CurrentThread.ManagedThreadId}";
         }
 
-        private static void LogWaitStart(string operationId, int timeout)
+        private static void LogWaitStart(string operationId, int timeout, SemaphoreSlim semaphore)
         {
-            Debug.WriteLine($"[SynchronizationHelper] {operationId}: 开始等待信号量 - 超时: {timeout}ms");
+            if (ServiceLogger.IsVerboseEnabled)
+            {
+                ServiceLogger.Verbose($"[锁] {operationId}: 开始等待 - 超时: {timeout}ms - semCount={SafeGetCurrentCount(semaphore)}");
+            }
+            else
+            {
+                Debug.WriteLine($"[SynchronizationHelper] {operationId}: 开始等待信号量 - 超时: {timeout}ms");
+            }
         }
 
-        private static void LogWaitResult(string operationId, bool acquired)
+        private static void LogWaitResult(string operationId, bool acquired, int waitMs, SemaphoreSlim semaphore)
         {
-            Debug.WriteLine($"[SynchronizationHelper] {operationId}: 信号量等待结果: {acquired}");
+            if (ServiceLogger.IsVerboseEnabled)
+            {
+                ServiceLogger.Verbose($"[锁] {operationId}: 等待结果: {acquired} - waitMs={waitMs} - semCount={SafeGetCurrentCount(semaphore)}");
+            }
+            else
+            {
+                Debug.WriteLine($"[SynchronizationHelper] {operationId}: 信号量等待结果: {acquired}");
+            }
         }
 
-        private static void LogWaitException(string operationId, Exception ex)
+        private static void LogWaitException(string operationId, Exception ex, SemaphoreSlim semaphore)
         {
-            Debug.WriteLine($"[SynchronizationHelper] {operationId}: 信号量等待异常: {ex.Message}");
+            if (ServiceLogger.IsVerboseEnabled)
+            {
+                ServiceLogger.Verbose($"[锁] {operationId}: 等待异常: {ex.Message} - semCount={SafeGetCurrentCount(semaphore)}");
+            }
+            else
+            {
+                Debug.WriteLine($"[SynchronizationHelper] {operationId}: 信号量等待异常: {ex.Message}");
+            }
+        }
+
+        private static int SafeGetCurrentCount(SemaphoreSlim semaphore)
+        {
+            if (semaphore == null)
+            {
+                return -1;
+            }
+
+            try
+            {
+                return semaphore.CurrentCount;
+            }
+            catch
+            {
+                return -1;
+            }
+        }
+
+        private static double StopwatchTicksToMs(long ticks)
+        {
+            if (ticks <= 0)
+            {
+                return 0;
+            }
+
+            return ticks * 1000.0 / Stopwatch.Frequency;
+        }
+
+        private static string FormatMs(double value)
+        {
+            if (value < 0)
+            {
+                return "-";
+            }
+
+            return value.ToString("0.###", CultureInfo.InvariantCulture) + "ms";
         }
     }
 }
