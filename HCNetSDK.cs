@@ -3308,7 +3308,7 @@ namespace ControlEntradaSalida
             public byte byChannelControllerIRAdaptorID;
             public byte byChannelControllerIREmitterID;
             public uint dwRecordChannelNum;
-            public uint pRecordChannelData;
+            public IntPtr pRecordChannelData;
             public byte byUserType;
             public byte byCurrentVerifyMode;
             [MarshalAs(UnmanagedType.ByValArray, SizeConst = 2)]

@@ -31,6 +31,8 @@ namespace ControlEntradaSalida
         private static readonly int AcsAlarmInfoSize = Marshal.SizeOf(typeof(HCNetSDK.NET_DVR_ACS_ALARM_INFO));
         private static readonly int AcsEventCondSize = Marshal.SizeOf(typeof(HCNetSDK.NET_DVR_ACS_EVENT_COND));
         private static readonly int AcsEventCfgSize = Marshal.SizeOf(typeof(HCNetSDK.NET_DVR_ACS_EVENT_CFG));
+        private static readonly int AcsEventDetailSize = Marshal.SizeOf(typeof(HCNetSDK.NET_DVR_ACS_EVENT_DETAIL));
+        private static int acsInteropLayoutLogged;
 
         private readonly int deviceSdkLockTimeoutMs;
         private readonly BlockingCollection<FaceEventRecord> eventQueue;
@@ -90,6 +92,8 @@ namespace ControlEntradaSalida
             {
                 throw new InvalidOperationException("未提供数据库连接字符串，无法启动人脸事件入库功能。");
             }
+
+            LogAcsInteropLayoutOnce();
 
             // 注册报警回调，SDK 要求回调委托在托管侧保持存活
             alarmCallback = AlarmMessageCallback;
@@ -1021,6 +1025,8 @@ namespace ControlEntradaSalida
 
             try
             {
+                LogAcsInteropLayoutOnce();
+
                 var checkpoint = GetCheckpoint(device.IpAddress);
                 DateTime startTime = checkpoint.HasValue
                     ? checkpoint.Value.LastEventTime.AddMilliseconds(1)
@@ -1066,7 +1072,13 @@ namespace ControlEntradaSalida
                     IntPtr outPtr = IntPtr.Zero;
                     int handle = -1;
                     int receivedCount = 0;
+                    int filteredCount = 0;
                     int enqueuedCount = 0;
+                    int nullRecordCount = 0;
+                    int needWaitCount = 0;
+                    int failedCount = 0;
+                    int exceptionStatusCount = 0;
+                    int unknownStatusCount = 0;
                     Stopwatch stopwatch = Stopwatch.StartNew();
 
                     try
@@ -1105,8 +1117,10 @@ namespace ControlEntradaSalida
                             {
                                 var cfg = Marshal.PtrToStructure<HCNetSDK.NET_DVR_ACS_EVENT_CFG>(outPtr);
                                 receivedCount++;
+                                LogAcsEventCfgSummary(device, handle, cfg);
                                 if (!IsFaceVerifyMinor(cfg.dwMinor))
                                 {
+                                    filteredCount++;
                                     continue;
                                 }
 
@@ -1116,6 +1130,10 @@ namespace ControlEntradaSalida
                                     Enqueue(record);
                                     enqueuedCount++;
                                 }
+                                else
+                                {
+                                    nullRecordCount++;
+                                }
                             }
                             else if (status == (int)HCNetSDK.NET_SDK_SENDWITHRECV_STATUS.NET_SDK_CONFIG_STATUS_FINISH)
                             {
@@ -1123,33 +1141,43 @@ namespace ControlEntradaSalida
                             }
                             else if (status == (int)HCNetSDK.NET_SDK_SENDWITHRECV_STATUS.NET_SDK_CONFIG_STATUS_NEEDWAIT)
                             {
+                                needWaitCount++;
+                                if (ServiceLogger.IsVerboseEnabled && needWaitCount % 20 == 1)
+                                {
+                                    ServiceLogger.Verbose(
+                                        $"设备 {device.Name} 补偿通道需要等待 | " +
+                                        $"Id={device.Id}, Handle={handle}, NeedWaitCount={needWaitCount}, Received={receivedCount}, Enqueued={enqueuedCount}");
+                                }
                                 Thread.Sleep(200);
                             }
                             else if (status == (int)HCNetSDK.NET_SDK_SENDWITHRECV_STATUS.NET_SDK_CONFIG_STATUS_FAILED)
                             {
+                                failedCount++;
                                 uint err = HCNetSDK.NET_DVR_GetLastError();
                                 string errMsg = GetSdkErrorMessage(err);
                                 ServiceLogger.Warn(
                                     $"设备 {device.Name} 补偿通道获取失败，将重试 | " +
-                                    $"Id={device.Id}, Handle={handle}, Status={status}, Err={err}{(string.IsNullOrWhiteSpace(errMsg) ? string.Empty : $"({errMsg})")}");
+                                    $"Id={device.Id}, Handle={handle}, Status={status}, FailedCount={failedCount}, Err={err}{(string.IsNullOrWhiteSpace(errMsg) ? string.Empty : $"({errMsg})")}");
                                 Thread.Sleep(200);
                             }
                             else if (status == (int)HCNetSDK.NET_SDK_SENDWITHRECV_STATUS.NET_SDK_CONFIG_STATUS_EXCEPTION)
                             {
+                                exceptionStatusCount++;
                                 uint err = HCNetSDK.NET_DVR_GetLastError();
                                 string errMsg = GetSdkErrorMessage(err);
                                 ServiceLogger.Warn(
                                     $"设备 {device.Name} 补偿通道异常，终止补偿 | " +
-                                    $"Id={device.Id}, Handle={handle}, Status={status}, Err={err}{(string.IsNullOrWhiteSpace(errMsg) ? string.Empty : $"({errMsg})")}");
+                                    $"Id={device.Id}, Handle={handle}, Status={status}, ExceptionCount={exceptionStatusCount}, Err={err}{(string.IsNullOrWhiteSpace(errMsg) ? string.Empty : $"({errMsg})")}");
                                 break;
                             }
                             else
                             {
+                                unknownStatusCount++;
                                 uint err = HCNetSDK.NET_DVR_GetLastError();
                                 string errMsg = GetSdkErrorMessage(err);
                                 ServiceLogger.Warn(
                                     $"设备 {device.Name} 补偿通道返回未知状态，终止补偿 | " +
-                                    $"Id={device.Id}, Handle={handle}, Status={status}, Err={err}{(string.IsNullOrWhiteSpace(errMsg) ? string.Empty : $"({errMsg})")}");
+                                    $"Id={device.Id}, Handle={handle}, Status={status}, UnknownCount={unknownStatusCount}, Err={err}{(string.IsNullOrWhiteSpace(errMsg) ? string.Empty : $"({errMsg})")}");
                                 break;
                             }
                         }
@@ -1159,7 +1187,10 @@ namespace ControlEntradaSalida
                         stopwatch.Stop();
                         ServiceLogger.Verbose(
                             $"设备 {device.Name} 历史事件补偿结束 | " +
-                            $"Id={device.Id}, Handle={handle}, Received={receivedCount}, Enqueued={enqueuedCount}, ElapsedMs={stopwatch.ElapsedMilliseconds}");
+                            $"Id={device.Id}, Handle={handle}, " +
+                            $"Received={receivedCount}, Filtered={filteredCount}, Enqueued={enqueuedCount}, NullRecord={nullRecordCount}, " +
+                            $"NeedWait={needWaitCount}, Failed={failedCount}, Exception={exceptionStatusCount}, Unknown={unknownStatusCount}, " +
+                            $"ElapsedMs={stopwatch.ElapsedMilliseconds}");
 
                         if (ptrCond != IntPtr.Zero)
                         {
@@ -1182,6 +1213,167 @@ namespace ControlEntradaSalida
             catch (Exception ex)
             {
                 ServiceLogger.Error($"设备 {device?.Name} 补偿流程异常。", ex);
+            }
+        }
+
+        private static void LogAcsInteropLayoutOnce()
+        {
+            if (!ServiceLogger.IsVerboseEnabled)
+            {
+                return;
+            }
+
+            if (Interlocked.Exchange(ref acsInteropLayoutLogged, 1) != 0)
+            {
+                return;
+            }
+
+            try
+            {
+                ServiceLogger.Verbose(
+                    $"[Interop] ACS结构体布局 | " +
+                    $"Proc64={Environment.Is64BitProcess}, IntPtrSize={IntPtr.Size}, " +
+                    $"AcsAlarmInfoSize={AcsAlarmInfoSize}, AcsEventCondSize={AcsEventCondSize}, AcsEventDetailSize={AcsEventDetailSize}, AcsEventCfgSize={AcsEventCfgSize}");
+
+                LogStructLayout(
+                    typeof(HCNetSDK.NET_DVR_ACS_EVENT_COND),
+                    "NET_DVR_ACS_EVENT_COND",
+                    "dwSize",
+                    "dwMajor",
+                    "dwMinor",
+                    "struStartTime",
+                    "struEndTime",
+                    "byPicEnable",
+                    "byTimeType",
+                    "dwBeginSerialNo",
+                    "dwEndSerialNo",
+                    "bySearchType",
+                    "byEventAttribute",
+                    "byEmployeeNo");
+
+                LogStructLayout(
+                    typeof(HCNetSDK.NET_DVR_ACS_EVENT_DETAIL),
+                    "NET_DVR_ACS_EVENT_DETAIL",
+                    "dwSize",
+                    "byCardNo",
+                    "dwCardReaderNo",
+                    "dwDoorNo",
+                    "dwEmployeeNo",
+                    "dwSerialNo",
+                    "dwRecordChannelNum",
+                    "pRecordChannelData",
+                    "byEmployeeNo");
+
+                LogStructLayout(
+                    typeof(HCNetSDK.NET_DVR_ACS_EVENT_CFG),
+                    "NET_DVR_ACS_EVENT_CFG",
+                    "dwSize",
+                    "dwMajor",
+                    "dwMinor",
+                    "struTime",
+                    "struRemoteHostAddr",
+                    "struAcsEventInfo",
+                    "dwPicDataLen",
+                    "pPicData",
+                    "wInductiveEventType",
+                    "byTimeType",
+                    "dwQCodeInfoLen",
+                    "pQRCodeInfo");
+            }
+            catch (Exception ex)
+            {
+                ServiceLogger.Verbose($"[Interop] ACS结构体布局输出失败: {ex}");
+            }
+        }
+
+        private static void LogStructLayout(Type type, string typeName, params string[] fieldNames)
+        {
+            if (type == null)
+            {
+                return;
+            }
+
+            int size = -1;
+            try
+            {
+                size = Marshal.SizeOf(type);
+            }
+            catch
+            {
+            }
+
+            ServiceLogger.Verbose($"[Interop] {typeName} | Size={size}");
+
+            if (fieldNames == null || fieldNames.Length == 0)
+            {
+                return;
+            }
+
+            foreach (string fieldName in fieldNames)
+            {
+                if (string.IsNullOrWhiteSpace(fieldName))
+                {
+                    continue;
+                }
+
+                try
+                {
+                    int offset = (int)Marshal.OffsetOf(type, fieldName);
+                    ServiceLogger.Verbose($"[Interop] {typeName}.{fieldName} | Offset={offset}");
+                }
+                catch (Exception ex)
+                {
+                    ServiceLogger.Verbose($"[Interop] {typeName}.{fieldName} | Offset读取失败: {ex.Message}");
+                }
+            }
+        }
+
+        private static void LogAcsEventCfgSummary(DeviceConnectionInfo device, int handle, HCNetSDK.NET_DVR_ACS_EVENT_CFG cfg)
+        {
+            if (!ServiceLogger.IsVerboseEnabled)
+            {
+                return;
+            }
+
+            try
+            {
+                var detail = cfg.struAcsEventInfo;
+
+                DateTime eventTime = ConvertToDateTime(cfg.struTime);
+                if (cfg.byTimeType == 1)
+                {
+                    eventTime = DateTime.SpecifyKind(eventTime, DateTimeKind.Utc).ToLocalTime();
+                }
+
+                string employeeNo = DecodeFixedAsciiString(detail.byEmployeeNo);
+                string cardNo = DecodeFixedAsciiString(detail.byCardNo);
+
+                ServiceLogger.Verbose(
+                    $"设备 {device?.Name} 获取历史事件 | " +
+                    $"Id={device?.Id ?? 0}, Handle={handle}, Major=0x{cfg.dwMajor:X}, Minor=0x{cfg.dwMinor:X}, " +
+                    $"Time={eventTime:yyyy-MM-dd HH:mm:ss.fff}, SerialNo={detail.dwSerialNo}, " +
+                    $"DoorNo={detail.dwDoorNo}, ReaderNo={detail.dwCardReaderNo}, VerifyNo={detail.dwVerifyNo}, " +
+                    $"EmployeeNo={employeeNo}, EmployeeNo(dw)={detail.dwEmployeeNo}, CardNo={cardNo}, CardType={detail.byCardType}, " +
+                    $"PicLen={cfg.dwPicDataLen}, PicPtr=0x{cfg.pPicData.ToInt64():X}, " +
+                    $"RecordChannelNum={detail.dwRecordChannelNum}, RecordChannelPtr=0x{detail.pRecordChannelData.ToInt64():X}");
+
+                if (cfg.dwPicDataLen > 0 && cfg.pPicData == IntPtr.Zero)
+                {
+                    ServiceLogger.Warn(
+                        $"设备 {device?.Name} 事件图片长度不为0但图片指针为空，可能存在结构体不匹配 | " +
+                        $"Id={device?.Id ?? 0}, Handle={handle}, PicLen={cfg.dwPicDataLen}");
+                }
+
+                if (detail.dwRecordChannelNum > 0 && detail.pRecordChannelData == IntPtr.Zero)
+                {
+                    ServiceLogger.Warn(
+                        $"设备 {device?.Name} 录像通道数不为0但录像通道指针为空，可能存在结构体不匹配 | " +
+                        $"Id={device?.Id ?? 0}, Handle={handle}, RecordChannelNum={detail.dwRecordChannelNum}");
+                }
+            }
+            catch (Exception ex)
+            {
+                ServiceLogger.Verbose($"设备 {device?.Name} 输出历史事件摘要失败: {ex.Message}");
             }
         }
 
@@ -1219,10 +1411,22 @@ namespace ControlEntradaSalida
                 eventTime = DateTime.SpecifyKind(eventTime, DateTimeKind.Utc).ToLocalTime();
             }
 
-            string employeeNo = DecodeFixedAsciiString(detail.byEmployeeNo);
+            string rawEmployeeNo = DecodeFixedAsciiString(detail.byEmployeeNo);
+            string employeeNo = rawEmployeeNo;
+            bool employeeFromDw = false;
             if (string.IsNullOrWhiteSpace(employeeNo) && detail.dwEmployeeNo != 0)
             {
                 employeeNo = detail.dwEmployeeNo.ToString();
+                employeeFromDw = true;
+            }
+
+            if (ServiceLogger.IsVerboseEnabled)
+            {
+                ServiceLogger.Verbose(
+                    $"设备 {device?.Name} 解析历史事件字段 | " +
+                    $"Id={device?.Id ?? 0}, Minor=0x{cfg.dwMinor:X}, EventTime={eventTime:yyyy-MM-dd HH:mm:ss.fff}, " +
+                    $"EmployeeRaw={rawEmployeeNo}, EmployeeFinal={employeeNo}, EmployeeFromDw={employeeFromDw}, " +
+                    $"SerialNo={detail.dwSerialNo}, PicLen={cfg.dwPicDataLen}");
             }
 
             byte[] snapshot = null;
@@ -1236,11 +1440,31 @@ namespace ControlEntradaSalida
                 if (TryParseSnapshotUrl(data, out string url))
                 {
                     snapshotUrl = url;
+                    if (ServiceLogger.IsVerboseEnabled)
+                    {
+                        ServiceLogger.Verbose(
+                            $"设备 {device?.Name} 快照解析为URL | " +
+                            $"Id={device?.Id ?? 0}, SerialNo={detail.dwSerialNo}, Url={snapshotUrl}");
+                    }
                 }
                 else
                 {
                     snapshot = data;
+                    if (ServiceLogger.IsVerboseEnabled)
+                    {
+                        ServiceLogger.Verbose(
+                            $"设备 {device?.Name} 快照解析为二进制 | " +
+                            $"Id={device?.Id ?? 0}, SerialNo={detail.dwSerialNo}, Bytes={snapshot.Length}");
+                    }
                 }
+            }
+
+            if (ServiceLogger.IsVerboseEnabled)
+            {
+                ServiceLogger.Verbose(
+                    $"设备 {device?.Name} 构建入库事件记录 | " +
+                    $"Id={device?.Id ?? 0}, UserId={employeeNo}, EventType={eventType}, EventTime={eventTime:yyyy-MM-dd HH:mm:ss.fff}, " +
+                    $"SerialNo={detail.dwSerialNo}, SnapshotUrl={(string.IsNullOrWhiteSpace(snapshotUrl) ? "-" : snapshotUrl)}, SnapshotBytes={(snapshot == null ? 0 : snapshot.Length)}");
             }
 
             return new FaceEventRecord

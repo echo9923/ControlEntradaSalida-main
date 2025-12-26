@@ -54,14 +54,14 @@
     </dependentAssembly>
   </dependency>
   <dependency>
-    <dependentAssembly dependencyType="install" allowDelayedBinding="true" codebase="ControlEntradaSalida.exe" size="281600">
+    <dependentAssembly dependencyType="install" allowDelayedBinding="true" codebase="ControlEntradaSalida.exe" size="288256">
       <assemblyIdentity name="ControlEntradaSalida" version="1.0.0.0" language="neutral" processorArchitecture="msil" />
       <hash>
         <dsig:Transforms>
           <dsig:Transform Algorithm="urn:schemas-microsoft-com:HashTransforms.Identity" />
         </dsig:Transforms>
         <dsig:DigestMethod Algorithm="http://www.w3.org/2000/09/xmldsig#sha256" />
-        <dsig:DigestValue>8cgvrCr1QbI4Eh6AUUmc+Wyo9iwzUelJzr5okwmEiYU=</dsig:DigestValue>
+        <dsig:DigestValue>uQuW+1/dou3WMelQ9l1O7uhuonVSRYABaT7gssYJoD4=</dsig:DigestValue>
       </hash>
     </dependentAssembly>
   </dependency>
