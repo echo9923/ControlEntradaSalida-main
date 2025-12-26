@@ -3218,16 +3218,16 @@ namespace ControlEntradaSalida
             public byte[] byCardNo;
             [MarshalAs(UnmanagedType.ByValArray, SizeConst = HCNetSDK.NAME_LEN, ArraySubType = UnmanagedType.I1)]
             public byte[] byName;
-            public uint dwBeginSerialNo;
             public byte byPicEnable;
             public byte byTimeType;
             [MarshalAs(UnmanagedType.ByValArray, SizeConst = 2, ArraySubType = UnmanagedType.I1)]
             public byte[] byRes2;
+            public uint dwBeginSerialNo;
             public uint dwEndSerialNo;
             public uint dwIOTChannelNo;
             public ushort wInductiveEventType;
             public byte bySearchType;
-            public byte byRes1;
+            public byte byEventAttribute;
             [MarshalAs(UnmanagedType.ByValTStr, SizeConst = HCNetSDK.NET_SDK_MONITOR_ID_LEN)]
             public string szMonitorID;
             [MarshalAs(UnmanagedType.ByValArray, SizeConst = HCNetSDK.NET_SDK_EMPLOYEE_NO_LEN, ArraySubType = UnmanagedType.I1)]
@@ -3240,6 +3240,7 @@ namespace ControlEntradaSalida
                 byCardNo = new byte[HCNetSDK.ACS_CARD_NO_LEN];
                 byName = new byte[HCNetSDK.NAME_LEN];
                 byRes2 = new byte[2];
+                szMonitorID = string.Empty;
                 byEmployeeNo = new byte[HCNetSDK.NET_SDK_EMPLOYEE_NO_LEN];
                 byRes = new byte[140];
             }
@@ -3262,7 +3263,14 @@ namespace ControlEntradaSalida
             public IntPtr pPicData;  // picture data
             public ushort wInductiveEventType;
             public byte byTimeType;
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 61)]
+            public byte byRes1;
+            public uint dwQCodeInfoLen;
+            public uint dwVisibleLightDataLen;
+            public uint dwThermalDataLen;
+            public IntPtr pQRCodeInfo;
+            public IntPtr pVisibleLightData;
+            public IntPtr pThermalData;
+            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 36)]
             public byte[] byRes;
         }
 

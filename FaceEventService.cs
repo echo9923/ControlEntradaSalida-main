@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.SqlClient;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
@@ -1040,8 +1041,16 @@ namespace ControlEntradaSalida
                 cond.struEndTime = ToDvrTime(DateTime.Now);
                 cond.dwBeginSerialNo = beginSerial;
                 cond.byPicEnable = 1;
+                cond.byTimeType = 0;
 
                 int size = AcsEventCondSize;
+
+                ServiceLogger.Verbose(
+                    $"设备 {device.Name} 准备启动历史事件补偿 | " +
+                    $"Id={device.Id}, IP={device.IpAddress}, UserID={device.UserID}, " +
+                    $"Start={startTime:yyyy-MM-dd HH:mm:ss.fff}, BeginSerial={beginSerial}, " +
+                    $"Major={cond.dwMajor}, Minor={cond.dwMinor}, PicEnable={cond.byPicEnable}, TimeType={cond.byTimeType}, " +
+                    $"CondSize={size}, CfgSize={AcsEventCfgSize}, IntPtrSize={IntPtr.Size}");
 
                 using (var sdkLock = device.TryAcquireDeviceSdkLock(
                     deviceSdkLockTimeoutMs,
@@ -1056,6 +1065,9 @@ namespace ControlEntradaSalida
                     IntPtr ptrCond = IntPtr.Zero;
                     IntPtr outPtr = IntPtr.Zero;
                     int handle = -1;
+                    int receivedCount = 0;
+                    int enqueuedCount = 0;
+                    Stopwatch stopwatch = Stopwatch.StartNew();
 
                     try
                     {
@@ -1066,11 +1078,22 @@ namespace ControlEntradaSalida
                         if (handle < 0)
                         {
                             uint err = HCNetSDK.NET_DVR_GetLastError();
-                            ServiceLogger.Error($"设备 {device.Name} 历史事件补偿启动失败，错误码: {err}");
+                            string errMsg = GetSdkErrorMessage(err);
+                            DateTime startLocal = ConvertToDateTime(cond.struStartTime);
+                            DateTime endLocal = ConvertToDateTime(cond.struEndTime);
+                            ServiceLogger.Error(
+                                $"设备 {device.Name} 历史事件补偿启动失败，错误码: {err}{(string.IsNullOrWhiteSpace(errMsg) ? string.Empty : $"({errMsg})")} | " +
+                                $"Id={device.Id}, IP={device.IpAddress}, UserID={device.UserID}, " +
+                                $"Major={cond.dwMajor}, Minor={cond.dwMinor}, BeginSerial={cond.dwBeginSerialNo}, EndSerial={cond.dwEndSerialNo}, " +
+                                $"PicEnable={cond.byPicEnable}, TimeType={cond.byTimeType}, SearchType={cond.bySearchType}, EventAttr={cond.byEventAttribute}, " +
+                                $"Start={startLocal:yyyy-MM-dd HH:mm:ss.fff}, End={endLocal:yyyy-MM-dd HH:mm:ss.fff}, InSize={size}, StructSize={cond.dwSize}, IntPtrSize={IntPtr.Size}");
                             return;
                         }
 
                         remoteConfigHandles[device.Id] = handle;
+                        ServiceLogger.Verbose(
+                            $"设备 {device.Name} 历史事件补偿通道已启动 | " +
+                            $"Id={device.Id}, Handle={handle}, BeginSerial={cond.dwBeginSerialNo}, InSize={size}, OutSize={AcsEventCfgSize}");
 
                         int cfgSize = AcsEventCfgSize;
                         outPtr = Marshal.AllocHGlobal(cfgSize);
@@ -1081,6 +1104,7 @@ namespace ControlEntradaSalida
                             if (status == (int)HCNetSDK.NET_SDK_SENDWITHRECV_STATUS.NET_SDK_CONFIG_STATUS_SUCCESS)
                             {
                                 var cfg = Marshal.PtrToStructure<HCNetSDK.NET_DVR_ACS_EVENT_CFG>(outPtr);
+                                receivedCount++;
                                 if (!IsFaceVerifyMinor(cfg.dwMinor))
                                 {
                                     continue;
@@ -1090,6 +1114,7 @@ namespace ControlEntradaSalida
                                 if (record != null)
                                 {
                                     Enqueue(record);
+                                    enqueuedCount++;
                                 }
                             }
                             else if (status == (int)HCNetSDK.NET_SDK_SENDWITHRECV_STATUS.NET_SDK_CONFIG_STATUS_FINISH)
@@ -1100,15 +1125,42 @@ namespace ControlEntradaSalida
                             {
                                 Thread.Sleep(200);
                             }
+                            else if (status == (int)HCNetSDK.NET_SDK_SENDWITHRECV_STATUS.NET_SDK_CONFIG_STATUS_FAILED)
+                            {
+                                uint err = HCNetSDK.NET_DVR_GetLastError();
+                                string errMsg = GetSdkErrorMessage(err);
+                                ServiceLogger.Warn(
+                                    $"设备 {device.Name} 补偿通道获取失败，将重试 | " +
+                                    $"Id={device.Id}, Handle={handle}, Status={status}, Err={err}{(string.IsNullOrWhiteSpace(errMsg) ? string.Empty : $"({errMsg})")}");
+                                Thread.Sleep(200);
+                            }
+                            else if (status == (int)HCNetSDK.NET_SDK_SENDWITHRECV_STATUS.NET_SDK_CONFIG_STATUS_EXCEPTION)
+                            {
+                                uint err = HCNetSDK.NET_DVR_GetLastError();
+                                string errMsg = GetSdkErrorMessage(err);
+                                ServiceLogger.Warn(
+                                    $"设备 {device.Name} 补偿通道异常，终止补偿 | " +
+                                    $"Id={device.Id}, Handle={handle}, Status={status}, Err={err}{(string.IsNullOrWhiteSpace(errMsg) ? string.Empty : $"({errMsg})")}");
+                                break;
+                            }
                             else
                             {
-                                ServiceLogger.Warn($"设备 {device.Name} 补偿通道返回状态 {status}，终止补偿。");
+                                uint err = HCNetSDK.NET_DVR_GetLastError();
+                                string errMsg = GetSdkErrorMessage(err);
+                                ServiceLogger.Warn(
+                                    $"设备 {device.Name} 补偿通道返回未知状态，终止补偿 | " +
+                                    $"Id={device.Id}, Handle={handle}, Status={status}, Err={err}{(string.IsNullOrWhiteSpace(errMsg) ? string.Empty : $"({errMsg})")}");
                                 break;
                             }
                         }
                     }
                     finally
                     {
+                        stopwatch.Stop();
+                        ServiceLogger.Verbose(
+                            $"设备 {device.Name} 历史事件补偿结束 | " +
+                            $"Id={device.Id}, Handle={handle}, Received={receivedCount}, Enqueued={enqueuedCount}, ElapsedMs={stopwatch.ElapsedMilliseconds}");
+
                         if (ptrCond != IntPtr.Zero)
                         {
                             Marshal.FreeHGlobal(ptrCond);
@@ -1130,6 +1182,26 @@ namespace ControlEntradaSalida
             catch (Exception ex)
             {
                 ServiceLogger.Error($"设备 {device?.Name} 补偿流程异常。", ex);
+            }
+        }
+
+        private static string GetSdkErrorMessage(uint errorCode)
+        {
+            try
+            {
+                int err = unchecked((int)errorCode);
+                IntPtr msgPtr = HCNetSDK.NET_DVR_GetErrorMsg(ref err);
+                if (msgPtr == IntPtr.Zero)
+                {
+                    return null;
+                }
+
+                string msg = Marshal.PtrToStringAnsi(msgPtr);
+                return string.IsNullOrWhiteSpace(msg) ? null : msg.Trim();
+            }
+            catch
+            {
+                return null;
             }
         }
 
