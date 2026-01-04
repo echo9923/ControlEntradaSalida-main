@@ -137,6 +137,7 @@ namespace ControlEntradaSalida
                 QueueCapacity = Math.Max(100, section?.QueueCapacity ?? 2000),
                 BatchSize = Math.Max(1, section?.BatchSize ?? 20),
                 RetryIntervalSeconds = Math.Max(1, section?.RetryIntervalSeconds ?? 5),
+                ShutdownFlushTimeoutSeconds = ResolveIntInRange(section?.ShutdownFlushTimeoutSeconds, 30, minValue: 1, maxValue: 600),
                 CompensationLookbackMinutes = Math.Max(1, section?.CompensationLookbackMinutes ?? 60),
                 AlarmDeployType = (byte)(((section?.AlarmDeployType ?? 0) == 1) ? 1 : 0),
                 ExcludedDeviceIds = excludedDeviceIds,
@@ -255,6 +256,8 @@ namespace ControlEntradaSalida
             public int BatchSize { get; set; }
 
             public int RetryIntervalSeconds { get; set; }
+
+            public int ShutdownFlushTimeoutSeconds { get; set; }
 
             public int CompensationLookbackMinutes { get; set; }
 

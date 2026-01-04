@@ -131,6 +131,11 @@ namespace ControlEntradaSalida.Configuration
             public int? RetryIntervalSeconds { get; set; }
 
             /// <summary>
+            /// 服务停止时队列 drain 的最大等待时间（秒）。超时后将取消写入重试以确保停机可控。
+            /// </summary>
+            public int? ShutdownFlushTimeoutSeconds { get; set; }
+
+            /// <summary>
             /// 设备重连后的补偿时间窗口（分钟）。
             /// </summary>
             public int? CompensationLookbackMinutes { get; set; }

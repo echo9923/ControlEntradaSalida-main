@@ -37,6 +37,8 @@ namespace ControlEntradaSalida
         private readonly int deviceSdkLockTimeoutMs;
         private readonly BlockingCollection<FaceEventRecord> eventQueue;
         private readonly CancellationTokenSource cancellation = new CancellationTokenSource();
+
+        private readonly CancellationTokenSource persistCancellation = new CancellationTokenSource();
         private readonly List<Task> workers = new List<Task>();
         private readonly ConcurrentDictionary<int, int> remoteConfigHandles = new ConcurrentDictionary<int, int>();
         
@@ -47,6 +49,10 @@ namespace ControlEntradaSalida
         private HCNetSDK.MSGCallBack alarmCallback;
         private bool callbackRegistered;
         private bool disposed;
+
+
+        private int started;
+        private int stopping;
 
         public FaceEventService(ServiceConfiguration configuration)
         {
@@ -63,6 +69,7 @@ namespace ControlEntradaSalida
                 QueueCapacity = 2000,
                 BatchSize = 20,
                 RetryIntervalSeconds = 5,
+                ShutdownFlushTimeoutSeconds = 30,
                 CompensationLookbackMinutes = 60
             };
 
@@ -88,46 +95,67 @@ namespace ControlEntradaSalida
                 return;
             }
 
+            if (disposed)
+            {
+                throw new ObjectDisposedException(nameof(FaceEventService));
+            }
+
             if (string.IsNullOrWhiteSpace(connectionString))
             {
                 throw new InvalidOperationException("未提供数据库连接字符串，无法启动人脸事件入库功能。");
             }
 
-            LogAcsInteropLayoutOnce();
-
-            // 注册报警回调，SDK 要求回调委托在托管侧保持存活
-            alarmCallback = AlarmMessageCallback;
-            callbackRegistered = HCNetSDK.NET_DVR_SetDVRMessageCallBack_V50(0, alarmCallback, IntPtr.Zero);
-            if (!callbackRegistered)
+            if (Interlocked.CompareExchange(ref started, 1, 0) != 0)
             {
-                uint err = HCNetSDK.NET_DVR_GetLastError();
-                throw new InvalidOperationException($"注册报警回调失败，错误码: {err}");
+                ServiceLogger.Warn("人脸事件入库服务已启动，重复调用 Start 将被忽略。");
+                return;
             }
 
-            DeviceConnectionManager.Instance.DeviceConnectionStateChanged += OnDeviceConnectionStateChanged;
+            Volatile.Write(ref stopping, 0);
 
-            // 启动后台消费者
-            workers.Add(Task.Run(() => ProcessQueue(cancellation.Token), cancellation.Token));
-
-            // 已连接设备立即补充订阅与补偿
-            foreach (var device in DeviceConnectionManager.Instance.GetAllDevices().Where(d => d.IsConnected))
+            try
             {
-                if (IsExcludedDevice(device))
+                LogAcsInteropLayoutOnce();
+
+                // 注册报警回调，SDK 要求回调委托在托管侧保持存活
+                alarmCallback = AlarmMessageCallback;
+                callbackRegistered = HCNetSDK.NET_DVR_SetDVRMessageCallBack_V50(0, alarmCallback, IntPtr.Zero);
+                if (!callbackRegistered)
                 {
-                    ServiceLogger.Info($"设备 {device.Name} 已配置为跳过人脸事件订阅/补偿，忽略布防。");
-                    continue;
+                    uint err = HCNetSDK.NET_DVR_GetLastError();
+                    throw new InvalidOperationException($"注册报警回调失败，错误码: {err}");
                 }
 
-                SetupAlarm(device);
-                Task.Run(() => FetchHistory(device, cancellation.Token), cancellation.Token);
-            }
+                DeviceConnectionManager.Instance.DeviceConnectionStateChanged += OnDeviceConnectionStateChanged;
 
-            ServiceLogger.Info("人脸事件入库服务已启动（写入进出记录表 attendance_gate）。");
+                // 启动后台消费者（使用 CompleteAdding + GetConsumingEnumerable 的标准模型优雅停机）
+                workers.Add(Task.Run(() => ProcessQueue()));
+
+                // 已连接设备立即补充订阅与补偿
+                foreach (var device in DeviceConnectionManager.Instance.GetAllDevices().Where(d => d.IsConnected))
+                {
+                    if (IsExcludedDevice(device))
+                    {
+                        ServiceLogger.Info($"设备 {device.Name} 已配置为跳过人脸事件订阅/补偿，忽略布防。");
+                        continue;
+                    }
+
+                    SetupAlarm(device);
+                    Task.Run(() => FetchHistory(device, cancellation.Token), cancellation.Token);
+                }
+
+                ServiceLogger.Info("人脸事件入库服务已启动（写入进出记录表 attendance_gate）。");
+            }
+            catch
+            {
+                Interlocked.Exchange(ref started, 0);
+                throw;
+            }
         }
 
         private void OnDeviceConnectionStateChanged(object sender, DeviceConnectionEventArgs e)
         {
-            if (!options.Enabled || e.Device == null)
+            if (!options.Enabled || e.Device == null || Volatile.Read(ref stopping) == 1)
             {
                 return;
             }
@@ -222,7 +250,7 @@ namespace ControlEntradaSalida
         /// </summary>
         private void AlarmMessageCallback(int command, ref HCNetSDK.NET_DVR_ALARMER alarmer, IntPtr alarmInfo, uint bufferLength, IntPtr user)
         {
-            if (!options.Enabled || disposed)
+            if (!options.Enabled || disposed || Volatile.Read(ref stopping) == 1)
             {
                 return;
             }
@@ -433,8 +461,18 @@ namespace ControlEntradaSalida
                 return;
             }
 
+            if (Volatile.Read(ref stopping) == 1 || eventQueue.IsAddingCompleted)
+            {
+                return;
+            }
+
             if (!eventQueue.TryAdd(record))
             {
+                if (Volatile.Read(ref stopping) == 1 || eventQueue.IsAddingCompleted)
+                {
+                    return;
+                }
+
                 ServiceLogger.Warn("人脸事件队列已满，事件被丢弃。请调大 QueueCapacity 或加快落库速度。");
             }
         }
@@ -569,51 +607,35 @@ namespace ControlEntradaSalida
             }
         }
 
-        private void ProcessQueue(CancellationToken token)
+        private void ProcessQueue()
         {
             List<FaceEventRecord> buffer = new List<FaceEventRecord>(options.BatchSize);
 
-            while (!token.IsCancellationRequested)
+            try
             {
-                FaceEventRecord item;
-                try
+                // 使用 BlockingCollection 的标准消费模型：CompleteAdding + GetConsumingEnumerable。
+                // 停机时不会因为 CancellationToken 被取消而“跳过尾部写入”。
+                foreach (var item in eventQueue.GetConsumingEnumerable())
                 {
-                    item = eventQueue.Take(token);
-                }
-                catch (OperationCanceledException)
-                {
-                    break;
-                }
-                catch (InvalidOperationException)
-                {
-                    break;
-                }
+                    buffer.Add(item);
 
-                buffer.Add(item);
+                    while (buffer.Count < options.BatchSize && eventQueue.TryTake(out var next))
+                    {
+                        buffer.Add(next);
+                    }
 
-                while (buffer.Count < options.BatchSize && eventQueue.TryTake(out var next))
-                {
-                    buffer.Add(next);
-                }
-
-                PersistBatchWithRetry(buffer, token);
-                buffer.Clear();
-            }
-
-            // 尝试清空剩余事件
-            while (eventQueue.TryTake(out var tail))
-            {
-                buffer.Add(tail);
-                if (buffer.Count >= options.BatchSize)
-                {
-                    PersistBatchWithRetry(buffer, token);
+                    PersistBatchWithRetry(buffer, persistCancellation.Token);
                     buffer.Clear();
                 }
-            }
 
-            if (buffer.Count > 0)
+                if (buffer.Count > 0)
+                {
+                    PersistBatchWithRetry(buffer, persistCancellation.Token);
+                }
+            }
+            catch (Exception ex)
             {
-                PersistBatchWithRetry(buffer, token);
+                ServiceLogger.Error("人脸事件入库消费者线程异常退出。", ex);
             }
         }
 
@@ -625,9 +647,10 @@ namespace ControlEntradaSalida
             }
 
             int attempts = 0;
-            while (!token.IsCancellationRequested)
+            while (true)
             {
                 attempts++;
+
                 try
                 {
                     PersistBatch(batch);
@@ -635,11 +658,40 @@ namespace ControlEntradaSalida
                 }
                 catch (Exception ex)
                 {
+                    if (token.IsCancellationRequested)
+                    {
+                        ServiceLogger.Error($"写入进出记录失败，已取消重试并结束本批次（第 {attempts} 次）。", ex);
+                        return;
+                    }
+
                     ServiceLogger.Error($"写入进出记录失败，准备重试（第 {attempts} 次）。", ex);
-                    int delay = Math.Min(options.RetryIntervalSeconds * (int)Math.Pow(2, attempts - 1), 60);
-                    Thread.Sleep(TimeSpan.FromSeconds(delay));
+
+                    int delaySeconds = ComputePersistBackoffSeconds(attempts);
+                    token.WaitHandle.WaitOne(TimeSpan.FromSeconds(delaySeconds));
+
+                    if (token.IsCancellationRequested)
+                    {
+                        return;
+                    }
                 }
             }
+        }
+
+
+        private int ComputePersistBackoffSeconds(int attempts)
+        {
+            const int maxDelaySeconds = 60;
+
+            int baseDelaySeconds = Math.Max(1, options.RetryIntervalSeconds);
+            int exponent = Math.Min(Math.Max(0, attempts - 1), 30);
+            long delay = (long)baseDelaySeconds * (1L << exponent);
+
+            if (delay > maxDelaySeconds)
+            {
+                return maxDelaySeconds;
+            }
+
+            return (int)delay;
         }
 
         private void PersistBatch(List<FaceEventRecord> batch)
@@ -1841,6 +1893,7 @@ namespace ControlEntradaSalida
             }
 
             disposed = true;
+            Interlocked.Exchange(ref stopping, 1);
 
             try
             {
@@ -1850,6 +1903,7 @@ namespace ControlEntradaSalida
             {
             }
 
+            // 停止设备侧生产者（补偿任务/远程配置轮询等）
             cancellation.Cancel();
 
             foreach (var kvp in compensationTokens)
@@ -1869,20 +1923,51 @@ namespace ControlEntradaSalida
 
             compensationTokens.Clear();
 
-            eventQueue.CompleteAdding();
+            foreach (var device in DeviceConnectionManager.Instance.GetAllDevices())
+            {
+                CloseAlarm(device);
+                StopRemoteConfig(device);
+            }
 
+            // 完成队列：触发消费者自然 drain
             try
             {
-                Task.WaitAll(workers.ToArray(), TimeSpan.FromSeconds(5));
+                eventQueue.CompleteAdding();
             }
             catch
             {
             }
 
-            foreach (var device in DeviceConnectionManager.Instance.GetAllDevices())
+            int flushTimeoutSeconds = options?.ShutdownFlushTimeoutSeconds > 0
+                ? options.ShutdownFlushTimeoutSeconds
+                : 30;
+            flushTimeoutSeconds = Math.Min(Math.Max(1, flushTimeoutSeconds), 600);
+            TimeSpan flushTimeout = TimeSpan.FromSeconds(flushTimeoutSeconds);
+
+            try
             {
-                CloseAlarm(device);
-                StopRemoteConfig(device);
+                // 超时后取消写入重试，确保停机可控
+                persistCancellation.CancelAfter(flushTimeout);
+            }
+            catch
+            {
+            }
+
+            try
+            {
+                int waitSeconds = Math.Min(600, flushTimeoutSeconds + commandTimeoutSeconds + 5);
+                Task.WaitAll(workers.ToArray(), TimeSpan.FromSeconds(waitSeconds));
+            }
+            catch
+            {
+            }
+
+            try
+            {
+                persistCancellation.Cancel();
+            }
+            catch
+            {
             }
         }
 
