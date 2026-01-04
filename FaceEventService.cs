@@ -1048,15 +1048,28 @@ namespace ControlEntradaSalida
                 cond.dwBeginSerialNo = beginSerial;
                 cond.byPicEnable = 1;
                 cond.byTimeType = 0;
+                // 技术规范：bySearchType=0 为保留值；按事件源搜索建议使用 1，并提供有效的 IOT 通道号（1..N）。
+                cond.bySearchType = 1;
+                cond.dwIOTChannelNo = 1;
 
                 int size = AcsEventCondSize;
 
-                ServiceLogger.Verbose(
+                string startLog =
                     $"设备 {device.Name} 准备启动历史事件补偿 | " +
                     $"Id={device.Id}, IP={device.IpAddress}, UserID={device.UserID}, " +
                     $"Start={startTime:yyyy-MM-dd HH:mm:ss.fff}, BeginSerial={beginSerial}, " +
                     $"Major={cond.dwMajor}, Minor={cond.dwMinor}, PicEnable={cond.byPicEnable}, TimeType={cond.byTimeType}, " +
-                    $"CondSize={size}, CfgSize={AcsEventCfgSize}, IntPtrSize={IntPtr.Size}");
+                    $"SearchType={cond.bySearchType}, IOTChannelNo={cond.dwIOTChannelNo}, EventAttr={cond.byEventAttribute}, " +
+                    $"CondSize={size}, CfgSize={AcsEventCfgSize}, IntPtrSize={IntPtr.Size}";
+
+                if (ServiceLogger.IsVerboseEnabled)
+                {
+                    ServiceLogger.Verbose(startLog);
+                }
+                else
+                {
+                    ServiceLogger.Debug(startLog);
+                }
 
                 using (var sdkLock = device.TryAcquireDeviceSdkLock(
                     deviceSdkLockTimeoutMs,
@@ -1086,26 +1099,153 @@ namespace ControlEntradaSalida
                         ptrCond = Marshal.AllocHGlobal(size);
                         Marshal.StructureToPtr(cond, ptrCond, false);
 
+                        string startMode = "Primary";
                         handle = HCNetSDK.NET_DVR_StartRemoteConfig(device.UserID, HCNetSDK.NET_DVR_GET_ACS_EVENT, ptrCond, size, null, IntPtr.Zero);
                         if (handle < 0)
                         {
                             uint err = HCNetSDK.NET_DVR_GetLastError();
                             string errMsg = GetSdkErrorMessage(err);
-                            DateTime startLocal = ConvertToDateTime(cond.struStartTime);
-                            DateTime endLocal = ConvertToDateTime(cond.struEndTime);
-                            ServiceLogger.Error(
-                                $"设备 {device.Name} 历史事件补偿启动失败，错误码: {err}{(string.IsNullOrWhiteSpace(errMsg) ? string.Empty : $"({errMsg})")} | " +
-                                $"Id={device.Id}, IP={device.IpAddress}, UserID={device.UserID}, " +
-                                $"Major={cond.dwMajor}, Minor={cond.dwMinor}, BeginSerial={cond.dwBeginSerialNo}, EndSerial={cond.dwEndSerialNo}, " +
-                                $"PicEnable={cond.byPicEnable}, TimeType={cond.byTimeType}, SearchType={cond.bySearchType}, EventAttr={cond.byEventAttribute}, " +
-                                $"Start={startLocal:yyyy-MM-dd HH:mm:ss.fff}, End={endLocal:yyyy-MM-dd HH:mm:ss.fff}, InSize={size}, StructSize={cond.dwSize}, IntPtrSize={IntPtr.Size}");
-                            return;
+
+                            ServiceLogger.Warn(
+                                $"设备 {device.Name} 历史事件补偿启动失败，将尝试降级重试 | " +
+                                $"Err={err}{(string.IsNullOrWhiteSpace(errMsg) ? string.Empty : $"({errMsg})")}, " +
+                                $"Major={cond.dwMajor}, PicEnable={cond.byPicEnable}, TimeType={cond.byTimeType}, SearchType={cond.bySearchType}, IOTChannelNo={cond.dwIOTChannelNo}, BeginSerial={cond.dwBeginSerialNo}");
+
+                            // 兼容策略：部分设备固件不接受 BeginSerialNo（或仅支持按时间搜索）。
+                            // 先将 BeginSerialNo 置 0 重试；仍失败再逐步降级图片/主类型；最后退回 SearchType=0（保留/兼容）尝试。
+                            int retryHandle = -1;
+
+                            if (cond.dwBeginSerialNo != 0)
+                            {
+                                cond.dwBeginSerialNo = 0;
+                                ServiceLogger.Debug(
+                                    $"设备 {device.Name} 历史事件补偿启动重试 | " +
+                                    $"Id={device.Id}, Mode=BeginSerial=0, {BuildAcsEventCondSummary(cond)}");
+                                Marshal.StructureToPtr(cond, ptrCond, false);
+                                retryHandle = HCNetSDK.NET_DVR_StartRemoteConfig(device.UserID, HCNetSDK.NET_DVR_GET_ACS_EVENT, ptrCond, size, null, IntPtr.Zero);
+                                if (retryHandle >= 0)
+                                {
+                                    handle = retryHandle;
+                                    startMode = "BeginSerial=0";
+                                }
+                                else
+                                {
+                                    uint retryErr = HCNetSDK.NET_DVR_GetLastError();
+                                    string retryErrMsg = GetSdkErrorMessage(retryErr);
+                                    ServiceLogger.Debug(
+                                        $"设备 {device.Name} 历史事件补偿启动重试失败 | " +
+                                        $"Id={device.Id}, Mode=BeginSerial=0, Err={retryErr}{(string.IsNullOrWhiteSpace(retryErrMsg) ? string.Empty : $"({retryErrMsg})")}, {BuildAcsEventCondSummary(cond)}");
+                                }
+                            }
+
+                            if (handle < 0)
+                            {
+                                // 兼容策略：部分设备不支持补偿带图，尝试关闭图片开关。
+                                if (cond.byPicEnable != 0)
+                                {
+                                    cond.byPicEnable = 0;
+                                    ServiceLogger.Debug(
+                                        $"设备 {device.Name} 历史事件补偿启动重试 | " +
+                                        $"Id={device.Id}, Mode=PicEnable=0, {BuildAcsEventCondSummary(cond)}");
+                                    Marshal.StructureToPtr(cond, ptrCond, false);
+                                    retryHandle = HCNetSDK.NET_DVR_StartRemoteConfig(device.UserID, HCNetSDK.NET_DVR_GET_ACS_EVENT, ptrCond, size, null, IntPtr.Zero);
+                                    if (retryHandle >= 0)
+                                    {
+                                        handle = retryHandle;
+                                        startMode = "PicEnable=0";
+                                    }
+                                    else
+                                    {
+                                        uint retryErr = HCNetSDK.NET_DVR_GetLastError();
+                                        string retryErrMsg = GetSdkErrorMessage(retryErr);
+                                        ServiceLogger.Debug(
+                                            $"设备 {device.Name} 历史事件补偿启动重试失败 | " +
+                                            $"Id={device.Id}, Mode=PicEnable=0, Err={retryErr}{(string.IsNullOrWhiteSpace(retryErrMsg) ? string.Empty : $"({retryErrMsg})")}, {BuildAcsEventCondSummary(cond)}");
+                                    }
+                                }
+                            }
+
+                            if (handle < 0)
+                            {
+                                // 兼容策略：部分设备对 dwMajor 的校验更严格（或仅支持 0-全部）。
+                                if (cond.dwMajor != 0)
+                                {
+                                    cond.dwMajor = 0;
+                                    ServiceLogger.Debug(
+                                        $"设备 {device.Name} 历史事件补偿启动重试 | " +
+                                        $"Id={device.Id}, Mode=Major=0, {BuildAcsEventCondSummary(cond)}");
+                                    Marshal.StructureToPtr(cond, ptrCond, false);
+                                    retryHandle = HCNetSDK.NET_DVR_StartRemoteConfig(device.UserID, HCNetSDK.NET_DVR_GET_ACS_EVENT, ptrCond, size, null, IntPtr.Zero);
+                                    if (retryHandle >= 0)
+                                    {
+                                        handle = retryHandle;
+                                        startMode = "Major=0";
+                                    }
+                                    else
+                                    {
+                                        uint retryErr = HCNetSDK.NET_DVR_GetLastError();
+                                        string retryErrMsg = GetSdkErrorMessage(retryErr);
+                                        ServiceLogger.Debug(
+                                            $"设备 {device.Name} 历史事件补偿启动重试失败 | " +
+                                            $"Id={device.Id}, Mode=Major=0, Err={retryErr}{(string.IsNullOrWhiteSpace(retryErrMsg) ? string.Empty : $"({retryErrMsg})")}, {BuildAcsEventCondSummary(cond)}");
+                                    }
+                                }
+                            }
+
+                            if (handle < 0)
+                            {
+                                // 退回保留值 SearchType=0（尽量兼容旧固件/差异固件）。
+                                cond.bySearchType = 0;
+                                cond.dwIOTChannelNo = 0;
+                                ServiceLogger.Debug(
+                                    $"设备 {device.Name} 历史事件补偿启动重试 | " +
+                                    $"Id={device.Id}, Mode=SearchType=0, {BuildAcsEventCondSummary(cond)}");
+                                Marshal.StructureToPtr(cond, ptrCond, false);
+                                retryHandle = HCNetSDK.NET_DVR_StartRemoteConfig(device.UserID, HCNetSDK.NET_DVR_GET_ACS_EVENT, ptrCond, size, null, IntPtr.Zero);
+                                if (retryHandle >= 0)
+                                {
+                                    handle = retryHandle;
+                                    startMode = "SearchType=0";
+                                }
+                                else
+                                {
+                                    uint retryErr = HCNetSDK.NET_DVR_GetLastError();
+                                    string retryErrMsg = GetSdkErrorMessage(retryErr);
+                                    ServiceLogger.Debug(
+                                        $"设备 {device.Name} 历史事件补偿启动重试失败 | " +
+                                        $"Id={device.Id}, Mode=SearchType=0, Err={retryErr}{(string.IsNullOrWhiteSpace(retryErrMsg) ? string.Empty : $"({retryErrMsg})")}, {BuildAcsEventCondSummary(cond)}");
+                                }
+                            }
+
+                            if (handle < 0)
+                            {
+                                // 全部尝试失败，输出最终失败日志（包含关键入参）。
+                                err = HCNetSDK.NET_DVR_GetLastError();
+                                errMsg = GetSdkErrorMessage(err);
+                                DateTime startLocal = ConvertToDateTime(cond.struStartTime);
+                                DateTime endLocal = ConvertToDateTime(cond.struEndTime);
+                                ServiceLogger.Error(
+                                    $"设备 {device.Name} 历史事件补偿启动失败，错误码: {err}{(string.IsNullOrWhiteSpace(errMsg) ? string.Empty : $"({errMsg})")} | " +
+                                    $"Id={device.Id}, IP={device.IpAddress}, UserID={device.UserID}, " +
+                                    $"Major={cond.dwMajor}, Minor={cond.dwMinor}, BeginSerial={cond.dwBeginSerialNo}, EndSerial={cond.dwEndSerialNo}, " +
+                                    $"PicEnable={cond.byPicEnable}, TimeType={cond.byTimeType}, SearchType={cond.bySearchType}, IOTChannelNo={cond.dwIOTChannelNo}, EventAttr={cond.byEventAttribute}, " +
+                                    $"Start={startLocal:yyyy-MM-dd HH:mm:ss.fff}, End={endLocal:yyyy-MM-dd HH:mm:ss.fff}, InSize={size}, StructSize={cond.dwSize}, IntPtrSize={IntPtr.Size}");
+                                return;
+                            }
                         }
 
                         remoteConfigHandles[device.Id] = handle;
-                        ServiceLogger.Verbose(
+                        string startedLog =
                             $"设备 {device.Name} 历史事件补偿通道已启动 | " +
-                            $"Id={device.Id}, Handle={handle}, BeginSerial={cond.dwBeginSerialNo}, InSize={size}, OutSize={AcsEventCfgSize}");
+                            $"Id={device.Id}, Handle={handle}, Mode={startMode}, {BuildAcsEventCondSummary(cond)}, InSize={size}, OutSize={AcsEventCfgSize}";
+                        if (ServiceLogger.IsVerboseEnabled)
+                        {
+                            ServiceLogger.Verbose(startedLog);
+                        }
+                        else
+                        {
+                            ServiceLogger.Info(startedLog);
+                        }
 
                         int cfgSize = AcsEventCfgSize;
                         outPtr = Marshal.AllocHGlobal(cfgSize);
@@ -1185,12 +1325,20 @@ namespace ControlEntradaSalida
                     finally
                     {
                         stopwatch.Stop();
-                        ServiceLogger.Verbose(
+                        string finishedLog =
                             $"设备 {device.Name} 历史事件补偿结束 | " +
                             $"Id={device.Id}, Handle={handle}, " +
                             $"Received={receivedCount}, Filtered={filteredCount}, Enqueued={enqueuedCount}, NullRecord={nullRecordCount}, " +
                             $"NeedWait={needWaitCount}, Failed={failedCount}, Exception={exceptionStatusCount}, Unknown={unknownStatusCount}, " +
-                            $"ElapsedMs={stopwatch.ElapsedMilliseconds}");
+                            $"ElapsedMs={stopwatch.ElapsedMilliseconds}";
+                        if (ServiceLogger.IsVerboseEnabled)
+                        {
+                            ServiceLogger.Verbose(finishedLog);
+                        }
+                        else
+                        {
+                            ServiceLogger.Debug(finishedLog);
+                        }
 
                         if (ptrCond != IntPtr.Zero)
                         {
@@ -1326,6 +1474,14 @@ namespace ControlEntradaSalida
                     ServiceLogger.Verbose($"[Interop] {typeName}.{fieldName} | Offset读取失败: {ex.Message}");
                 }
             }
+        }
+
+        private static string BuildAcsEventCondSummary(HCNetSDK.NET_DVR_ACS_EVENT_COND cond)
+        {
+            return
+                $"Major={cond.dwMajor}, Minor={cond.dwMinor}, BeginSerial={cond.dwBeginSerialNo}, EndSerial={cond.dwEndSerialNo}, " +
+                $"PicEnable={cond.byPicEnable}, TimeType={cond.byTimeType}, SearchType={cond.bySearchType}, IOTChannelNo={cond.dwIOTChannelNo}, " +
+                $"InductiveType={cond.wInductiveEventType}, EventAttr={cond.byEventAttribute}";
         }
 
         private static void LogAcsEventCfgSummary(DeviceConnectionInfo device, int handle, HCNetSDK.NET_DVR_ACS_EVENT_CFG cfg)
