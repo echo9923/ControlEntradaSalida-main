@@ -1507,9 +1507,10 @@ namespace ControlEntradaSalida
 
                 var checkpoint = GetCheckpoint(device.IpAddress);
                 DateTime startTime = startTimeOverride ?? (checkpoint.HasValue
-                    ? checkpoint.Value.LastEventTime.AddMilliseconds(1)
+                    ? TruncateToSecond(checkpoint.Value.LastEventTime)
                     : DateTime.Now.AddMinutes(-options.CompensationLookbackMinutes));
                 DateTime endTime = endTimeOverride ?? (state?.FenceTime ?? DateTime.Now);
+                long lastSerialNo = checkpoint?.LastSerialNo ?? 0;
 
                 uint beginSerial = 0;
                 if (checkpoint.HasValue && checkpoint.Value.LastSerialNo > 0 && checkpoint.Value.LastSerialNo < uint.MaxValue)
@@ -1753,6 +1754,12 @@ namespace ControlEntradaSalida
                                 FaceEventRecord record = BuildRecordFromConfig(cfg, device);
                                 if (record != null)
                                 {
+                                    if (ShouldSkipByCheckpoint(record, lastSerialNo))
+                                    {
+                                        filteredCount++;
+                                        continue;
+                                    }
+
                                     Enqueue(record);
                                     enqueuedCount++;
                                 }
@@ -2209,6 +2216,33 @@ namespace ControlEntradaSalida
                 dwMinute = time.Minute,
                 dwSecond = time.Second
             };
+        }
+
+        private static DateTime TruncateToSecond(DateTime time)
+        {
+            return new DateTime(
+                time.Year,
+                time.Month,
+                time.Day,
+                time.Hour,
+                time.Minute,
+                time.Second,
+                time.Kind);
+        }
+
+        private static bool ShouldSkipByCheckpoint(FaceEventRecord record, long lastSerialNo)
+        {
+            if (record == null)
+            {
+                return true;
+            }
+
+            if (record.SerialNo > 0 && lastSerialNo > 0)
+            {
+                return record.SerialNo <= lastSerialNo;
+            }
+
+            return false;
         }
 
 
