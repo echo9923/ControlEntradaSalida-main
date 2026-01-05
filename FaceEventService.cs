@@ -134,14 +134,7 @@ namespace ControlEntradaSalida
                 // 已连接设备立即补充订阅与补偿
                 foreach (var device in DeviceConnectionManager.Instance.GetAllDevices().Where(d => d.IsConnected))
                 {
-                    if (IsExcludedDevice(device))
-                    {
-                        ServiceLogger.Info($"设备 {device.Name} 已配置为跳过人脸事件订阅/补偿，忽略布防。");
-                        continue;
-                    }
-
-                    SetupAlarm(device);
-                    Task.Run(() => FetchHistory(device, cancellation.Token), cancellation.Token);
+                    StartDeviceCompensation(device);
                 }
 
                 ServiceLogger.Info("人脸事件入库服务已启动（写入进出记录表 attendance_gate）。");
@@ -151,6 +144,58 @@ namespace ControlEntradaSalida
                 Interlocked.Exchange(ref started, 0);
                 throw;
             }
+        }
+
+        private void CancelAndRemoveCompensationToken(int deviceId)
+        {
+            if (compensationTokens.TryRemove(deviceId, out CancellationTokenSource previousCts))
+            {
+                try
+                {
+                    previousCts.Cancel();
+                }
+                catch
+                {
+                }
+                finally
+                {
+                    previousCts.Dispose();
+                }
+            }
+        }
+
+        private void StartDeviceCompensation(DeviceConnectionInfo device)
+        {
+            if (device == null || !options.Enabled)
+            {
+                return;
+            }
+
+            if (IsExcludedDevice(device))
+            {
+                CloseAlarm(device);
+                CancelAndRemoveCompensationToken(device.Id);
+                ServiceLogger.Info($"设备 {device.Name} 已配置为跳过人脸事件订阅/补偿，忽略布防。");
+                return;
+            }
+
+            SetupAlarm(device);
+
+            CancelAndRemoveCompensationToken(device.Id);
+
+            CancellationTokenSource deviceCts = new CancellationTokenSource();
+            compensationTokens[device.Id] = deviceCts;
+
+            CancellationTokenSource linkedCts = CancellationTokenSource.CreateLinkedTokenSource(
+                cancellation.Token,
+                deviceCts.Token);
+
+            Task task = Task.Run(() => FetchHistory(device, linkedCts.Token), linkedCts.Token);
+            _ = task.ContinueWith(
+                _ => linkedCts.Dispose(),
+                CancellationToken.None,
+                TaskContinuationOptions.ExecuteSynchronously,
+                TaskScheduler.Default);
         }
 
         private void OnDeviceConnectionStateChanged(object sender, DeviceConnectionEventArgs e)
@@ -164,77 +209,11 @@ namespace ControlEntradaSalida
             {
                 if (e.Success)
                 {
-                    if (IsExcludedDevice(e.Device))
-                    {
-                        CloseAlarm(e.Device);
-
-                        if (compensationTokens.TryRemove(e.Device.Id, out CancellationTokenSource excludedPreviousCts))
-                        {
-                            try
-                            {
-                                excludedPreviousCts.Cancel();
-                            }
-                            catch
-                            {
-                            }
-                            finally
-                            {
-                                excludedPreviousCts.Dispose();
-                            }
-                        }
-
-                        ServiceLogger.Info($"设备 {e.Device.Name} 已配置为跳过人脸事件订阅/补偿，忽略布防。");
-                        return;
-                    }
-
-                    SetupAlarm(e.Device);
-
-                    if (compensationTokens.TryRemove(e.Device.Id, out CancellationTokenSource previousCts))
-                    {
-                        try
-                        {
-                            previousCts.Cancel();
-                        }
-                        catch
-                        {
-                        }
-                        finally
-                        {
-                            previousCts.Dispose();
-                        }
-                    }
-
-                    CancellationTokenSource deviceCts = new CancellationTokenSource();
-                    compensationTokens[e.Device.Id] = deviceCts;
-
-                    CancellationTokenSource linkedCts = CancellationTokenSource.CreateLinkedTokenSource(
-                        cancellation.Token,
-                        deviceCts.Token);
-
-                    Task task = Task.Run(() => FetchHistory(e.Device, linkedCts.Token), linkedCts.Token);
-                    _ = task.ContinueWith(
-                        _ => linkedCts.Dispose(),
-                        CancellationToken.None,
-                        TaskContinuationOptions.ExecuteSynchronously,
-                        TaskScheduler.Default);
+                    StartDeviceCompensation(e.Device);
                 }
                 else
                 {
-                    if (compensationTokens.TryRemove(e.Device.Id, out CancellationTokenSource deviceCts))
-                    {
-                        try
-                        {
-                            deviceCts.Cancel();
-                        }
-                        catch
-                        {
-                        }
-                        finally
-                        {
-                            deviceCts.Dispose();
-                        }
-                    }
-
+                    CancelAndRemoveCompensationToken(e.Device.Id);
                     CloseAlarm(e.Device);
                     StopRemoteConfig(e.Device);
                 }
