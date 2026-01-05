@@ -116,6 +116,14 @@ namespace ControlEntradaSalida.Configuration
             public bool? Enabled { get; set; }
 
             /// <summary>
+            /// 是否启用离线事件补偿。
+            ///
+            /// - AlarmDeployType=0（客户端布防）：依赖设备离线事件上传（byCurrentEvent=2）
+            /// - AlarmDeployType=1（实时布防）：使用平台主动拉取历史事件补偿
+            /// </summary>
+            public bool? OfflineCompensationEnabled { get; set; }
+
+            /// <summary>
             /// 事件处理队列容量。
             /// </summary>
             public int? QueueCapacity { get; set; }

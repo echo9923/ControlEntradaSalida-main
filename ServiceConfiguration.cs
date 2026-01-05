@@ -227,6 +227,7 @@ namespace ControlEntradaSalida
         private static FaceEventOptions ResolveFaceEventOptions(ExternalConfiguration.FaceEventLoggingSection section)
         {
             bool? enabledSetting = ReadAppSettingBool("FaceEventLogging.Enabled");
+            bool? offlineCompensationEnabledSetting = ReadAppSettingBool("FaceEventLogging.OfflineCompensationEnabled");
             int? queueCapacitySetting = ReadAppSettingInt("FaceEventLogging.QueueCapacity");
             int? batchSizeSetting = ReadAppSettingInt("FaceEventLogging.BatchSize");
             int? retryIntervalSetting = ReadAppSettingInt("FaceEventLogging.RetryIntervalSeconds");
@@ -270,6 +271,7 @@ namespace ControlEntradaSalida
             var options = new FaceEventOptions
             {
                 Enabled = enabledSetting ?? section?.Enabled ?? false,
+                OfflineCompensationEnabled = offlineCompensationEnabledSetting ?? section?.OfflineCompensationEnabled ?? true,
                 QueueCapacity = ResolveIntInRange(queueCapacitySetting ?? section?.QueueCapacity, 2000, minValue: 100, maxValue: 200000),
                 BatchSize = ResolveIntInRange(batchSizeSetting ?? section?.BatchSize, 20, minValue: 1, maxValue: 2000),
                 RetryIntervalSeconds = ResolveIntInRange(retryIntervalSetting ?? section?.RetryIntervalSeconds, 5, minValue: 1, maxValue: 600),
@@ -422,6 +424,8 @@ namespace ControlEntradaSalida
         public sealed class FaceEventOptions
         {
             public bool Enabled { get; set; }
+
+            public bool OfflineCompensationEnabled { get; set; }
 
             public int QueueCapacity { get; set; }
 

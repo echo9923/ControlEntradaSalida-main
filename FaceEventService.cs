@@ -45,6 +45,8 @@ namespace ControlEntradaSalida
         private readonly ConcurrentDictionary<int, CancellationTokenSource> compensationTokens = new ConcurrentDictionary<int, CancellationTokenSource>();
         private readonly ConcurrentDictionary<int, CompensationState> compensationStates = new ConcurrentDictionary<int, CompensationState>();
         private readonly ConcurrentDictionary<string, string> nicknameCache = new ConcurrentDictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        private readonly ConcurrentDictionary<string, byte> offlineEventIgnoreLogged =
+            new ConcurrentDictionary<string, byte>(StringComparer.OrdinalIgnoreCase);
         private readonly string snapshotRootDirectory;
 
         private HCNetSDK.MSGCallBack alarmCallback;
@@ -590,6 +592,7 @@ namespace ControlEntradaSalida
             if (IsExcludedDevice(device))
             {
                 CloseAlarm(device);
+                StopRemoteConfig(device);
                 CancelAndRemoveCompensationToken(device.Id);
                 DropCompensationState(device.Id, "设备被排除");
                 ServiceLogger.Info($"设备 {device.Name} 已配置为跳过人脸事件订阅/补偿，忽略布防。");
@@ -599,6 +602,23 @@ namespace ControlEntradaSalida
             SetupAlarm(device);
 
             CancelAndRemoveCompensationToken(device.Id);
+
+            if (!options.OfflineCompensationEnabled)
+            {
+                DropCompensationState(device.Id, "离线补偿关闭");
+                StopRemoteConfig(device);
+                ServiceLogger.Info($"设备 {device.Name} 已关闭离线事件补偿，仅订阅实时事件。");
+                return;
+            }
+
+            if (options.AlarmDeployType == 0)
+            {
+                DropCompensationState(device.Id, "客户端布防-设备离线上传");
+                StopRemoteConfig(device);
+                ServiceLogger.Info($"设备 {device.Name} 已启用离线事件补偿（客户端布防），使用设备离线事件上传，不启动主动拉取补偿。");
+                return;
+            }
+
             DropCompensationState(device.Id, "重新启动补偿");
 
             DateTime fenceTime = DateTime.Now;
@@ -606,7 +626,7 @@ namespace ControlEntradaSalida
             compensationStates[device.Id] = state;
 
             ServiceLogger.Info(
-                $"设备 {device.Name} 启动历史补偿（补偿优先） | " +
+                $"设备 {device.Name} 启动历史补偿（主动拉取） | " +
                 $"Id={device.Id}, FenceTime={fenceTime:yyyy-MM-dd HH:mm:ss.fff}, " +
                 $"BufferLimit={state.BufferLimit}, OverflowPolicy={state.OverflowPolicy}, " +
                 $"MaxDurationSec={state.MaxDurationSeconds}, ReleaseBatchSize={state.ReleaseBatchSize}");
@@ -686,6 +706,22 @@ namespace ControlEntradaSalida
                     if (!IsFaceVerifyMinor(info.dwMinor))
                     {
                         return;
+                    }
+
+                    byte? currentEvent = TryGetCurrentEventFlag(info);
+                    if (currentEvent == 2)
+                    {
+                        if (!options.OfflineCompensationEnabled)
+                        {
+                            LogOfflineEventIgnoredOnce(deviceIp, device, "关闭离线补偿");
+                            return;
+                        }
+
+                        if (options.AlarmDeployType != 0)
+                        {
+                            LogOfflineEventIgnoredOnce(deviceIp, device, "实时布防启用主动拉取补偿");
+                            return;
+                        }
                     }
 
                     record = BuildRecordFromAlarm(info, deviceIp, device);
@@ -2275,6 +2311,47 @@ namespace ControlEntradaSalida
             {
                 return null;
             }
+        }
+
+        private static byte? TryGetCurrentEventFlag(HCNetSDK.NET_DVR_ACS_ALARM_INFO info)
+        {
+            if (info.byAcsEventInfoExtend != 1 || info.pAcsEventInfoExtend == IntPtr.Zero)
+            {
+                return null;
+            }
+
+            try
+            {
+                var extend = Marshal.PtrToStructure<HCNetSDK.NET_DVR_ACS_EVENT_INFO_EXTEND>(info.pAcsEventInfoExtend);
+                if (extend.byCurrentEvent == 0)
+                {
+                    return null;
+                }
+
+                return extend.byCurrentEvent;
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        private void LogOfflineEventIgnoredOnce(string deviceIp, DeviceConnectionInfo device, string reason)
+        {
+            if (string.IsNullOrWhiteSpace(deviceIp))
+            {
+                return;
+            }
+
+            string safeReason = string.IsNullOrWhiteSpace(reason) ? "未知原因" : reason.Trim();
+            string key = $"{safeReason}|{deviceIp}";
+            if (!offlineEventIgnoreLogged.TryAdd(key, 0))
+            {
+                return;
+            }
+
+            string deviceName = device != null ? device.Name : deviceIp;
+            ServiceLogger.Warn($"设备 {deviceName} 收到离线事件但已配置为{safeReason}，该离线事件将被忽略。");
         }
 
         private static string DecodeFixedAsciiString(byte[] data)
