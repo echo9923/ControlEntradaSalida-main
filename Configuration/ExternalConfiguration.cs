@@ -141,6 +141,31 @@ namespace ControlEntradaSalida.Configuration
             public int? CompensationLookbackMinutes { get; set; }
 
             /// <summary>
+            /// 补偿期实时事件缓冲上限（每设备）。
+            /// </summary>
+            public int? CompensationRealtimeBufferLimit { get; set; }
+
+            /// <summary>
+            /// 单次补偿最大持续时长（秒），超时将强制释放缓冲并恢复实时写入。
+            /// </summary>
+            public int? CompensationMaxDurationSeconds { get; set; }
+
+            /// <summary>
+            /// 缓冲溢出策略（DropOldest / DropNewest / FlushDirect）。
+            /// </summary>
+            public string CompensationBufferOverflowPolicy { get; set; }
+
+            /// <summary>
+            /// 缓冲释放的单批次条数上限。
+            /// </summary>
+            public int? CompensationReleaseBatchSize { get; set; }
+
+            /// <summary>
+            /// 补偿完成后的尾补偿窗口（秒）。
+            /// </summary>
+            public int? CompensationTailWindowSeconds { get; set; }
+
+            /// <summary>
             /// 报警布防类型（技术规范：0-客户端布防（实时+离线），1-实时布防（仅实时））。
             /// </summary>
             public int? AlarmDeployType { get; set; }

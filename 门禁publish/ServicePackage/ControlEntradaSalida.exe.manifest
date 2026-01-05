@@ -32,7 +32,7 @@
   <dependency>
     <dependentOS>
       <osVersionInfo>
-        <os majorVersion="4" minorVersion="10" buildNumber="0" servicePackMajor="0" />
+        <os majorVersion="5" minorVersion="1" buildNumber="2600" servicePackMajor="0" />
       </osVersionInfo>
     </dependentOS>
   </dependency>
@@ -54,14 +54,14 @@
     </dependentAssembly>
   </dependency>
   <dependency>
-    <dependentAssembly dependencyType="install" allowDelayedBinding="true" codebase="ControlEntradaSalida.exe" size="293376">
+    <dependentAssembly dependencyType="install" allowDelayedBinding="true" codebase="ControlEntradaSalida.exe" size="321536">
       <assemblyIdentity name="ControlEntradaSalida" version="1.0.0.0" language="neutral" processorArchitecture="msil" />
       <hash>
         <dsig:Transforms>
           <dsig:Transform Algorithm="urn:schemas-microsoft-com:HashTransforms.Identity" />
         </dsig:Transforms>
         <dsig:DigestMethod Algorithm="http://www.w3.org/2000/09/xmldsig#sha256" />
-        <dsig:DigestValue>Tatf7nHbHHtgm+0oZD2/+vSgSSrcHocfpPoWKin6kwc=</dsig:DigestValue>
+        <dsig:DigestValue>KpUi/ZIqTTTItpL8F6h2oJy2ed4awm+kuo1IjcsiXDo=</dsig:DigestValue>
       </hash>
     </dependentAssembly>
   </dependency>
@@ -296,22 +296,22 @@
       <dsig:DigestValue>9w81+YyK50rBkXPyLf7aZXPybeYQeCpQDJUzk+GHReY=</dsig:DigestValue>
     </hash>
   </file>
-  <file name="Configuration\appsettings.json" size="1107">
+  <file name="Configuration\appsettings.json" size="1376">
     <hash>
       <dsig:Transforms>
         <dsig:Transform Algorithm="urn:schemas-microsoft-com:HashTransforms.Identity" />
       </dsig:Transforms>
       <dsig:DigestMethod Algorithm="http://www.w3.org/2000/09/xmldsig#sha256" />
-      <dsig:DigestValue>kivDo5ZskD0176UivRUTn56zzQ/+PhSLxjWykma49Ys=</dsig:DigestValue>
+      <dsig:DigestValue>O6VfYM7eyoHE6CZl6mjzolDslGD6qPT6A/rSXNbPapw=</dsig:DigestValue>
     </hash>
   </file>
-  <file name="ControlEntradaSalida.exe.config" size="1286">
+  <file name="ControlEntradaSalida.exe.config" size="1728">
     <hash>
       <dsig:Transforms>
         <dsig:Transform Algorithm="urn:schemas-microsoft-com:HashTransforms.Identity" />
       </dsig:Transforms>
       <dsig:DigestMethod Algorithm="http://www.w3.org/2000/09/xmldsig#sha256" />
-      <dsig:DigestValue>sQYK45EvuORSIZ7c4oR6mONCMUNIe9Pt8VsoBSJu5B0=</dsig:DigestValue>
+      <dsig:DigestValue>PB10xONXrjqc9NyxxYC5L6k41fXsru/9GnvrkN7QWl4=</dsig:DigestValue>
     </hash>
   </file>
   <file name="GdiPlus.dll" size="2166272">

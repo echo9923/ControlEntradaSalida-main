@@ -43,6 +43,7 @@ namespace ControlEntradaSalida
         private readonly ConcurrentDictionary<int, int> remoteConfigHandles = new ConcurrentDictionary<int, int>();
         
         private readonly ConcurrentDictionary<int, CancellationTokenSource> compensationTokens = new ConcurrentDictionary<int, CancellationTokenSource>();
+        private readonly ConcurrentDictionary<int, CompensationState> compensationStates = new ConcurrentDictionary<int, CompensationState>();
         private readonly ConcurrentDictionary<string, string> nicknameCache = new ConcurrentDictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         private readonly string snapshotRootDirectory;
 
@@ -53,6 +54,66 @@ namespace ControlEntradaSalida
 
         private int started;
         private int stopping;
+
+        private sealed class CompensationState
+        {
+            public CompensationState(int deviceId, string deviceName, DateTime fenceTime, ServiceConfiguration.FaceEventOptions options)
+            {
+                DeviceId = deviceId;
+                DeviceName = string.IsNullOrWhiteSpace(deviceName) ? deviceId.ToString() : deviceName;
+                FenceTime = fenceTime;
+                StartedAt = DateTime.Now;
+                IsCompensating = true;
+                BufferLimit = Math.Max(100, options?.CompensationRealtimeBufferLimit ?? 2000);
+                OverflowPolicy = options?.CompensationBufferOverflowPolicy ?? ServiceConfiguration.FaceEventBufferOverflowPolicy.FlushDirect;
+                ReleaseBatchSize = Math.Max(1, options?.CompensationReleaseBatchSize ?? 200);
+                TailWindowSeconds = Math.Max(0, options?.CompensationTailWindowSeconds ?? 10);
+                MaxDurationSeconds = Math.Max(1, options?.CompensationMaxDurationSeconds ?? 150);
+                LastCompensatedTime = DateTime.MinValue;
+            }
+
+            public int DeviceId { get; }
+
+            public string DeviceName { get; }
+
+            public DateTime FenceTime { get; }
+
+            public DateTime StartedAt { get; }
+
+            public volatile bool IsCompensating;
+
+            public long LastCompensatedSerial;
+
+            public DateTime LastCompensatedTime;
+
+            public int BufferLimit { get; }
+
+            public ServiceConfiguration.FaceEventBufferOverflowPolicy OverflowPolicy { get; }
+
+            public int ReleaseBatchSize { get; }
+
+            public int TailWindowSeconds { get; }
+
+            public int MaxDurationSeconds { get; }
+
+            public List<FaceEventRecord> Buffer { get; } = new List<FaceEventRecord>();
+
+            public object BufferLock { get; } = new object();
+
+            public int BufferedCount;
+
+            public int ReleasedCount;
+
+            public int OverflowCount;
+
+            public int FlushDirectCount;
+
+            public int DropOldestCount;
+
+            public int DropNewestCount;
+
+            public bool ExpiredLogged;
+        }
 
         public FaceEventService(ServiceConfiguration configuration)
         {
@@ -70,7 +131,12 @@ namespace ControlEntradaSalida
                 BatchSize = 20,
                 RetryIntervalSeconds = 5,
                 ShutdownFlushTimeoutSeconds = 30,
-                CompensationLookbackMinutes = 60
+                CompensationLookbackMinutes = 60,
+                CompensationRealtimeBufferLimit = 2000,
+                CompensationMaxDurationSeconds = 150,
+                CompensationBufferOverflowPolicy = ServiceConfiguration.FaceEventBufferOverflowPolicy.FlushDirect,
+                CompensationReleaseBatchSize = 200,
+                CompensationTailWindowSeconds = 10
             };
 
             eventQueue = new BlockingCollection<FaceEventRecord>(Math.Max(100, options.QueueCapacity));
@@ -164,6 +230,356 @@ namespace ControlEntradaSalida
             }
         }
 
+        private void DropCompensationState(int deviceId, string reason)
+        {
+            if (!compensationStates.TryRemove(deviceId, out CompensationState state))
+            {
+                return;
+            }
+
+            int droppedCount;
+            lock (state.BufferLock)
+            {
+                droppedCount = state.Buffer.Count;
+                state.Buffer.Clear();
+                state.IsCompensating = false;
+            }
+
+            ServiceLogger.Warn(
+                $"设备 {state.DeviceName} 补偿状态已清理 | " +
+                $"Id={deviceId}, Reason={reason}, Dropped={droppedCount}");
+        }
+
+        private void FinishCompensation(DeviceConnectionInfo device, CompensationState state, Task task)
+        {
+            if (state == null)
+            {
+                return;
+            }
+
+            bool removed = compensationStates.TryRemove(state.DeviceId, out _);
+            state.IsCompensating = false;
+
+            if (!removed)
+            {
+                return;
+            }
+
+            if (task != null && task.IsFaulted)
+            {
+                ServiceLogger.Error($"设备 {state.DeviceName} 历史补偿异常结束。", task.Exception);
+            }
+            else if (task != null && task.IsCanceled)
+            {
+                ServiceLogger.Warn($"设备 {state.DeviceName} 历史补偿被取消。");
+            }
+
+            RunTailCompensation(device, state);
+            ReleaseAllBuffered(state);
+
+            TimeSpan elapsed = DateTime.Now - state.StartedAt;
+            ServiceLogger.Info(
+                $"设备 {state.DeviceName} 补偿收尾完成 | " +
+                $"Id={state.DeviceId}, ElapsedMs={elapsed.TotalMilliseconds:0}, " +
+                $"Buffered={state.BufferedCount}, Released={state.ReleasedCount}, Overflow={state.OverflowCount}, " +
+                $"FlushDirect={state.FlushDirectCount}, DropOldest={state.DropOldestCount}, DropNewest={state.DropNewestCount}");
+        }
+
+        private void RunTailCompensation(DeviceConnectionInfo device, CompensationState state)
+        {
+            if (device == null || state == null || state.TailWindowSeconds <= 0)
+            {
+                return;
+            }
+
+            if (!device.IsConnected)
+            {
+                return;
+            }
+
+            if (cancellation.IsCancellationRequested)
+            {
+                return;
+            }
+
+            DateTime tailEnd = DateTime.Now;
+            DateTime tailStart = tailEnd.AddSeconds(-state.TailWindowSeconds);
+
+            try
+            {
+                ServiceLogger.Info(
+                    $"设备 {state.DeviceName} 执行尾补偿 | " +
+                    $"Id={state.DeviceId}, Start={tailStart:yyyy-MM-dd HH:mm:ss.fff}, End={tailEnd:yyyy-MM-dd HH:mm:ss.fff}");
+                FetchHistory(device, cancellation.Token, null, tailStart, tailEnd);
+            }
+            catch (Exception ex)
+            {
+                ServiceLogger.Warn($"设备 {state.DeviceName} 尾补偿失败 | 异常: {ex}");
+            }
+        }
+
+        private void BufferRealtimeEvent(CompensationState state, FaceEventRecord record)
+        {
+            if (state == null || record == null)
+            {
+                return;
+            }
+
+            bool directEnqueue = false;
+            bool logOverflow = false;
+            int overflowCountSnapshot = 0;
+
+            lock (state.BufferLock)
+            {
+                if (!state.IsCompensating)
+                {
+                    directEnqueue = true;
+                }
+                else if (state.Buffer.Count < state.BufferLimit)
+                {
+                    state.Buffer.Add(record);
+                    state.BufferedCount++;
+                }
+                else
+                {
+                    state.OverflowCount++;
+                    overflowCountSnapshot = state.OverflowCount;
+                    logOverflow = overflowCountSnapshot == 1 || overflowCountSnapshot % 100 == 0;
+
+                    switch (state.OverflowPolicy)
+                    {
+                        case ServiceConfiguration.FaceEventBufferOverflowPolicy.DropOldest:
+                            state.DropOldestCount++;
+                            if (state.Buffer.Count > 0)
+                            {
+                                state.Buffer.RemoveAt(0);
+                            }
+                            state.Buffer.Add(record);
+                            state.BufferedCount++;
+                            break;
+                        case ServiceConfiguration.FaceEventBufferOverflowPolicy.DropNewest:
+                            state.DropNewestCount++;
+                            break;
+                        case ServiceConfiguration.FaceEventBufferOverflowPolicy.FlushDirect:
+                        default:
+                            state.FlushDirectCount++;
+                            directEnqueue = true;
+                            break;
+                    }
+                }
+            }
+
+            if (directEnqueue)
+            {
+                Enqueue(record);
+            }
+
+            if (logOverflow)
+            {
+                ServiceLogger.Warn(
+                    $"设备 {state.DeviceName} 补偿缓冲溢出 | " +
+                    $"Id={state.DeviceId}, OverflowCount={overflowCountSnapshot}, Policy={state.OverflowPolicy}, BufferLimit={state.BufferLimit}");
+            }
+        }
+
+        private void UpdateCompensationProgress(CompensationState state, HCNetSDK.NET_DVR_ACS_EVENT_CFG cfg)
+        {
+            if (state == null)
+            {
+                return;
+            }
+
+            DateTime eventTime = ConvertToDateTime(cfg.struTime);
+            if (cfg.byTimeType == 1)
+            {
+                eventTime = DateTime.SpecifyKind(eventTime, DateTimeKind.Utc).ToLocalTime();
+            }
+
+            long serialNo = cfg.struAcsEventInfo.dwSerialNo;
+
+            lock (state.BufferLock)
+            {
+                if (serialNo > state.LastCompensatedSerial)
+                {
+                    state.LastCompensatedSerial = serialNo;
+                }
+
+                if (eventTime > state.LastCompensatedTime)
+                {
+                    state.LastCompensatedTime = eventTime;
+                }
+            }
+        }
+
+        private void TryReleaseBuffered(CompensationState state)
+        {
+            if (state == null || !state.IsCompensating)
+            {
+                return;
+            }
+
+            List<FaceEventRecord> toRelease = null;
+
+            lock (state.BufferLock)
+            {
+                if (state.Buffer.Count == 0)
+                {
+                    return;
+                }
+
+                long serialWatermark = state.LastCompensatedSerial;
+                DateTime timeWatermark = state.LastCompensatedTime;
+
+                if (serialWatermark <= 0 && timeWatermark == DateTime.MinValue)
+                {
+                    return;
+                }
+
+                var eligible = state.Buffer
+                    .Where(item => IsBufferCovered(item, serialWatermark, timeWatermark))
+                    .ToList();
+
+                if (eligible.Count == 0)
+                {
+                    return;
+                }
+
+                eligible.Sort(CompareBufferRecords);
+                int releaseCount = Math.Min(state.ReleaseBatchSize, eligible.Count);
+                toRelease = eligible.GetRange(0, releaseCount);
+
+                foreach (var item in toRelease)
+                {
+                    state.Buffer.Remove(item);
+                    state.ReleasedCount++;
+                }
+            }
+
+            foreach (var item in toRelease)
+            {
+                Enqueue(item);
+            }
+        }
+
+        private void ReleaseAllBuffered(CompensationState state)
+        {
+            if (state == null)
+            {
+                return;
+            }
+
+            List<FaceEventRecord> toRelease;
+
+            lock (state.BufferLock)
+            {
+                if (state.Buffer.Count == 0)
+                {
+                    return;
+                }
+
+                toRelease = new List<FaceEventRecord>(state.Buffer);
+                state.Buffer.Clear();
+                state.ReleasedCount += toRelease.Count;
+            }
+
+            toRelease.Sort(CompareBufferRecords);
+            foreach (var item in toRelease)
+            {
+                Enqueue(item);
+            }
+        }
+
+        private static bool IsBufferCovered(FaceEventRecord record, long serialWatermark, DateTime timeWatermark)
+        {
+            if (record == null)
+            {
+                return false;
+            }
+
+            if (record.SerialNo > 0 && serialWatermark > 0)
+            {
+                return record.SerialNo <= serialWatermark;
+            }
+
+            return record.EventTime <= timeWatermark;
+        }
+
+        private static int CompareBufferRecords(FaceEventRecord left, FaceEventRecord right)
+        {
+            if (ReferenceEquals(left, right))
+            {
+                return 0;
+            }
+
+            if (left == null)
+            {
+                return -1;
+            }
+
+            if (right == null)
+            {
+                return 1;
+            }
+
+            long leftSerial = left.SerialNo;
+            long rightSerial = right.SerialNo;
+            if (leftSerial > 0 && rightSerial > 0)
+            {
+                int serialCompare = leftSerial.CompareTo(rightSerial);
+                if (serialCompare != 0)
+                {
+                    return serialCompare;
+                }
+            }
+
+            int timeCompare = left.EventTime.CompareTo(right.EventTime);
+            if (timeCompare != 0)
+            {
+                return timeCompare;
+            }
+
+            return string.Compare(left.DeviceIP, right.DeviceIP, StringComparison.OrdinalIgnoreCase);
+        }
+
+        private bool IsCompensationExpired(CompensationState state)
+        {
+            if (state == null || !state.IsCompensating)
+            {
+                return false;
+            }
+
+            if (state.MaxDurationSeconds <= 0)
+            {
+                return false;
+            }
+
+            double elapsedSeconds = (DateTime.Now - state.StartedAt).TotalSeconds;
+            if (elapsedSeconds < state.MaxDurationSeconds)
+            {
+                return false;
+            }
+
+            if (!state.ExpiredLogged)
+            {
+                state.ExpiredLogged = true;
+                ServiceLogger.Warn(
+                    $"设备 {state.DeviceName} 补偿超时，强制结束 | " +
+                    $"Id={state.DeviceId}, ElapsedSec={elapsedSeconds:0}");
+            }
+
+            return true;
+        }
+
+        private static bool WaitWithCancellation(CancellationToken token, int delayMs)
+        {
+            if (delayMs <= 0)
+            {
+                return token.IsCancellationRequested;
+            }
+
+            return token.WaitHandle.WaitOne(TimeSpan.FromMilliseconds(delayMs));
+        }
+
         private void StartDeviceCompensation(DeviceConnectionInfo device)
         {
             if (device == null || !options.Enabled)
@@ -175,6 +591,7 @@ namespace ControlEntradaSalida
             {
                 CloseAlarm(device);
                 CancelAndRemoveCompensationToken(device.Id);
+                DropCompensationState(device.Id, "设备被排除");
                 ServiceLogger.Info($"设备 {device.Name} 已配置为跳过人脸事件订阅/补偿，忽略布防。");
                 return;
             }
@@ -182,6 +599,17 @@ namespace ControlEntradaSalida
             SetupAlarm(device);
 
             CancelAndRemoveCompensationToken(device.Id);
+            DropCompensationState(device.Id, "重新启动补偿");
+
+            DateTime fenceTime = DateTime.Now;
+            var state = new CompensationState(device.Id, device.Name, fenceTime, options);
+            compensationStates[device.Id] = state;
+
+            ServiceLogger.Info(
+                $"设备 {device.Name} 启动历史补偿（补偿优先） | " +
+                $"Id={device.Id}, FenceTime={fenceTime:yyyy-MM-dd HH:mm:ss.fff}, " +
+                $"BufferLimit={state.BufferLimit}, OverflowPolicy={state.OverflowPolicy}, " +
+                $"MaxDurationSec={state.MaxDurationSeconds}, ReleaseBatchSize={state.ReleaseBatchSize}");
 
             CancellationTokenSource deviceCts = new CancellationTokenSource();
             compensationTokens[device.Id] = deviceCts;
@@ -190,9 +618,13 @@ namespace ControlEntradaSalida
                 cancellation.Token,
                 deviceCts.Token);
 
-            Task task = Task.Run(() => FetchHistory(device, linkedCts.Token), linkedCts.Token);
+            Task task = Task.Run(() => FetchHistory(device, linkedCts.Token, state), linkedCts.Token);
             _ = task.ContinueWith(
-                _ => linkedCts.Dispose(),
+                t =>
+                {
+                    FinishCompensation(device, state, t);
+                    linkedCts.Dispose();
+                },
                 CancellationToken.None,
                 TaskContinuationOptions.ExecuteSynchronously,
                 TaskScheduler.Default);
@@ -214,6 +646,7 @@ namespace ControlEntradaSalida
                 else
                 {
                     CancelAndRemoveCompensationToken(e.Device.Id);
+                    DropCompensationState(e.Device.Id, "设备断开");
                     CloseAlarm(e.Device);
                     StopRemoteConfig(e.Device);
                 }
@@ -302,7 +735,16 @@ namespace ControlEntradaSalida
                     }
                 }
 
-                Enqueue(record);
+                if (device != null
+                    && compensationStates.TryGetValue(device.Id, out var state)
+                    && state.IsCompensating)
+                {
+                    BufferRealtimeEvent(state, record);
+                }
+                else
+                {
+                    Enqueue(record);
+                }
 
                 if (device != null)
                 {
@@ -1047,7 +1489,12 @@ namespace ControlEntradaSalida
             }
         }
 
-        private void FetchHistory(DeviceConnectionInfo device, CancellationToken token)
+        private void FetchHistory(
+            DeviceConnectionInfo device,
+            CancellationToken token,
+            CompensationState state,
+            DateTime? startTimeOverride = null,
+            DateTime? endTimeOverride = null)
         {
             if (device == null || device.UserID < 0 || !options.Enabled)
             {
@@ -1059,9 +1506,10 @@ namespace ControlEntradaSalida
                 LogAcsInteropLayoutOnce();
 
                 var checkpoint = GetCheckpoint(device.IpAddress);
-                DateTime startTime = checkpoint.HasValue
+                DateTime startTime = startTimeOverride ?? (checkpoint.HasValue
                     ? checkpoint.Value.LastEventTime.AddMilliseconds(1)
-                    : DateTime.Now.AddMinutes(-options.CompensationLookbackMinutes);
+                    : DateTime.Now.AddMinutes(-options.CompensationLookbackMinutes));
+                DateTime endTime = endTimeOverride ?? (state?.FenceTime ?? DateTime.Now);
 
                 uint beginSerial = 0;
                 if (checkpoint.HasValue && checkpoint.Value.LastSerialNo > 0 && checkpoint.Value.LastSerialNo < uint.MaxValue)
@@ -1075,7 +1523,7 @@ namespace ControlEntradaSalida
                 cond.dwMajor = HCNetSDK.MAJOR_EVENT;
                 cond.dwMinor = 0;
                 cond.struStartTime = ToDvrTime(startTime);
-                cond.struEndTime = ToDvrTime(DateTime.Now);
+                cond.struEndTime = ToDvrTime(endTime);
                 cond.dwBeginSerialNo = beginSerial;
                 cond.byPicEnable = 1;
                 cond.byTimeType = 0;
@@ -1088,7 +1536,7 @@ namespace ControlEntradaSalida
                 string startLog =
                     $"设备 {device.Name} 准备启动历史事件补偿 | " +
                     $"Id={device.Id}, IP={device.IpAddress}, UserID={device.UserID}, " +
-                    $"Start={startTime:yyyy-MM-dd HH:mm:ss.fff}, BeginSerial={beginSerial}, " +
+                    $"Start={startTime:yyyy-MM-dd HH:mm:ss.fff}, End={endTime:yyyy-MM-dd HH:mm:ss.fff}, BeginSerial={beginSerial}, " +
                     $"Major={cond.dwMajor}, Minor={cond.dwMinor}, PicEnable={cond.byPicEnable}, TimeType={cond.byTimeType}, " +
                     $"SearchType={cond.bySearchType}, IOTChannelNo={cond.dwIOTChannelNo}, EventAttr={cond.byEventAttribute}, " +
                     $"CondSize={size}, CfgSize={AcsEventCfgSize}, IntPtrSize={IntPtr.Size}";
@@ -1283,12 +1731,19 @@ namespace ControlEntradaSalida
 
                         while (!token.IsCancellationRequested)
                         {
+                            if (IsCompensationExpired(state))
+                            {
+                                break;
+                            }
+
                             int status = HCNetSDK.NET_DVR_GetNextRemoteConfig(handle, outPtr, (uint)cfgSize);
                             if (status == (int)HCNetSDK.NET_SDK_SENDWITHRECV_STATUS.NET_SDK_CONFIG_STATUS_SUCCESS)
                             {
                                 var cfg = Marshal.PtrToStructure<HCNetSDK.NET_DVR_ACS_EVENT_CFG>(outPtr);
                                 receivedCount++;
                                 LogAcsEventCfgSummary(device, handle, cfg);
+                                UpdateCompensationProgress(state, cfg);
+                                TryReleaseBuffered(state);
                                 if (!IsFaceVerifyMinor(cfg.dwMinor))
                                 {
                                     filteredCount++;
@@ -1319,7 +1774,10 @@ namespace ControlEntradaSalida
                                         $"设备 {device.Name} 补偿通道需要等待 | " +
                                         $"Id={device.Id}, Handle={handle}, NeedWaitCount={needWaitCount}, Received={receivedCount}, Enqueued={enqueuedCount}");
                                 }
-                                Thread.Sleep(200);
+                                if (WaitWithCancellation(token, 200))
+                                {
+                                    break;
+                                }
                             }
                             else if (status == (int)HCNetSDK.NET_SDK_SENDWITHRECV_STATUS.NET_SDK_CONFIG_STATUS_FAILED)
                             {
@@ -1329,7 +1787,10 @@ namespace ControlEntradaSalida
                                 ServiceLogger.Warn(
                                     $"设备 {device.Name} 补偿通道获取失败，将重试 | " +
                                     $"Id={device.Id}, Handle={handle}, Status={status}, FailedCount={failedCount}, Err={err}{(string.IsNullOrWhiteSpace(errMsg) ? string.Empty : $"({errMsg})")}");
-                                Thread.Sleep(200);
+                                if (WaitWithCancellation(token, 200))
+                                {
+                                    break;
+                                }
                             }
                             else if (status == (int)HCNetSDK.NET_SDK_SENDWITHRECV_STATUS.NET_SDK_CONFIG_STATUS_EXCEPTION)
                             {
@@ -1901,6 +2362,11 @@ namespace ControlEntradaSalida
             }
 
             compensationTokens.Clear();
+
+            foreach (var kvp in compensationStates.ToArray())
+            {
+                DropCompensationState(kvp.Key, "服务停止");
+            }
 
             foreach (var device in DeviceConnectionManager.Instance.GetAllDevices())
             {
