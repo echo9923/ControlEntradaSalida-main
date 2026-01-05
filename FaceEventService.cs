@@ -137,7 +137,7 @@ namespace ControlEntradaSalida
                     StartDeviceCompensation(device);
                 }
 
-                ServiceLogger.Info("人脸事件入库服务已启动（写入进出记录表 attendance_gate）。");
+                ServiceLogger.Info("人脸事件入库服务已启动（写入进出记录表 attendance_gate_v2）。");
             }
             catch
             {
@@ -685,8 +685,8 @@ namespace ControlEntradaSalida
                         cmd.Transaction = tran;
                         cmd.CommandTimeout = commandTimeoutSeconds;
                         cmd.CommandText =
-                            "IF NOT EXISTS (SELECT 1 FROM dbo.attendance_gate WHERE id=@Id) " +
-                            "BEGIN INSERT INTO dbo.attendance_gate (" +
+                            "IF NOT EXISTS (SELECT 1 FROM dbo.attendance_gate_v2 WHERE id=@Id) " +
+                            "BEGIN INSERT INTO dbo.attendance_gate_v2 (" +
                             "id, username, nickname, record_datetime, record_date, record_time, direction, device_name, device_sn, snapshot_path, process_status, create_time, update_time, deleted, tenant_id" +
                             ") VALUES (" +
                             "@Id, @Username, @Nickname, @RecordDateTime, @RecordDate, @RecordTime, @Direction, @DeviceName, @DeviceSn, @SnapshotPath, @ProcessStatus, @CreateTime, @UpdateTime, @Deleted, @TenantId" +
