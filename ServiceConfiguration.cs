@@ -227,6 +227,7 @@ namespace ControlEntradaSalida
         private static FaceEventOptions ResolveFaceEventOptions(ExternalConfiguration.FaceEventLoggingSection section)
         {
             bool? enabledSetting = ReadAppSettingBool("FaceEventLogging.Enabled");
+            string snapshotRootSetting = ReadAppSetting("FaceEventLogging.SnapshotRootDirectory");
             bool? offlineCompensationEnabledSetting = ReadAppSettingBool("FaceEventLogging.OfflineCompensationEnabled");
             int? queueCapacitySetting = ReadAppSettingInt("FaceEventLogging.QueueCapacity");
             int? batchSizeSetting = ReadAppSettingInt("FaceEventLogging.BatchSize");
@@ -268,9 +269,13 @@ namespace ControlEntradaSalida
             FaceEventBufferOverflowPolicy overflowPolicy = overflowPolicySetting
                 ?? ResolveOverflowPolicy(section?.CompensationBufferOverflowPolicy, DefaultCompensationBufferOverflowPolicy);
 
+            string snapshotRootDirectory = ResolveSnapshotRootDirectory(
+                snapshotRootSetting ?? section?.SnapshotRootDirectory);
+
             var options = new FaceEventOptions
             {
                 Enabled = enabledSetting ?? section?.Enabled ?? false,
+                SnapshotRootDirectory = snapshotRootDirectory,
                 OfflineCompensationEnabled = offlineCompensationEnabledSetting ?? section?.OfflineCompensationEnabled ?? true,
                 QueueCapacity = ResolveIntInRange(queueCapacitySetting ?? section?.QueueCapacity, 2000, minValue: 100, maxValue: 200000),
                 BatchSize = ResolveIntInRange(batchSizeSetting ?? section?.BatchSize, 20, minValue: 1, maxValue: 2000),
@@ -312,6 +317,22 @@ namespace ControlEntradaSalida
             };
 
             return options;
+        }
+
+        private static string ResolveSnapshotRootDirectory(string configuredDirectory)
+        {
+            if (string.IsNullOrWhiteSpace(configuredDirectory))
+            {
+                return null;
+            }
+
+            string trimmed = configuredDirectory.Trim();
+            if (Path.IsPathRooted(trimmed))
+            {
+                return trimmed;
+            }
+
+            return Path.Combine(AppDomain.CurrentDomain.BaseDirectory, trimmed);
         }
 
         private static DeviceConnectionOptions ResolveDeviceConnectionOptions(ExternalConfiguration.DeviceConnectionSection section)
@@ -424,6 +445,8 @@ namespace ControlEntradaSalida
         public sealed class FaceEventOptions
         {
             public bool Enabled { get; set; }
+
+            public string SnapshotRootDirectory { get; set; }
 
             public bool OfflineCompensationEnabled { get; set; }
 

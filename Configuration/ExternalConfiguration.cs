@@ -45,7 +45,12 @@ namespace ControlEntradaSalida.Configuration
             ExternalConfiguration configuration;
             try
             {
-                configuration = JsonConvert.DeserializeObject<ExternalConfiguration>(json) ?? new ExternalConfiguration();
+                using (var reader = new JsonTextReader(new StringReader(json)))
+                {
+                    reader.CommentHandling = CommentHandling.Ignore;
+                    var serializer = JsonSerializer.CreateDefault();
+                    configuration = serializer.Deserialize<ExternalConfiguration>(reader) ?? new ExternalConfiguration();
+                }
             }
             catch (JsonException ex)
             {
@@ -114,6 +119,12 @@ namespace ControlEntradaSalida.Configuration
             /// 是否启用人脸事件入库。
             /// </summary>
             public bool? Enabled { get; set; }
+
+            /// <summary>
+            /// 抓拍图片根目录。为空则使用默认数据目录下的 snapshots 子目录。
+            /// 支持绝对路径或相对路径（相对路径将基于服务运行目录解析）。
+            /// </summary>
+            public string SnapshotRootDirectory { get; set; }
 
             /// <summary>
             /// 是否启用离线事件补偿。

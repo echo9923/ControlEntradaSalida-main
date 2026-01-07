@@ -149,10 +149,18 @@ namespace ControlEntradaSalida
                 ? dbSection.CommandTimeoutSeconds.Value
                 : 30;
 
-            string dataDirectory = ResolveDataDirectory();
-            snapshotRootDirectory = string.IsNullOrWhiteSpace(dataDirectory)
-                ? null
-                : Path.Combine(dataDirectory, "snapshots");
+            string configuredSnapshotRoot = options?.SnapshotRootDirectory;
+            if (!string.IsNullOrWhiteSpace(configuredSnapshotRoot))
+            {
+                snapshotRootDirectory = configuredSnapshotRoot.Trim();
+            }
+            else
+            {
+                string dataDirectory = ResolveDataDirectory();
+                snapshotRootDirectory = string.IsNullOrWhiteSpace(dataDirectory)
+                    ? null
+                    : Path.Combine(dataDirectory, "snapshots");
+            }
         }
 
         public void Start()
