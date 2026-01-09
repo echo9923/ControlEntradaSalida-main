@@ -47,7 +47,6 @@ namespace ControlEntradaSalida.Configuration
             {
                 using (var reader = new JsonTextReader(new StringReader(json)))
                 {
-                    reader.CommentHandling = CommentHandling.Ignore;
                     var serializer = JsonSerializer.CreateDefault();
                     configuration = serializer.Deserialize<ExternalConfiguration>(reader) ?? new ExternalConfiguration();
                 }
