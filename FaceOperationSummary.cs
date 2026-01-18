@@ -20,6 +20,8 @@ namespace ControlEntradaSalida
 
         public List<string> Errors { get; } = new List<string>();
 
+        public List<GrpcErrorDetail> ErrorDetails { get; } = new List<GrpcErrorDetail>();
+
         public List<FaceOperationItem> Items { get; } = new List<FaceOperationItem>();
     }
 

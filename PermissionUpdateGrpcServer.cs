@@ -21,6 +21,7 @@ namespace ControlEntradaSalida
     public sealed class PermissionUpdateGrpcServer : IDisposable
     {
         private const int DefaultPort = 5001;
+        private const int MaxBatchSize = 500;
         private const string ServiceName = "permission.PermissionSyncService";
         private const string MethodName = "SyncPermissions";
         private const string PersonMethodName = "SyncPersons";
@@ -280,7 +281,7 @@ namespace ControlEntradaSalida
                     summary.UsersFailed = 0;
                     stopwatch.Stop();
                     LogGrpcSummary(peer, requestId, summary, stopwatch.Elapsed);
-                    string responsePayload = BuildResponse(summary);
+                    string responsePayload = BuildResponse(requestId, summary);
                     LogPayloadIfEnabled("出站", requestId, responsePayload, Encoding.UTF8.GetByteCount(responsePayload));
                     return Task.FromResult(responsePayload);
                 }
@@ -288,24 +289,28 @@ namespace ControlEntradaSalida
                 PermissionRefreshSummary result = refreshManager.RefreshPermissionsForEmployees(updates);
                 stopwatch.Stop();
                 LogGrpcSummary(peer, requestId, result, stopwatch.Elapsed);
-                string successPayload = BuildResponse(result);
+                string successPayload = BuildResponse(requestId, result);
                 LogPayloadIfEnabled("出站", requestId, successPayload, Encoding.UTF8.GetByteCount(successPayload));
                 return Task.FromResult(successPayload);
+            }
+            catch (GrpcValidationException ex)
+            {
+                stopwatch.Stop();
+                ServiceLogger.Warn($"{GrpcLogPrefix} 请求 {requestId} 参数非法：{ex.Message}");
+                throw BuildRpcException(StatusCode.InvalidArgument, requestId, ex.ErrorCode ?? GrpcErrorCodes.InvalidArgument, ex.Message);
             }
             catch (JsonException ex)
             {
                 stopwatch.Stop();
-                ServiceLogger.Warn($"{GrpcLogPrefix} 请求 {requestId} JSON格式错误：{ex.Message}");
-                throw new RpcException(
-                    new Status(StatusCode.InvalidArgument,
-                        string.Format(CultureInfo.InvariantCulture,
-                            "JSON格式错误：{0}", ex.Message)));
+                string errorMessage = string.Format(CultureInfo.InvariantCulture, "JSON格式错误：{0}", ex.Message);
+                ServiceLogger.Warn($"{GrpcLogPrefix} 请求 {requestId} {errorMessage}");
+                throw BuildRpcException(StatusCode.InvalidArgument, requestId, GrpcErrorCodes.InvalidArgument, errorMessage);
             }
             catch (ArgumentException ex)
             {
                 stopwatch.Stop();
                 ServiceLogger.Warn($"{GrpcLogPrefix} 请求 {requestId} 参数非法：{ex.Message}");
-                throw new RpcException(new Status(StatusCode.InvalidArgument, ex.Message));
+                throw BuildRpcException(StatusCode.InvalidArgument, requestId, GrpcErrorCodes.InvalidArgument, ex.Message);
             }
             catch (RpcException)
             {
@@ -316,7 +321,7 @@ namespace ControlEntradaSalida
             {
                 stopwatch.Stop();
                 ServiceLogger.Error($"{GrpcLogPrefix} 请求 {requestId} 处理权限更新时发生异常。", ex);
-                throw new RpcException(new Status(StatusCode.Internal, "处理权限更新时发生未知错误。"));
+                throw BuildRpcException(StatusCode.Internal, requestId, GrpcErrorCodes.InternalError, "处理权限更新时发生未知错误。");
             }
         }
 
@@ -337,24 +342,28 @@ namespace ControlEntradaSalida
                 stopwatch.Stop();
 
                 LogPersonSummary(peer, requestId, summary, stopwatch.Elapsed);
-                string responsePayload = BuildPersonSyncResponse(summary);
+                string responsePayload = BuildPersonSyncResponse(requestId, summary);
                 LogPayloadIfEnabled("出站", requestId, responsePayload, Encoding.UTF8.GetByteCount(responsePayload));
                 return Task.FromResult(responsePayload);
+            }
+            catch (GrpcValidationException ex)
+            {
+                stopwatch.Stop();
+                ServiceLogger.Warn($"{GrpcLogPrefix} 请求 {requestId} 参数非法：{ex.Message}");
+                throw BuildRpcException(StatusCode.InvalidArgument, requestId, ex.ErrorCode ?? GrpcErrorCodes.InvalidArgument, ex.Message);
             }
             catch (JsonException ex)
             {
                 stopwatch.Stop();
-                ServiceLogger.Warn($"{GrpcLogPrefix} 请求 {requestId} JSON格式错误：{ex.Message}");
-                throw new RpcException(
-                    new Status(StatusCode.InvalidArgument,
-                        string.Format(CultureInfo.InvariantCulture,
-                            "JSON格式错误：{0}", ex.Message)));
+                string errorMessage = string.Format(CultureInfo.InvariantCulture, "JSON格式错误：{0}", ex.Message);
+                ServiceLogger.Warn($"{GrpcLogPrefix} 请求 {requestId} {errorMessage}");
+                throw BuildRpcException(StatusCode.InvalidArgument, requestId, GrpcErrorCodes.InvalidArgument, errorMessage);
             }
             catch (ArgumentException ex)
             {
                 stopwatch.Stop();
                 ServiceLogger.Warn($"{GrpcLogPrefix} 请求 {requestId} 参数非法：{ex.Message}");
-                throw new RpcException(new Status(StatusCode.InvalidArgument, ex.Message));
+                throw BuildRpcException(StatusCode.InvalidArgument, requestId, GrpcErrorCodes.InvalidArgument, ex.Message);
             }
             catch (RpcException)
             {
@@ -365,7 +374,7 @@ namespace ControlEntradaSalida
             {
                 stopwatch.Stop();
                 ServiceLogger.Error($"{GrpcLogPrefix} 请求 {requestId} 下发人员信息时发生异常。", ex);
-                throw new RpcException(new Status(StatusCode.Internal, "处理人员下发时发生未知错误。"));
+                throw BuildRpcException(StatusCode.Internal, requestId, GrpcErrorCodes.InternalError, "处理人员下发时发生未知错误。");
             }
         }
 
@@ -385,21 +394,33 @@ namespace ControlEntradaSalida
                 FaceOperationSummary summary = refreshManager.DeleteFacesOnDevices(ids);
                 stopwatch.Stop();
 
-                string responsePayload = BuildFaceOperationResponse(summary);
+                string responsePayload = BuildFaceOperationResponse(
+                    requestId,
+                    summary,
+                    "人脸删除完成。",
+                    "人脸删除部分失败。",
+                    "人脸删除失败。");
                 LogPayloadIfEnabled("出站", requestId, responsePayload, Encoding.UTF8.GetByteCount(responsePayload));
                 return Task.FromResult(responsePayload);
+            }
+            catch (GrpcValidationException ex)
+            {
+                stopwatch.Stop();
+                ServiceLogger.Warn($"{GrpcLogPrefix} 请求 {requestId} 参数非法：{ex.Message}");
+                throw BuildRpcException(StatusCode.InvalidArgument, requestId, ex.ErrorCode ?? GrpcErrorCodes.InvalidArgument, ex.Message);
             }
             catch (JsonException ex)
             {
                 stopwatch.Stop();
-                ServiceLogger.Warn($"{GrpcLogPrefix} 请求 {requestId} JSON格式错误：{ex.Message}");
-                throw new RpcException(new Status(StatusCode.InvalidArgument, $"JSON格式错误：{ex.Message}"));
+                string errorMessage = $"JSON格式错误：{ex.Message}";
+                ServiceLogger.Warn($"{GrpcLogPrefix} 请求 {requestId} {errorMessage}");
+                throw BuildRpcException(StatusCode.InvalidArgument, requestId, GrpcErrorCodes.InvalidArgument, errorMessage);
             }
             catch (ArgumentException ex)
             {
                 stopwatch.Stop();
                 ServiceLogger.Warn($"{GrpcLogPrefix} 请求 {requestId} 参数非法：{ex.Message}");
-                throw new RpcException(new Status(StatusCode.InvalidArgument, ex.Message));
+                throw BuildRpcException(StatusCode.InvalidArgument, requestId, GrpcErrorCodes.InvalidArgument, ex.Message);
             }
             catch (RpcException)
             {
@@ -410,7 +431,7 @@ namespace ControlEntradaSalida
             {
                 stopwatch.Stop();
                 ServiceLogger.Error($"{GrpcLogPrefix} 请求 {requestId} 删除人脸时发生异常。", ex);
-                throw new RpcException(new Status(StatusCode.Internal, "处理人脸删除时发生未知错误。"));
+                throw BuildRpcException(StatusCode.Internal, requestId, GrpcErrorCodes.InternalError, "处理人脸删除时发生未知错误。");
             }
         }
 
@@ -430,21 +451,28 @@ namespace ControlEntradaSalida
                 PersonDeleteSummary summary = refreshManager.DeletePersonsFromDevices(ids);
                 stopwatch.Stop();
 
-                string responsePayload = BuildPersonDeleteResponse(summary);
+                string responsePayload = BuildPersonDeleteResponse(requestId, summary);
                 LogPayloadIfEnabled("出站", requestId, responsePayload, Encoding.UTF8.GetByteCount(responsePayload));
                 return Task.FromResult(responsePayload);
+            }
+            catch (GrpcValidationException ex)
+            {
+                stopwatch.Stop();
+                ServiceLogger.Warn($"{GrpcLogPrefix} 请求 {requestId} 参数非法：{ex.Message}");
+                throw BuildRpcException(StatusCode.InvalidArgument, requestId, ex.ErrorCode ?? GrpcErrorCodes.InvalidArgument, ex.Message);
             }
             catch (JsonException ex)
             {
                 stopwatch.Stop();
-                ServiceLogger.Warn($"{GrpcLogPrefix} 请求 {requestId} JSON格式错误：{ex.Message}");
-                throw new RpcException(new Status(StatusCode.InvalidArgument, $"JSON格式错误：{ex.Message}"));
+                string errorMessage = $"JSON格式错误：{ex.Message}";
+                ServiceLogger.Warn($"{GrpcLogPrefix} 请求 {requestId} {errorMessage}");
+                throw BuildRpcException(StatusCode.InvalidArgument, requestId, GrpcErrorCodes.InvalidArgument, errorMessage);
             }
             catch (ArgumentException ex)
             {
                 stopwatch.Stop();
                 ServiceLogger.Warn($"{GrpcLogPrefix} 请求 {requestId} 参数非法：{ex.Message}");
-                throw new RpcException(new Status(StatusCode.InvalidArgument, ex.Message));
+                throw BuildRpcException(StatusCode.InvalidArgument, requestId, GrpcErrorCodes.InvalidArgument, ex.Message);
             }
             catch (RpcException)
             {
@@ -455,7 +483,7 @@ namespace ControlEntradaSalida
             {
                 stopwatch.Stop();
                 ServiceLogger.Error($"{GrpcLogPrefix} 请求 {requestId} 删除人员时发生异常。", ex);
-                throw new RpcException(new Status(StatusCode.Internal, "处理人员删除时发生未知错误。"));
+                throw BuildRpcException(StatusCode.Internal, requestId, GrpcErrorCodes.InternalError, "处理人员删除时发生未知错误。");
             }
         }
 
@@ -475,21 +503,33 @@ namespace ControlEntradaSalida
                 FaceOperationSummary summary = refreshManager.GetFacesFromDevices(ids);
                 stopwatch.Stop();
 
-                string responsePayload = BuildFaceOperationResponse(summary);
+                string responsePayload = BuildFaceOperationResponse(
+                    requestId,
+                    summary,
+                    "人脸查询完成。",
+                    "人脸查询部分失败。",
+                    "人脸查询失败。");
                 LogPayloadIfEnabled("出站", requestId, responsePayload, Encoding.UTF8.GetByteCount(responsePayload));
                 return Task.FromResult(responsePayload);
+            }
+            catch (GrpcValidationException ex)
+            {
+                stopwatch.Stop();
+                ServiceLogger.Warn($"{GrpcLogPrefix} 请求 {requestId} 参数非法：{ex.Message}");
+                throw BuildRpcException(StatusCode.InvalidArgument, requestId, ex.ErrorCode ?? GrpcErrorCodes.InvalidArgument, ex.Message);
             }
             catch (JsonException ex)
             {
                 stopwatch.Stop();
-                ServiceLogger.Warn($"{GrpcLogPrefix} 请求 {requestId} JSON格式错误：{ex.Message}");
-                throw new RpcException(new Status(StatusCode.InvalidArgument, $"JSON格式错误：{ex.Message}"));
+                string errorMessage = $"JSON格式错误：{ex.Message}";
+                ServiceLogger.Warn($"{GrpcLogPrefix} 请求 {requestId} {errorMessage}");
+                throw BuildRpcException(StatusCode.InvalidArgument, requestId, GrpcErrorCodes.InvalidArgument, errorMessage);
             }
             catch (ArgumentException ex)
             {
                 stopwatch.Stop();
                 ServiceLogger.Warn($"{GrpcLogPrefix} 请求 {requestId} 参数非法：{ex.Message}");
-                throw new RpcException(new Status(StatusCode.InvalidArgument, ex.Message));
+                throw BuildRpcException(StatusCode.InvalidArgument, requestId, GrpcErrorCodes.InvalidArgument, ex.Message);
             }
             catch (RpcException)
             {
@@ -500,7 +540,7 @@ namespace ControlEntradaSalida
             {
                 stopwatch.Stop();
                 ServiceLogger.Error($"{GrpcLogPrefix} 请求 {requestId} 查询人脸时发生异常。", ex);
-                throw new RpcException(new Status(StatusCode.Internal, "处理人脸查询时发生未知错误。"));
+                throw BuildRpcException(StatusCode.Internal, requestId, GrpcErrorCodes.InternalError, "处理人脸查询时发生未知错误。");
             }
         }
 
@@ -512,7 +552,7 @@ namespace ControlEntradaSalida
 
             if (string.IsNullOrWhiteSpace(request))
             {
-                throw new RpcException(new Status(StatusCode.InvalidArgument, "请求体不能为空。"));
+                throw BuildRpcException(StatusCode.InvalidArgument, requestId, GrpcErrorCodes.InvalidArgument, "请求体不能为空。");
             }
 
             string taskId;
@@ -523,18 +563,20 @@ namespace ControlEntradaSalida
             }
             catch (JsonException ex)
             {
-                throw new RpcException(new Status(StatusCode.InvalidArgument, $"JSON格式错误：{ex.Message}"));
+                string errorMessage = $"JSON格式错误：{ex.Message}";
+                throw BuildRpcException(StatusCode.InvalidArgument, requestId, GrpcErrorCodes.InvalidArgument, errorMessage);
             }
 
             if (string.IsNullOrWhiteSpace(taskId))
             {
-                throw new RpcException(new Status(StatusCode.InvalidArgument, "缺少 taskId。"));
+                throw BuildRpcException(StatusCode.InvalidArgument, requestId, GrpcErrorCodes.InvalidArgument, "缺少 taskId。");
             }
 
             EnrollmentTaskStatus status = EnrollmentTaskStore.Get(taskId);
             if (status == null)
             {
-                throw new RpcException(new Status(StatusCode.NotFound, $"任务 {taskId} 不存在或已过期。"));
+                throw BuildRpcException(StatusCode.NotFound, requestId, GrpcErrorCodes.NotFound,
+                    $"任务 {taskId} 不存在或已过期。");
             }
 
             var payload = new
@@ -547,7 +589,16 @@ namespace ControlEntradaSalida
                 errorCode = status.ErrorCode
             };
 
-            return Task.FromResult(JsonConvert.SerializeObject(payload));
+            string responsePayload = BuildStandardPayload(
+                requestId,
+                true,
+                GrpcErrorCodes.Ok,
+                "查询成功。",
+                Array.Empty<string>(),
+                Array.Empty<GrpcErrorDetail>(),
+                payload);
+
+            return Task.FromResult(responsePayload);
         }
 
         private async Task HandleCaptureStreamAsync(string request, IServerStreamWriter<string> responseStream, ServerCallContext context)
@@ -570,12 +621,13 @@ namespace ControlEntradaSalida
             }
             catch (JsonException ex)
             {
-                throw new RpcException(new Status(StatusCode.InvalidArgument, $"JSON格式错误：{ex.Message}"));
+                string errorMessage = $"JSON格式错误：{ex.Message}";
+                throw BuildRpcException(StatusCode.InvalidArgument, requestId, GrpcErrorCodes.InvalidArgument, errorMessage);
             }
 
             if (string.IsNullOrWhiteSpace(employeeId))
             {
-                throw new RpcException(new Status(StatusCode.InvalidArgument, "缺少 employee_id。"));
+                throw BuildRpcException(StatusCode.InvalidArgument, requestId, GrpcErrorCodes.InvalidArgument, "缺少 employee_id。");
             }
 
             taskId = EnrollmentTaskStore.CreateTask(employeeId, "CaptureFaceStream");
@@ -583,7 +635,25 @@ namespace ControlEntradaSalida
             FaceCaptureResult capture = refreshManager.CaptureFaceFromEnrollmentDevice();
             if (!capture.Success)
             {
+                string errorCode = ResolveCaptureErrorCode(capture);
                 EnrollmentTaskStore.Complete(taskId, false, capture.ErrorMessage, "CAPTURE_FAILED");
+
+                List<GrpcErrorDetail> details = new List<GrpcErrorDetail>();
+                if (capture.DeviceId.HasValue ||
+                    !string.IsNullOrWhiteSpace(capture.DeviceName) ||
+                    !string.IsNullOrWhiteSpace(capture.DeviceIp))
+                {
+                    details.Add(new GrpcErrorDetail
+                    {
+                        EmployeeId = employeeId,
+                        DeviceId = capture.DeviceId,
+                        DeviceName = capture.DeviceName,
+                        DeviceIp = capture.DeviceIp,
+                        Code = errorCode,
+                        Message = capture.ErrorMessage
+                    });
+                }
+
                 var errorPayload = new
                 {
                     taskId,
@@ -592,7 +662,17 @@ namespace ControlEntradaSalida
                     message = capture.ErrorMessage,
                     errorCode = "CAPTURE_FAILED"
                 };
-                await responseStream.WriteAsync(JsonConvert.SerializeObject(errorPayload)).ConfigureAwait(false);
+
+                string responsePayload = BuildStandardPayload(
+                    requestId,
+                    false,
+                    errorCode,
+                    capture.ErrorMessage,
+                    new[] { capture.ErrorMessage },
+                    details,
+                    errorPayload);
+
+                await responseStream.WriteAsync(responsePayload).ConfigureAwait(false);
                 return;
             }
 
@@ -607,7 +687,16 @@ namespace ControlEntradaSalida
                 recommend = true
             };
 
-            await responseStream.WriteAsync(JsonConvert.SerializeObject(framePayload)).ConfigureAwait(false);
+            string successPayload = BuildStandardPayload(
+                requestId,
+                true,
+                GrpcErrorCodes.Ok,
+                "采集成功。",
+                Array.Empty<string>(),
+                Array.Empty<GrpcErrorDetail>(),
+                framePayload);
+
+            await responseStream.WriteAsync(successPayload).ConfigureAwait(false);
             EnrollmentTaskStore.Complete(taskId, true, "采集完成");
         }
 
@@ -757,6 +846,16 @@ namespace ControlEntradaSalida
                 throw new JsonException("不支持的JSON结构。");
             }
 
+            if (updates.Count > MaxBatchSize)
+            {
+                throw new GrpcValidationException(
+                    string.Format(CultureInfo.InvariantCulture,
+                        "批量上限为 {0} 条，当前 {1} 条。",
+                        MaxBatchSize,
+                        updates.Count),
+                    GrpcErrorCodes.BatchTooLarge);
+            }
+
             return updates;
         }
 
@@ -806,6 +905,16 @@ namespace ControlEntradaSalida
                 {
                     persons.Add(request);
                 }
+            }
+
+            if (persons.Count > MaxBatchSize)
+            {
+                throw new GrpcValidationException(
+                    string.Format(CultureInfo.InvariantCulture,
+                        "批量上限为 {0} 条，当前 {1} 条。",
+                        MaxBatchSize,
+                        persons.Count),
+                    GrpcErrorCodes.BatchTooLarge);
             }
 
             return persons;
@@ -998,44 +1107,66 @@ namespace ControlEntradaSalida
             }
         }
 
-        private static string BuildResponse(PermissionRefreshSummary summary)
+        private static string BuildResponse(string requestId, PermissionRefreshSummary summary)
         {
+            int succeeded = summary.UsersUpdated + summary.UsersSkipped;
+            ResolveSummaryMeta(succeeded, summary.UsersFailed, summary.Errors.Count > 0,
+                "权限同步完成。",
+                "权限同步部分失败。",
+                "权限同步失败。",
+                out bool success,
+                out string code,
+                out string message);
+
             var payload = new
             {
                 total = summary.TotalUsers,
                 updated = summary.UsersUpdated,
                 skipped = summary.UsersSkipped,
-                failed = summary.UsersFailed,
-                errors = summary.Errors.ToArray()
+                failed = summary.UsersFailed
             };
 
-            return JsonConvert.SerializeObject(payload);
+            return BuildStandardPayload(requestId, success, code, message, summary.Errors, summary.ErrorDetails, payload);
         }
 
-        private static string BuildPersonSyncResponse(PersonSyncSummary summary)
+        private static string BuildPersonSyncResponse(string requestId, PersonSyncSummary summary)
         {
+            ResolveSummaryMeta(summary.SuccessfulPersons, summary.FailedPersons, summary.Errors.Count > 0,
+                "人员下发完成。",
+                "人员下发部分失败。",
+                "人员下发失败。",
+                out bool success,
+                out string code,
+                out string message);
+
             var payload = new
             {
                 total = summary.TotalPersons,
                 succeeded = summary.SuccessfulPersons,
                 failed = summary.FailedPersons,
                 facesUploaded = summary.FacesUploaded,
-                targetDevices = summary.TargetDevices,
-                errors = summary.Errors.ToArray()
+                targetDevices = summary.TargetDevices
             };
 
-            return JsonConvert.SerializeObject(payload);
+            return BuildStandardPayload(requestId, success, code, message, summary.Errors, summary.ErrorDetails, payload);
         }
 
-        private static string BuildFaceOperationResponse(FaceOperationSummary summary)
+        private static string BuildFaceOperationResponse(string requestId, FaceOperationSummary summary, string successMessage, string partialMessage, string failedMessage)
         {
+            ResolveSummaryMeta(summary.Succeeded, summary.Failed, summary.Errors.Count > 0,
+                successMessage,
+                partialMessage,
+                failedMessage,
+                out bool success,
+                out string code,
+                out string message);
+
             var payload = new
             {
                 total = summary.Total,
                 succeeded = summary.Succeeded,
                 failed = summary.Failed,
                 targetDevices = summary.TargetDevices,
-                errors = summary.Errors.ToArray(),
                 items = summary.Items.Select(i => new
                 {
                     employeeId = i.EmployeeId,
@@ -1046,18 +1177,25 @@ namespace ControlEntradaSalida
                 }).ToArray()
             };
 
-            return JsonConvert.SerializeObject(payload);
+            return BuildStandardPayload(requestId, success, code, message, summary.Errors, summary.ErrorDetails, payload);
         }
 
-        private static string BuildPersonDeleteResponse(PersonDeleteSummary summary)
+        private static string BuildPersonDeleteResponse(string requestId, PersonDeleteSummary summary)
         {
+            ResolveSummaryMeta(summary.Succeeded, summary.Failed, summary.Errors.Count > 0,
+                "人员删除完成。",
+                "人员删除部分失败。",
+                "人员删除失败。",
+                out bool success,
+                out string code,
+                out string message);
+
             var payload = new
             {
                 total = summary.Total,
                 succeeded = summary.Succeeded,
                 failed = summary.Failed,
                 targetDevices = summary.TargetDevices,
-                errors = summary.Errors.ToArray(),
                 items = summary.Items.Select(i => new
                 {
                     employeeId = i.EmployeeId,
@@ -1068,7 +1206,91 @@ namespace ControlEntradaSalida
                 }).ToArray()
             };
 
-            return JsonConvert.SerializeObject(payload);
+            return BuildStandardPayload(requestId, success, code, message, summary.Errors, summary.ErrorDetails, payload);
+        }
+
+
+        private static void ResolveSummaryMeta(int succeeded, int failed, bool hasErrors,
+            string successMessage,
+            string partialMessage,
+            string failedMessage,
+            out bool success,
+            out string code,
+            out string message)
+        {
+            if (failed <= 0 && succeeded <= 0 && hasErrors)
+            {
+                success = false;
+                code = GrpcErrorCodes.Failed;
+                message = failedMessage;
+                return;
+            }
+
+            if (failed <= 0)
+            {
+                success = true;
+                code = GrpcErrorCodes.Ok;
+                message = successMessage;
+                return;
+            }
+
+            if (succeeded > 0)
+            {
+                success = false;
+                code = GrpcErrorCodes.PartialSuccess;
+                message = partialMessage;
+                return;
+            }
+
+            success = false;
+            code = GrpcErrorCodes.Failed;
+            message = failedMessage;
+        }
+
+        private static string BuildStandardPayload(string requestId,
+            bool success,
+            string code,
+            string message,
+            IEnumerable<string> errors,
+            IEnumerable<GrpcErrorDetail> details,
+            object businessPayload)
+        {
+            JObject payload = businessPayload == null ? new JObject() : JObject.FromObject(businessPayload);
+            payload["requestId"] = requestId;
+            payload["success"] = success;
+            payload["code"] = code ?? GrpcErrorCodes.InternalError;
+            payload["message"] = message ?? string.Empty;
+            payload["errors"] = errors == null ? new JArray() : JArray.FromObject(errors);
+            payload["errorDetails"] = details == null ? new JArray() : JArray.FromObject(details);
+            return payload.ToString(Formatting.None);
+        }
+
+        private static RpcException BuildRpcException(StatusCode statusCode,
+            string requestId,
+            string code,
+            string message,
+            IEnumerable<string> errors = null,
+            IEnumerable<GrpcErrorDetail> details = null)
+        {
+            List<string> errorList = errors == null ? new List<string>() : errors.ToList();
+            if (errorList.Count == 0 && !string.IsNullOrWhiteSpace(message))
+            {
+                errorList.Add(message);
+            }
+
+            string payload = BuildStandardPayload(requestId, false, code, message, errorList, details, null);
+            return new RpcException(new Status(statusCode, payload));
+        }
+
+        private static string ResolveCaptureErrorCode(FaceCaptureResult capture)
+        {
+            string message = capture?.ErrorMessage ?? string.Empty;
+            if (message.IndexOf("200KB", StringComparison.OrdinalIgnoreCase) >= 0)
+            {
+                return GrpcErrorCodes.FaceTooLarge;
+            }
+
+            return GrpcErrorCodes.DeviceError;
         }
 
         private static List<string> ParseEmployeeIdList(string payload)
@@ -1149,10 +1371,22 @@ namespace ControlEntradaSalida
                 throw new ArgumentException("未解析到有效的员工编号。");
             }
 
-            return ids
+            List<string> normalized = ids
                 .Where(id => !string.IsNullOrWhiteSpace(id))
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .ToList();
+
+            if (normalized.Count > MaxBatchSize)
+            {
+                throw new GrpcValidationException(
+                    string.Format(CultureInfo.InvariantCulture,
+                        "批量上限为 {0} 条，当前 {1} 条。",
+                        MaxBatchSize,
+                        normalized.Count),
+                    GrpcErrorCodes.BatchTooLarge);
+            }
+
+            return normalized;
         }
 
         private void LogPayloadIfEnabled(string direction, string requestId, string payload, int payloadBytes)

@@ -138,6 +138,7 @@ namespace ControlEntradaSalida
                     {
                         summary.UsersFailed++;
                         summary.Errors.AddRange(result.Errors);
+                        summary.ErrorDetails.AddRange(result.ErrorDetails);
                     }
                 }
 
@@ -186,9 +187,16 @@ namespace ControlEntradaSalida
                     if (update.PermissionCode < 0 || update.PermissionCode > 2)
                     {
                         summary.UsersFailed++;
-                        summary.Errors.Add(string.Format(CultureInfo.InvariantCulture,
+                        string errorMessage = string.Format(CultureInfo.InvariantCulture,
                             "用户 {0} 的权限级别 {1} 无效，应为 0-2。",
-                            update.EmployeeId, update.PermissionCode));
+                            update.EmployeeId, update.PermissionCode);
+                        summary.Errors.Add(errorMessage);
+                        summary.ErrorDetails.Add(new GrpcErrorDetail
+                        {
+                            EmployeeId = update.EmployeeId,
+                            Code = GrpcErrorCodes.InvalidArgument,
+                            Message = errorMessage
+                        });
                         continue;
                     }
 
@@ -196,8 +204,15 @@ namespace ControlEntradaSalida
                     if (!permissionStored)
                     {
                         summary.UsersFailed++;
-                        summary.Errors.Add(string.Format(CultureInfo.InvariantCulture,
-                            "更新员工 {0} 在数据库中的权限失败，可能不存在该员工。", update.EmployeeId));
+                        string errorMessage = string.Format(CultureInfo.InvariantCulture,
+                            "更新员工 {0} 在数据库中的权限失败，可能不存在该员工。", update.EmployeeId);
+                        summary.Errors.Add(errorMessage);
+                        summary.ErrorDetails.Add(new GrpcErrorDetail
+                        {
+                            EmployeeId = update.EmployeeId,
+                            Code = GrpcErrorCodes.DbError,
+                            Message = errorMessage
+                        });
                         continue;
                     }
 
@@ -205,8 +220,15 @@ namespace ControlEntradaSalida
                     if (userRecord == null)
                     {
                         summary.UsersFailed++;
-                        summary.Errors.Add(string.Format(CultureInfo.InvariantCulture,
-                            "未找到员工 {0} 的详细信息。", update.EmployeeId));
+                        string errorMessage = string.Format(CultureInfo.InvariantCulture,
+                            "未找到员工 {0} 的详细信息。", update.EmployeeId);
+                        summary.Errors.Add(errorMessage);
+                        summary.ErrorDetails.Add(new GrpcErrorDetail
+                        {
+                            EmployeeId = update.EmployeeId,
+                            Code = GrpcErrorCodes.DbError,
+                            Message = errorMessage
+                        });
                         continue;
                     }
 
@@ -226,8 +248,15 @@ namespace ControlEntradaSalida
                         if (!synced)
                         {
                             summary.UsersFailed++;
-                            summary.Errors.Add(string.Format(CultureInfo.InvariantCulture,
-                                "更新用户 {0} 的同步状态失败。", userRecord.EmployeeId));
+                            string errorMessage = string.Format(CultureInfo.InvariantCulture,
+                                "更新用户 {0} 的同步状态失败。", userRecord.EmployeeId);
+                            summary.Errors.Add(errorMessage);
+                            summary.ErrorDetails.Add(new GrpcErrorDetail
+                            {
+                                EmployeeId = userRecord.EmployeeId,
+                                Code = GrpcErrorCodes.DbError,
+                                Message = errorMessage
+                            });
                             continue;
                         }
 
@@ -237,6 +266,7 @@ namespace ControlEntradaSalida
                     {
                         summary.UsersFailed++;
                         summary.Errors.AddRange(result.Errors);
+                        summary.ErrorDetails.AddRange(result.ErrorDetails);
                     }
                 }
             }
@@ -326,6 +356,15 @@ namespace ControlEntradaSalida
                         {
                             personSucceeded = false;
                             summary.Errors.Add(result.ErrorMessage);
+                            summary.ErrorDetails.Add(new GrpcErrorDetail
+                            {
+                                EmployeeId = request.EmployeeId,
+                                DeviceId = device.Id,
+                                DeviceName = device.Name,
+                                DeviceIp = device.IpAddress,
+                                Code = GrpcErrorCodes.DeviceError,
+                                Message = result.ErrorMessage
+                            });
                         }
                         else if (request.HasFace)
                         {
@@ -607,6 +646,15 @@ namespace ControlEntradaSalida
                 {
                     result.Success = false;
                     result.Errors.Add(updateResult.ErrorMessage);
+                    result.ErrorDetails.Add(new GrpcErrorDetail
+                    {
+                        EmployeeId = user.EmployeeId,
+                        DeviceId = device.DeviceId,
+                        DeviceName = device.DeviceName,
+                        DeviceIp = device.Connection?.IpAddress,
+                        Code = GrpcErrorCodes.DeviceError,
+                        Message = updateResult.ErrorMessage
+                    });
                 }
             }
 
@@ -1001,10 +1049,15 @@ namespace ControlEntradaSalida
             if (!TryEnsureDeviceConnected(device))
             {
                 return FaceCaptureResult.Fail(string.Format(CultureInfo.InvariantCulture,
-                    "无法连接设备 {0}。", device.Name));
+                    "无法连接设备 {0}。", device.Name), device.Id, device.Name, device.IpAddress);
             }
 
-            return ExecuteWithDeviceSdkLock(
+            
+            int? deviceId = device.Id;
+            string deviceName = device.Name;
+            string deviceIp = device.IpAddress;
+
+return ExecuteWithDeviceSdkLock(
                 device,
                 $"CaptureFace-{device.Id}",
                 () =>
@@ -1033,7 +1086,7 @@ namespace ControlEntradaSalida
                         {
                             uint errorCode = HCNetSDK.NET_DVR_GetLastError();
                             return FaceCaptureResult.Fail(string.Format(CultureInfo.InvariantCulture,
-                                "启动人脸采集失败，错误码：{0}。", errorCode));
+                                "启动人脸采集失败，错误码：{0}。", errorCode), deviceId, deviceName, deviceIp);
                         }
 
                         int maxAttempts = 100;
@@ -1060,14 +1113,14 @@ namespace ControlEntradaSalida
                                         if (faceData.Length > MaxFaceImageBytes)
                                         {
                                             return FaceCaptureResult.Fail(string.Format(CultureInfo.InvariantCulture,
-                                                "采集图片大小 {0} 字节超过 200KB。", faceData.Length));
+                                                "采集图片大小 {0} 字节超过 200KB。", faceData.Length), deviceId, deviceName, deviceIp);
                                         }
 
                                         string base64 = Convert.ToBase64String(faceData);
-                                        return FaceCaptureResult.Ok(base64, "jpg");
+                                        return FaceCaptureResult.Ok(base64, "jpg", deviceId, deviceName, deviceIp);
                                     }
 
-                                    return FaceCaptureResult.Fail("采集成功但未获取到人脸图片数据。");
+                                    return FaceCaptureResult.Fail("采集成功但未获取到人脸图片数据。", deviceId, deviceName, deviceIp);
                                 }
                             }
                             else if (status == HCNetSDK_Facial.NET_SDK_GET_NEXT_STATUS_NEED_WAIT)
@@ -1076,17 +1129,17 @@ namespace ControlEntradaSalida
                             }
                             else if (status == HCNetSDK_Facial.NET_SDK_GET_NEXT_STATUS_FINISH)
                             {
-                                return FaceCaptureResult.Fail("人脸采集完成但未检测到有效人脸。");
+                                return FaceCaptureResult.Fail("人脸采集完成但未检测到有效人脸。", deviceId, deviceName, deviceIp);
                             }
                             else if (status == HCNetSDK_Facial.NET_SDK_GET_NEXT_STATUS_FAILED)
                             {
                                 uint errorCode = HCNetSDK.NET_DVR_GetLastError();
                                 return FaceCaptureResult.Fail(string.Format(CultureInfo.InvariantCulture,
-                                    "人脸采集失败，错误码：{0}。", errorCode));
+                                    "人脸采集失败，错误码：{0}。", errorCode), deviceId, deviceName, deviceIp);
                             }
                         }
 
-                        return FaceCaptureResult.Fail("人脸采集超时，请确保人脸正对设备摄像头。");
+                        return FaceCaptureResult.Fail("人脸采集超时，请确保人脸正对设备摄像头。", deviceId, deviceName, deviceIp);
                     }
                     finally
                     {
@@ -1102,7 +1155,7 @@ namespace ControlEntradaSalida
                 },
                 () => FaceCaptureResult.Fail(string.Format(CultureInfo.InvariantCulture,
                     "设备 {0} 忙碌，等待设备SDK锁超时，人脸采集启动失败。",
-                    device.Name)));
+                    device.Name), deviceId, deviceName, deviceIp));
         }
 
         public FaceOperationSummary DeleteFacesOnDevices(IEnumerable<string> employeeIds)
@@ -1161,6 +1214,16 @@ namespace ControlEntradaSalida
                             {
                                 deviceErrors.Add(result.ErrorMessage);
                             }
+
+                            summary.ErrorDetails.Add(new GrpcErrorDetail
+                            {
+                                EmployeeId = id,
+                                DeviceId = device.Id,
+                                DeviceName = device.Name,
+                                DeviceIp = device.IpAddress,
+                                Code = GrpcErrorCodes.DeviceError,
+                                Message = result.ErrorMessage
+                            });
                         }
                     }
 
@@ -1259,14 +1322,23 @@ namespace ControlEntradaSalida
                             failCount++;
                             item.DeviceErrors.Add(string.Format(CultureInfo.InvariantCulture,
                                 "[{0}] {1}", device.Name, result.ErrorMessage));
+                            summary.ErrorDetails.Add(new GrpcErrorDetail
+                            {
+                                EmployeeId = id,
+                                DeviceId = device.Id,
+                                DeviceName = device.Name,
+                                DeviceIp = device.IpAddress,
+                                Code = GrpcErrorCodes.DeviceError,
+                                Message = result.ErrorMessage
+                            });
                         }
                     }
 
                     item.SuccessDevices = successCount;
                     item.FailedDevices = failCount;
 
-                    // 只要有一个设备成功删除就视为部分成功
-                    if (successCount > 0)
+                    // 需要所有设备均成功删除，任一失败则判定失败
+                    if (failCount == 0 && successCount > 0)
                     {
                         item.Success = true;
                         summary.Succeeded++;
@@ -1275,13 +1347,25 @@ namespace ControlEntradaSalida
                     {
                         item.Success = false;
                         summary.Failed++;
+
+                        string errorMessage;
                         if (item.DeviceErrors.Count > 0)
                         {
-                            summary.Errors.Add(string.Format(CultureInfo.InvariantCulture,
-                                "员工 {0} 在所有设备上删除失败：{1}",
+                            errorMessage = string.Format(CultureInfo.InvariantCulture,
+                                "员工 {0} 在 {1} 台设备上删除失败：{2}",
                                 id,
-                                string.Join("; ", item.DeviceErrors.Take(3))));
+                                failCount,
+                                string.Join("; ", item.DeviceErrors.Take(3)));
                         }
+                        else
+                        {
+                            errorMessage = string.Format(CultureInfo.InvariantCulture,
+                                "员工 {0} 在 {1} 台设备上删除失败。",
+                                id,
+                                failCount);
+                        }
+
+                        summary.Errors.Add(errorMessage);
                     }
 
                     summary.Items.Add(item);
@@ -1403,6 +1487,8 @@ namespace ControlEntradaSalida
                         EmployeeId = id
                     };
 
+                    List<GrpcErrorDetail> deviceDetails = new List<GrpcErrorDetail>();
+
                     foreach (DeviceConnectionInfo device in onlineDevices)
                     {
                         FaceQueryResult result = QueryFaceOnDevice(device, id);
@@ -1416,6 +1502,16 @@ namespace ControlEntradaSalida
 
                         item.Error = result.ErrorMessage;
                         item.RawResponse = result.RawResponse;
+                        deviceDetails.Add(new GrpcErrorDetail
+                        {
+                            EmployeeId = id,
+                            DeviceId = device.Id,
+                            DeviceName = device.Name,
+                            DeviceIp = device.IpAddress,
+                            Code = GrpcErrorCodes.DeviceError,
+                            Message = result.ErrorMessage,
+                            RawResponse = result.RawResponse
+                        });
                     }
 
                     if (item.Success)
@@ -1429,6 +1525,7 @@ namespace ControlEntradaSalida
                         {
                             summary.Errors.Add(item.Error);
                         }
+                        summary.ErrorDetails.AddRange(deviceDetails);
                     }
 
                     summary.Items.Add(item);
@@ -1872,6 +1969,8 @@ namespace ControlEntradaSalida
             public bool Success { get; set; }
 
             public List<string> Errors { get; } = new List<string>();
+
+        public List<GrpcErrorDetail> ErrorDetails { get; } = new List<GrpcErrorDetail>();
         }
 
         private class DeviceUpdateResult
@@ -1911,6 +2010,8 @@ namespace ControlEntradaSalida
         public int UsersFailed { get; set; }
 
         public List<string> Errors { get; } = new List<string>();
+
+        public List<GrpcErrorDetail> ErrorDetails { get; } = new List<GrpcErrorDetail>();
     }
 
 
@@ -1943,6 +2044,8 @@ namespace ControlEntradaSalida
         /// 错误消息列表。
         /// </summary>
         public List<string> Errors { get; } = new List<string>();
+
+        public List<GrpcErrorDetail> ErrorDetails { get; } = new List<GrpcErrorDetail>();
 
         /// <summary>
         /// 每个人员的详细删除结果。

@@ -24,5 +24,7 @@ namespace ControlEntradaSalida
         public int TargetDevices { get; set; }
 
         public List<string> Errors { get; } = new List<string>();
+
+        public List<GrpcErrorDetail> ErrorDetails { get; } = new List<GrpcErrorDetail>();
     }
 }
