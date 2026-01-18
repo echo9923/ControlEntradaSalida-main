@@ -337,6 +337,14 @@ ASALocalRun/
 
 # 忽略所有 Markdown 文件
 *.md
+!AGENTS.md
+!**/AGENTS.md
+!CLAUDE.md
+!GEMINI.md
+!QWEN.md
+!**/CLAUDE.md
+!**/GEMINI.md
+!**/QWEN.md
 
 # 忽略 CLAUDE CODE 相关文件
 .claude/
@@ -351,3 +359,9 @@ ASALocalRun/
 
 
 .serena/
+# AGENTS.md 需要纳入版本控制
+!AGENTS.md
+!**/AGENTS.md
+!**/CLAUDE.md
+!**/GEMINI.md
+!**/QWEN.md
