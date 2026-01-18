@@ -53,12 +53,48 @@ class PersonConfig:
 
 # -------------------- gRPC 调用封装 --------------------
 
+def _parse_grpc_error(error: grpc.RpcError) -> dict:
+    status_name = None
+    try:
+        status_name = error.code().name
+    except Exception:
+        status_name = None
+
+    details = None
+    try:
+        details = error.details()
+    except Exception:
+        details = None
+
+    parsed_detail = None
+    if details:
+        try:
+            parsed_detail = json.loads(details)
+        except Exception:
+            parsed_detail = None
+
+    payload = parsed_detail if isinstance(parsed_detail, dict) else {
+        "success": False,
+        "code": "RPC_ERROR",
+        "message": details or str(error),
+    }
+
+    payload["grpcStatus"] = status_name or "UNKNOWN"
+    return payload
+
+
 def _grpc_call(server: str, method: str, payload: dict | list, timeout: float) -> dict:
     payload_str = json.dumps(payload, ensure_ascii=False)
     with grpc.insecure_channel(server) as channel:
         stub = channel.unary_unary(method)
-        resp = stub(payload_str.encode("utf-8"), timeout=timeout)
-    return json.loads(resp.decode("utf-8"))
+        try:
+            resp = stub(payload_str.encode("utf-8"), timeout=timeout)
+        except grpc.RpcError as exc:
+            return _parse_grpc_error(exc)
+    try:
+        return json.loads(resp.decode("utf-8"))
+    except Exception:
+        return {"success": False, "code": "INVALID_RESPONSE", "message": "响应不是有效 JSON", "raw": resp.decode("utf-8", errors="ignore")}
 
 
 def _grpc_stream(server: str, method: str, payload: dict | list, timeout: float) -> List[Dict[str, Any]]:
@@ -66,11 +102,14 @@ def _grpc_stream(server: str, method: str, payload: dict | list, timeout: float)
     results: List[Dict[str, Any]] = []
     with grpc.insecure_channel(server) as channel:
         stub = channel.unary_stream(method)
-        for msg in stub(payload_str.encode("utf-8"), timeout=timeout):
-            try:
-                results.append(json.loads(msg.decode("utf-8")))
-            except Exception:
-                results.append({"raw": msg.decode("utf-8", errors="ignore")})
+        try:
+            for msg in stub(payload_str.encode("utf-8"), timeout=timeout):
+                try:
+                    results.append(json.loads(msg.decode("utf-8")))
+                except Exception:
+                    results.append({"success": False, "code": "INVALID_RESPONSE", "message": "响应不是有效 JSON", "raw": msg.decode("utf-8", errors="ignore")})
+        except grpc.RpcError as exc:
+            results.append(_parse_grpc_error(exc))
     return results
 
 
@@ -282,11 +321,11 @@ class MainWindow(QtWidgets.QMainWindow):
     def _log(self, text: str) -> None:
         self.log_view.append(text)
 
-    def _run_async(self, action: str, payload_obj: dict | list, func: Callable[[], dict]) -> None:
+    def _run_async(self, action: str, payload_obj: dict | list, func: Callable[[], dict], *, is_stream: bool = False) -> None:
         payload_preview = json.dumps(payload_obj, ensure_ascii=False, indent=2)
         self._log(f"[{action}] 请求:\n{payload_preview}\n")
         worker = GrpcWorker(func, action, payload_preview)
-        worker.signals.success.connect(self._on_success)
+        worker.signals.success.connect(lambda act, payload, result: self._on_success(act, payload, result, is_stream))
         worker.signals.error.connect(self._on_error)
         self.pool.start(worker)
 
@@ -369,13 +408,12 @@ class MainWindow(QtWidgets.QMainWindow):
 
         def task() -> dict:
             frames = _grpc_stream(self._server(), "/permission.PermissionSyncService/CaptureFaceStream", payload, self._timeout())
-            # 返回第一帧并顺带写入 taskId
             first = frames[0] if frames else {}
-            if "taskId" in first:
+            if isinstance(first, dict) and "taskId" in first:
                 self.last_task_id = first.get("taskId")
             return {"frames": frames}
 
-        self._run_async("CaptureFaceStream", payload, task)
+        self._run_async("CaptureFaceStream", payload, task, is_stream=True)
 
     def _on_get_status(self) -> None:
         if not self.last_task_id:
@@ -391,9 +429,14 @@ class MainWindow(QtWidgets.QMainWindow):
     # -------------------- 结果处理 --------------------
 
     @QtCore.pyqtSlot(str, str, dict)
-    def _on_success(self, action: str, payload: str, result: dict) -> None:
+    def _on_success(self, action: str, payload: str, result: dict, is_stream: bool = False) -> None:
         pretty = json.dumps(result, ensure_ascii=False, indent=2)
         self._log(f"[{action}] 成功:\n{pretty}\n")
+
+        if is_stream and action == "CaptureFaceStream":
+            self._log(self._format_stream_errors(result.get("frames", []), action))
+        else:
+            self._log(self._format_error_details(result, action))
 
         # 如果查询返回了人脸，可尝试预览
         if action == "GetFaces":
@@ -418,9 +461,76 @@ class MainWindow(QtWidgets.QMainWindow):
         if action == "GetEnrollmentStatus":
             self.task_label.setText(f"最近任务: {result.get('taskId', self.last_task_id) or '-'} 状态: {result.get('status')}")
 
+    def _format_error_details(self, result: dict, action: str) -> str:
+        if not isinstance(result, dict):
+            return ""
+
+        details = result.get("errorDetails") or []
+        errors = result.get("errors") or []
+        message = result.get("message")
+        code = result.get("code")
+        success = result.get("success")
+        status = result.get("grpcStatus")
+
+        if success is True and not details and not errors and not status:
+            return ""
+
+        lines = [f"[{action}] 错误解析:"]
+        if success is not None:
+            lines.append(f"- success: {success}")
+        if code:
+            lines.append(f"- code: {code}")
+        if status:
+            lines.append(f"- grpcStatus: {status}")
+        if message:
+            lines.append(f"- message: {message}")
+        if errors:
+            lines.append(f"- errors: {errors}")
+        if details:
+            lines.append(f"- errorDetails: {json.dumps(details, ensure_ascii=False)}")
+
+        return "\n".join(lines) + "\n"
+
+    def _format_stream_errors(self, frames: list, action: str) -> str:
+        if not frames:
+            return ""
+
+        merged = {
+            "success": True,
+            "errors": [],
+            "errorDetails": [],
+        }
+
+        for frame in frames:
+            if not isinstance(frame, dict):
+                continue
+            if frame.get("success") is False:
+                merged["success"] = False
+            message = frame.get("message")
+            if message:
+                merged["errors"].append(message)
+            code = frame.get("code")
+            if code:
+                merged.setdefault("codes", set()).add(code)
+            details = frame.get("errorDetails") or []
+            if details:
+                merged["errorDetails"].extend(details)
+
+        if merged.get("codes"):
+            merged["code"] = ",".join(sorted(merged["codes"]))
+            merged.pop("codes", None)
+
+        return self._format_error_details(merged, action)
+
     @QtCore.pyqtSlot(str, str, str)
     def _on_error(self, action: str, payload: str, err: str) -> None:
-        self._log(f"[{action}] 失败:\n{err}\n")
+        pretty = err
+        try:
+            parsed = json.loads(err)
+            pretty = json.dumps(parsed, ensure_ascii=False, indent=2)
+        except Exception:
+            pass
+        self._log(f"[{action}] 失败:\n{pretty}\n")
 
     def _try_preview_from_items(self, items):
         for item in items or []:
