@@ -97,7 +97,13 @@ namespace ControlEntradaSalida.Configuration
             /// gRPC JSON 日志的最大字符数，超出部分将被截断。
             /// </summary>
             public int? GrpcPayloadLogMaxChars { get; set; }
-        }
+
+            /// <summary>
+            /// 门禁管理接口的 API Key。为空表示不强制鉴权（但会记录告警日志）。
+            /// </summary>
+            public string GrpcManagementApiKey { get; set; }
+
+            }
 
         public sealed class DatabaseSection
         {

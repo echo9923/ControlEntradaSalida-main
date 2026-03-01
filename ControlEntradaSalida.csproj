@@ -189,7 +189,8 @@
     <Compile Include="GrpcErrorCodes.cs" />
     <Compile Include="GrpcErrorDetail.cs" />
     <Compile Include="GrpcValidationException.cs" />
-<Compile Include="FaceCaptureResult.cs" />
+    <Compile Include="AccessControlGrpcService.cs" />
+    <Compile Include="FaceCaptureResult.cs" />
     <Compile Include="FaceOperationSummary.cs" />
     <Compile Include="FaceEventService.cs" />
     <Compile Include="HCNetSDK.cs" />

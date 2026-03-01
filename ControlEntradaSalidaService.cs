@@ -130,10 +130,18 @@ namespace ControlEntradaSalida
             DeviceConnectionManager.Instance.ResumeMonitoring();
 
             refreshManager = new PermissionRefreshManager();
+
+            var accessControlService = new AccessControlGrpcService(
+                DeviceConnectionManager.Instance,
+                config.LogGrpcPayloads,
+                config.GrpcPayloadLogMaxChars,
+                config.GrpcManagementApiKey);
+
             grpcServer = new PermissionUpdateGrpcServer(
                 refreshManager,
                 config.LogGrpcPayloads,
-                config.GrpcPayloadLogMaxChars);
+                config.GrpcPayloadLogMaxChars,
+                accessControlService);
             grpcServer.Start(config.GrpcListenPort);
 
             initialized = true;

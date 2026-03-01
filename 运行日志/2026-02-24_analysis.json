@@ -1,0 +1,108 @@
+{
+  "date": "2026-02-24",
+  "time_range": "00:09 ~ 23:59",
+  "pid": 13096,
+  "uptime_start": "27.04:01:55.7170033",
+  "total_lines": 9968,
+  "devices": {
+    "18": {
+      "name": "生产区西门门禁左进",
+      "disconnects": 25,
+      "reconnect_success": 25,
+      "max_reconnect_reached": 14
+    },
+    "19": {
+      "name": "生产区西门门禁右进",
+      "disconnects": 26,
+      "reconnect_success": 26,
+      "max_reconnect_reached": 22
+    },
+    "20": {
+      "name": "生产区西门门禁左出",
+      "disconnects": 40,
+      "reconnect_success": 39,
+      "max_reconnect_reached": 14
+    },
+    "21": {
+      "name": "生产区西门门禁右出",
+      "disconnects": 19,
+      "reconnect_success": 18,
+      "max_reconnect_reached": 23
+    }
+  },
+  "errors_count": 11,
+  "errors": [
+    {
+      "time": "01:46",
+      "device": "生产区西门门禁右出",
+      "type": "报警布防失败",
+      "err_code": 7
+    },
+    {
+      "time": "05:32",
+      "device": "生产区西门门禁左出",
+      "type": "历史事件补偿启动失败",
+      "err_code": 17
+    },
+    {
+      "time": "05:32",
+      "device": "生产区西门门禁左进",
+      "type": "历史事件补偿启动失败",
+      "err_code": 17
+    },
+    {
+      "time": "14:32",
+      "device": "生产区西门门禁右出",
+      "type": "报警布防失败",
+      "err_code": 10
+    },
+    {
+      "time": "15:34",
+      "device": "生产区西门门禁右进",
+      "type": "报警布防失败",
+      "err_code": 7
+    },
+    {
+      "time": "15:34",
+      "device": "生产区西门门禁左出",
+      "type": "报警布防失败",
+      "err_code": 10
+    },
+    {
+      "time": "15:35",
+      "device": "生产区西门门禁左出",
+      "type": "历史事件补偿启动失败",
+      "err_code": 7
+    },
+    {
+      "time": "15:35",
+      "device": "生产区西门门禁右进",
+      "type": "历史事件补偿启动失败",
+      "err_code": 7
+    },
+    {
+      "time": "15:35",
+      "device": "生产区西门门禁左出",
+      "type": "历史事件补偿启动失败",
+      "err_code": 10
+    },
+    {
+      "time": "15:40",
+      "device": "生产区西门门禁右进",
+      "type": "历史事件补偿启动失败",
+      "err_code": 17
+    },
+    {
+      "time": "17:23",
+      "device": "生产区西门门禁右进",
+      "type": "报警布防失败",
+      "err_code": 10
+    }
+  ],
+  "compensation_channel_errors": 26,
+  "compensation_total_failures": 6,
+  "alarm_setup_failures": 5,
+  "connection_semaphore_timeouts": 22,
+  "downgrade_retries": 215,
+  "connection_failures": []
+}

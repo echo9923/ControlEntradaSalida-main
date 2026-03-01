@@ -14,6 +14,8 @@ namespace ControlEntradaSalida
         public const string NotFound = "NOT_FOUND";
         public const string InternalError = "INTERNAL_ERROR";
 
+        public const string Unauthenticated = "UNAUTHENTICATED";
+
         public const string DeviceError = "DEVICE_ERROR";
         public const string DbError = "DB_ERROR";
         public const string SdkError = "SDK_ERROR";

@@ -193,6 +193,7 @@ namespace ControlEntradaSalida
         // 以 IP 为索引（回调热点路径用）
         private readonly ConcurrentDictionary<string, int> _deviceIdByIp;
         private readonly ConcurrentDictionary<int, SemaphoreSlim> _connectionSemaphores;
+        private readonly object deviceMutationLock = new object();
         private System.Timers.Timer _statusCheckTimer;
         private readonly ReconnectManager _reconnectManager;
         private readonly DeviceStatusEngine _statusEngine;
@@ -579,6 +580,323 @@ namespace ControlEntradaSalida
             }
 
             return null;
+        }
+
+        /// <summary>
+        /// 新增设备（写入数据库并加入运行时设备列表）。
+        /// </summary>
+        /// <remarks>
+        /// 注意：devices.device_id 为非自增主键，必须由调用方提供。
+        /// </remarks>
+        public bool TryAddDevice(DeviceConnectionInfo device, string description, out string errorMessage)
+        {
+            errorMessage = null;
+
+            if (_disposed)
+            {
+                errorMessage = $"{GrpcErrorCodes.Failed}: 设备连接管理器已释放。";
+                return false;
+            }
+
+            if (device == null)
+            {
+                errorMessage = $"{GrpcErrorCodes.InvalidArgument}: device 不能为空。";
+                return false;
+            }
+
+            string ipKey = device.IpAddress?.Trim();
+            if (device.Id <= 0)
+            {
+                errorMessage = $"{GrpcErrorCodes.InvalidArgument}: deviceId 非法。";
+                return false;
+            }
+
+            if (string.IsNullOrWhiteSpace(device.Name))
+            {
+                errorMessage = $"{GrpcErrorCodes.InvalidArgument}: deviceName 不能为空。";
+                return false;
+            }
+
+            if (string.IsNullOrWhiteSpace(ipKey))
+            {
+                errorMessage = $"{GrpcErrorCodes.InvalidArgument}: ipAddress 不能为空。";
+                return false;
+            }
+
+            if (string.IsNullOrWhiteSpace(device.Port))
+            {
+                device.Port = "8000";
+            }
+
+            if (!ushort.TryParse(device.Port, out ushort parsedPort) || parsedPort <= 0)
+            {
+                errorMessage = $"{GrpcErrorCodes.InvalidArgument}: port 必须为 1-65535 的数字字符串。";
+                return false;
+            }
+
+            if (string.IsNullOrWhiteSpace(device.Username))
+            {
+                device.Username = "admin";
+            }
+
+            if (string.IsNullOrWhiteSpace(device.Password))
+            {
+                errorMessage = $"{GrpcErrorCodes.InvalidArgument}: password 不能为空。";
+                return false;
+            }
+
+            lock (deviceMutationLock)
+            {
+                if (_devicesById.ContainsKey(device.Id))
+                {
+                    errorMessage = $"{GrpcErrorCodes.InvalidArgument}: 设备ID已存在。";
+                    return false;
+                }
+
+                if (_deviceIdByIp.TryGetValue(ipKey, out int existingDeviceId))
+                {
+                    errorMessage = $"{GrpcErrorCodes.InvalidArgument}: IP 已被设备 {existingDeviceId} 占用。";
+                    return false;
+                }
+
+                if (!TryOpenDatabase(out SqlServerDatabase db))
+                {
+                    errorMessage = $"{GrpcErrorCodes.DbError}: 数据库连接失败，无法新增设备。";
+                    return false;
+                }
+
+                using (db)
+                {
+                    try
+                    {
+                        const string checkIdSql = "SELECT COUNT(1) FROM devices WHERE device_id = @device_id";
+                        using (SqlCommand checkIdCmd = db.CreateCommand(checkIdSql))
+                        {
+                            checkIdCmd.Parameters.AddWithValue("@device_id", device.Id);
+                            int count = Convert.ToInt32(checkIdCmd.ExecuteScalar() ?? 0);
+                            if (count > 0)
+                            {
+                                errorMessage = $"{GrpcErrorCodes.InvalidArgument}: 设备ID已存在。";
+                                return false;
+                            }
+                        }
+
+                        const string checkIpSql = "SELECT TOP 1 device_id FROM devices WHERE ip_address = @ip_address";
+                        using (SqlCommand checkIpCmd = db.CreateCommand(checkIpSql))
+                        {
+                            checkIpCmd.Parameters.AddWithValue("@ip_address", ipKey);
+                            object existing = checkIpCmd.ExecuteScalar();
+                            if (existing != null && existing != DBNull.Value)
+                            {
+                                errorMessage = $"{GrpcErrorCodes.InvalidArgument}: IP 已存在(设备ID={existing})。";
+                                return false;
+                            }
+                        }
+
+                        const string insertSql =
+                            "INSERT INTO devices (device_id, device_name, description, ip_address, port, username, [password], status, last_used_time) " +
+                            "VALUES (@device_id, @device_name, @description, @ip_address, @port, @username, @password, @status, NULL)";
+
+                        using (SqlCommand cmd = db.CreateCommand(insertSql))
+                        {
+                            cmd.Parameters.AddWithValue("@device_id", device.Id);
+                            cmd.Parameters.AddWithValue("@device_name", device.Name.Trim());
+                            cmd.Parameters.AddWithValue("@description", string.IsNullOrWhiteSpace(description) ? (object)DBNull.Value : description.Trim());
+                            cmd.Parameters.AddWithValue("@ip_address", ipKey);
+                            cmd.Parameters.AddWithValue("@port", device.Port.Trim());
+                            cmd.Parameters.AddWithValue("@username", device.Username.Trim());
+                            cmd.Parameters.AddWithValue("@password", device.Password);
+                            cmd.Parameters.AddWithValue("@status", device.IsEnabled ? 1 : 0);
+
+                            int rows = cmd.ExecuteNonQuery();
+                            if (rows <= 0)
+                            {
+                                errorMessage = $"{GrpcErrorCodes.DbError}: 新增设备失败，数据库未写入。";
+                                return false;
+                            }
+                        }
+                    }
+                    catch (SqlException ex)
+                    {
+                        ServiceLogger.Error("新增设备写入数据库失败。", ex);
+                        errorMessage = $"{GrpcErrorCodes.DbError}: 新增设备写入数据库失败: {ex.Message}";
+                        return false;
+                    }
+                    catch (Exception ex)
+                    {
+                        ServiceLogger.Error("新增设备写入数据库时发生异常。", ex);
+                        errorMessage = $"{GrpcErrorCodes.DbError}: 新增设备写入数据库异常: {ex.Message}";
+                        return false;
+                    }
+                }
+
+                if (!_devicesById.TryAdd(device.Id, device))
+                {
+                    errorMessage = $"{GrpcErrorCodes.InternalError}: 新增设备失败（并发冲突）。";
+                    return false;
+                }
+
+                _connectionSemaphores.TryAdd(device.Id,
+                    SynchronizationHelper.CreateSemaphore(1, 1, $"Device-{device.Id}-Connection"));
+
+                _deviceIdByIp.TryAdd(ipKey, device.Id);
+
+                device.UserID = -1;
+                device.IsConnected = false;
+                device.UpdateStatus(DeviceStatus.Offline, "已新增，尚未连接");
+
+                return true;
+            }
+        }
+
+        /// <summary>
+        /// 删除设备（默认会先尝试断开连接）。
+        /// </summary>
+        public bool TryDeleteDevice(int deviceId, out string errorMessage)
+        {
+            return TryDeleteDevice(deviceId, true, out errorMessage);
+        }
+
+        /// <summary>
+        /// 删除设备（写入数据库并从运行时设备列表移除）。
+        /// </summary>
+        public bool TryDeleteDevice(int deviceId, bool disconnectFirst, out string errorMessage)
+        {
+            errorMessage = null;
+
+            if (_disposed)
+            {
+                errorMessage = $"{GrpcErrorCodes.Failed}: 设备连接管理器已释放。";
+                return false;
+            }
+
+            if (deviceId <= 0)
+            {
+                errorMessage = $"{GrpcErrorCodes.InvalidArgument}: deviceId 非法。";
+                return false;
+            }
+
+            lock (deviceMutationLock)
+            {
+                DeviceConnectionInfo device = GetDeviceById(deviceId);
+
+                if (disconnectFirst && device != null)
+                {
+                    DisconnectDevice(device);
+                }
+
+                if (!TryOpenDatabase(out SqlServerDatabase db))
+                {
+                    errorMessage = $"{GrpcErrorCodes.DbError}: 数据库连接失败，无法删除设备。";
+                    return false;
+                }
+
+                using (db)
+                {
+                    try
+                    {
+                        const string sql = "DELETE FROM devices WHERE device_id = @device_id";
+                        using (SqlCommand cmd = db.CreateCommand(sql))
+                        {
+                            cmd.Parameters.AddWithValue("@device_id", deviceId);
+                            int rows = cmd.ExecuteNonQuery();
+                            if (rows <= 0)
+                            {
+                                errorMessage = $"{GrpcErrorCodes.NotFound}: 设备不存在。";
+                                return false;
+                            }
+                        }
+                    }
+                    catch (SqlException ex)
+                    {
+                        ServiceLogger.Error("删除设备数据库操作失败。", ex);
+                        errorMessage = $"{GrpcErrorCodes.DbError}: 删除设备数据库操作失败: {ex.Message}";
+                        return false;
+                    }
+                    catch (Exception ex)
+                    {
+                        ServiceLogger.Error("删除设备数据库操作异常。", ex);
+                        errorMessage = $"{GrpcErrorCodes.DbError}: 删除设备数据库操作异常: {ex.Message}";
+                        return false;
+                    }
+                }
+
+                if (_devicesById.TryRemove(deviceId, out DeviceConnectionInfo removedDevice))
+                {
+                    try
+                    {
+                        removedDevice?.Dispose();
+                    }
+                    catch
+                    {
+                        // 忽略释放异常
+                    }
+
+                    string ipKey = removedDevice?.IpAddress?.Trim();
+                    if (!string.IsNullOrWhiteSpace(ipKey)
+                        && _deviceIdByIp.TryGetValue(ipKey, out int mappedId)
+                        && mappedId == deviceId)
+                    {
+                        _deviceIdByIp.TryRemove(ipKey, out _);
+                    }
+                }
+
+                _connectionSemaphores.TryRemove(deviceId, out _);
+
+                _reconnectManager.RemoveDevice(deviceId);
+
+                return true;
+            }
+        }
+
+        /// <summary>
+        /// 触发设备重连（可选：强制先断开再连接）。
+        /// </summary>
+        /// <returns>是否找到设备；连接是否成功通过 out 参数返回。</returns>
+        public bool TryReconnectDevice(int deviceId, bool force, out bool connected, out string message)
+        {
+            connected = false;
+            message = null;
+
+            if (_disposed)
+            {
+                message = "设备连接管理器已释放。";
+                return false;
+            }
+
+            DeviceConnectionInfo device = GetDeviceById(deviceId);
+            if (device == null)
+            {
+                message = $"设备 {deviceId} 不存在。";
+                return false;
+            }
+
+            if (!device.IsEnabled)
+            {
+                connected = false;
+                message = "设备已禁用，无法重连。";
+                return true;
+            }
+
+            if (force)
+            {
+                DisconnectDevice(device);
+            }
+
+            try
+            {
+                connected = ConnectToDevice(device);
+                message = connected
+                    ? "连接成功。"
+                    : (device.StatusMessage ?? "连接失败。");
+            }
+            catch (Exception ex)
+            {
+                connected = false;
+                message = $"连接异常: {ex.Message}";
+            }
+
+            return true;
         }
 
         #endregion

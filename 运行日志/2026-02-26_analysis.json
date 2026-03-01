@@ -1,0 +1,41 @@
+{
+  "date": "2026-02-26",
+  "time_range": "00:00 ~ 23:38",
+  "pid": 13096,
+  "uptime_start": "29.03:52:21",
+  "total_lines": 7860,
+  "devices": {
+    "18": {
+      "name": "生产区西门门禁左进",
+      "disconnects": 1,
+      "reconnect_success": 1,
+      "max_reconnect_reached": 20
+    },
+    "19": {
+      "name": "生产区西门门禁右进",
+      "disconnects": 27,
+      "reconnect_success": 27,
+      "max_reconnect_reached": 19
+    },
+    "20": {
+      "name": "生产区西门门禁左出",
+      "disconnects": 20,
+      "reconnect_success": 18,
+      "max_reconnect_reached": 27
+    },
+    "21": {
+      "name": "生产区西门门禁右出",
+      "disconnects": 5,
+      "reconnect_success": 4,
+      "max_reconnect_reached": 23
+    }
+  },
+  "errors_count": 0,
+  "errors": [],
+  "compensation_channel_errors": 2,
+  "compensation_total_failures": 0,
+  "alarm_setup_failures": 0,
+  "connection_semaphore_timeouts": 2,
+  "downgrade_retries": 102,
+  "connection_failures": []
+}

@@ -97,6 +97,7 @@ namespace ControlEntradaSalida
         private readonly object lifecycleLock = new object();
         private readonly bool logPayloads;
         private readonly int payloadLogMaxChars;
+        private readonly AccessControlGrpcService accessControlGrpcService;
 
         private CancellationTokenSource shutdownTokenSource;
         private Server grpcServer;
@@ -104,10 +105,19 @@ namespace ControlEntradaSalida
         private int listenPort = DefaultPort;
 
         public PermissionUpdateGrpcServer(PermissionRefreshManager refreshManager, bool logPayloads, int payloadLogMaxChars)
+            : this(refreshManager, logPayloads, payloadLogMaxChars, null)
+        {
+        }
+
+        public PermissionUpdateGrpcServer(PermissionRefreshManager refreshManager,
+            bool logPayloads,
+            int payloadLogMaxChars,
+            AccessControlGrpcService accessControlGrpcService)
         {
             this.refreshManager = refreshManager ?? throw new ArgumentNullException(nameof(refreshManager));
             this.logPayloads = logPayloads;
             this.payloadLogMaxChars = payloadLogMaxChars > 0 ? payloadLogMaxChars : 0;
+            this.accessControlGrpcService = accessControlGrpcService;
         }
 
         public void Start(int port = DefaultPort)
@@ -203,25 +213,25 @@ namespace ControlEntradaSalida
                 return;
             }
 
-            Server localServer = new Server
+            ServerServiceDefinition permissionServiceDefinition = ServerServiceDefinition.CreateBuilder()
+                .AddMethod(UpdatePermissionMethod, HandlePermissionUpdateAsync)
+                .AddMethod(SyncPersonsMethod, HandlePersonSyncAsync)
+                .AddMethod(DeleteFacesMethod, HandleFaceDeleteAsync)
+                .AddMethod(DeletePersonsMethod, HandlePersonDeleteAsync)
+                .AddMethod(GetFacesMethod, HandleFaceGetAsync)
+                .AddMethod(GetStatusMethod, HandleStatusGetAsync)
+                .AddMethod(CaptureFaceStreamMethod, HandleCaptureStreamAsync)
+                .Build();
+
+            var localServer = new Server();
+            localServer.Services.Add(permissionServiceDefinition);
+
+            if (accessControlGrpcService != null)
             {
-                Services =
-                {
-                    ServerServiceDefinition.CreateBuilder()
-                        .AddMethod(UpdatePermissionMethod, HandlePermissionUpdateAsync)
-                        .AddMethod(SyncPersonsMethod, HandlePersonSyncAsync)
-                        .AddMethod(DeleteFacesMethod, HandleFaceDeleteAsync)
-                        .AddMethod(DeletePersonsMethod, HandlePersonDeleteAsync)
-                        .AddMethod(GetFacesMethod, HandleFaceGetAsync)
-                        .AddMethod(GetStatusMethod, HandleStatusGetAsync)
-                        .AddMethod(CaptureFaceStreamMethod, HandleCaptureStreamAsync)
-                        .Build()
-                },
-                Ports =
-                {
-                    new ServerPort("0.0.0.0", port, ServerCredentials.Insecure)
-                }
-            };
+                localServer.Services.Add(accessControlGrpcService.BuildServiceDefinition());
+            }
+
+            localServer.Ports.Add(new ServerPort("0.0.0.0", port, ServerCredentials.Insecure));
 
             try
             {

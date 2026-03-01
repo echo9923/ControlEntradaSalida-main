@@ -1,0 +1,72 @@
+{
+  "date": "2026-02-25",
+  "time_range": "00:00:09 ~ 23:59:53",
+  "pid": 13096,
+  "uptime_start": "28.03:52:07",
+  "total_lines": 8076,
+  "devices": {
+    "7": {
+      "name": "有限西门1进",
+      "disconnects": 1,
+      "reconnect_success": 1,
+      "max_reconnect_reached": 0
+    },
+    "8": {
+      "name": "有限西门1出",
+      "disconnects": 1,
+      "reconnect_success": 1,
+      "max_reconnect_reached": 0
+    },
+    "18": {
+      "name": "生产区西门门禁左进",
+      "disconnects": 5,
+      "reconnect_success": 5,
+      "max_reconnect_reached": 23
+    },
+    "19": {
+      "name": "生产区西门门禁右进",
+      "disconnects": 15,
+      "reconnect_success": 16,
+      "max_reconnect_reached": 15
+    },
+    "20": {
+      "name": "生产区西门门禁左出",
+      "disconnects": 22,
+      "reconnect_success": 23,
+      "max_reconnect_reached": 16
+    },
+    "21": {
+      "name": "生产区西门门禁右出",
+      "disconnects": 6,
+      "reconnect_success": 7,
+      "max_reconnect_reached": 25
+    },
+    "22": {
+      "name": "西门门禁右出",
+      "disconnects": 2,
+      "reconnect_success": 2,
+      "max_reconnect_reached": 0
+    },
+    "23": {
+      "name": "西门门禁左进",
+      "disconnects": 1,
+      "reconnect_success": 1,
+      "max_reconnect_reached": 0
+    }
+  },
+  "errors_count": 1,
+  "errors": [
+    {
+      "time": "07:32:49",
+      "device": "生产区西门门禁右出",
+      "type": "报警布防失败",
+      "err_code": 10
+    }
+  ],
+  "compensation_channel_errors": 3,
+  "compensation_total_failures": 0,
+  "alarm_setup_failures": 1,
+  "connection_semaphore_timeouts": 2,
+  "downgrade_retries": 100,
+  "connection_failures": []
+}

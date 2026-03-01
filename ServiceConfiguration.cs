@@ -51,6 +51,8 @@ namespace ControlEntradaSalida
 
         public int GrpcPayloadLogMaxChars { get; private set; }
 
+        public string GrpcManagementApiKey { get; private set; }
+
         public FaceEventOptions FaceEvent { get; private set; }
 
         public DeviceConnectionOptions DeviceConnection { get; private set; }
@@ -73,6 +75,9 @@ namespace ControlEntradaSalida
             configuration.VerboseLogging = serviceSection?.VerboseLogging ?? false;
             configuration.LogGrpcPayloads = serviceSection?.LogGrpcPayloads ?? false;
             configuration.GrpcPayloadLogMaxChars = ResolvePayloadLogMaxChars(serviceSection?.GrpcPayloadLogMaxChars);
+            configuration.GrpcManagementApiKey = string.IsNullOrWhiteSpace(serviceSection?.GrpcManagementApiKey)
+                ? null
+                : serviceSection.GrpcManagementApiKey.Trim();
             configuration.FaceEvent = ResolveFaceEventOptions(ExternalConfiguration.Current.FaceEventLogging);
             configuration.DeviceConnection = ResolveDeviceConnectionOptions(ExternalConfiguration.Current.DeviceConnection);
             configuration.Reconnect = ResolveReconnectOptions(ExternalConfiguration.Current.Reconnect);
