@@ -29,13 +29,17 @@ namespace ControlEntradaSalida
         private readonly int deviceSdkLockTimeoutMs;
         private readonly DeviceConnectionManager deviceManager;
         private readonly Common commonHelper;
+        private readonly DeviceOperationRetryStore retryStore;
+        private readonly ServiceConfiguration.DeviceOperationRetryOptions retryOptions;
         private readonly object refreshLock = new object();
         private readonly object personSyncLock = new object();
 
-        public PermissionRefreshManager()
+        public PermissionRefreshManager(DeviceOperationRetryStore retryStore = null)
         {
             deviceManager = DeviceConnectionManager.Instance;
             commonHelper = new Common();
+            this.retryStore = retryStore;
+            retryOptions = ServiceConfiguration.Current.DeviceOperationRetry;
 
             try
             {
@@ -123,12 +127,19 @@ namespace ControlEntradaSalida
                     RefreshResult result = ApplyPermissionToDevices(user, devices);
                     if (result.Success)
                     {
-                        bool updated = UpdateSyncedLevel(user.EmployeeId, user.PermissionLevel);
+                        if (result.HasQueued)
+                        {
+                            summary.QueuedCount++;
+                            summary.QueuedDetails.AddRange(result.QueuedDetails);
+                            continue;
+                        }
+
+                        bool updated = CompletePermissionSyncIfNoPending(user.EmployeeId, user.PermissionLevel);
                         if (!updated)
                         {
                             summary.UsersFailed++;
                             summary.Errors.Add(string.Format(CultureInfo.InvariantCulture,
-                                "更新用户 {0} 的同步状态失败。", user.EmployeeId));
+                                "更新员工 {0} 的权限同步标记失败。", user.EmployeeId));
                             continue;
                         }
 
@@ -244,12 +255,19 @@ namespace ControlEntradaSalida
                     RefreshResult result = ApplyPermissionToDevices(userRecord, devices);
                     if (result.Success)
                     {
-                        bool synced = UpdateSyncedLevel(userRecord.EmployeeId, update.PermissionCode);
+                        if (result.HasQueued)
+                        {
+                            summary.QueuedCount++;
+                            summary.QueuedDetails.AddRange(result.QueuedDetails);
+                            continue;
+                        }
+
+                        bool synced = CompletePermissionSyncIfNoPending(userRecord.EmployeeId, update.PermissionCode);
                         if (!synced)
                         {
                             summary.UsersFailed++;
                             string errorMessage = string.Format(CultureInfo.InvariantCulture,
-                                "更新用户 {0} 的同步状态失败。", userRecord.EmployeeId);
+                                "更新员工 {0} 的权限同步标记失败。", userRecord.EmployeeId);
                             summary.Errors.Add(errorMessage);
                             summary.ErrorDetails.Add(new GrpcErrorDetail
                             {
@@ -293,7 +311,7 @@ namespace ControlEntradaSalida
                 string employeeId = person.EmployeeId?.Trim();
                 if (string.IsNullOrWhiteSpace(employeeId))
                 {
-                    ServiceLogger.Warn("检测到缺少 employee_id 的人员记录，已跳过。");
+                    ServiceLogger.Warn("人员下发请求缺少 employee_id，已跳过。");
                     skippedWithoutId++;
                     continue;
                 }
@@ -319,22 +337,22 @@ namespace ControlEntradaSalida
                 if (skippedWithoutId > 0)
                 {
                     summary.Errors.Add(string.Format(CultureInfo.InvariantCulture,
-                        "有 {0} 条记录因缺少 employee_id 被跳过。", skippedWithoutId));
+                        "有 {0} 条人员记录缺少 employee_id，已跳过。",
+                        skippedWithoutId));
                 }
 
-                summary.Errors.Add("未提供任何需要同步的人员。");
+                summary.Errors.Add("未提供任何有效的人员信息。");
                 return summary;
             }
 
             lock (personSyncLock)
             {
-                List<DeviceConnectionInfo> onlineDevices = GetOnlineGateDevices();
+                List<DeviceConnectionInfo> devices = GetEnabledGateDevices();
+                summary.TargetDevices = devices.Count;
 
-                summary.TargetDevices = onlineDevices.Count;
-
-                if (onlineDevices.Count == 0)
+                if (devices.Count == 0)
                 {
-                    summary.Errors.Add("当前没有在线的门禁设备，无法下发人员信息。");
+                    summary.Errors.Add("未找到可用的门禁设备，无法下发人员信息。");
                     summary.FailedPersons = summary.TotalPersons;
                     return summary;
                 }
@@ -342,43 +360,59 @@ namespace ControlEntradaSalida
                 if (skippedWithoutId > 0)
                 {
                     summary.Errors.Add(string.Format(CultureInfo.InvariantCulture,
-                        "有 {0} 条记录因缺少 employee_id 被跳过。", skippedWithoutId));
+                        "有 {0} 条人员记录缺少 employee_id，已跳过。",
+                        skippedWithoutId));
                 }
 
                 foreach (PersonSyncRequest request in requests)
                 {
-                    bool personSucceeded = true;
+                    bool hardFailed = false;
+                    bool queued = false;
 
-                    foreach (DeviceConnectionInfo device in onlineDevices)
+                    foreach (DeviceConnectionInfo device in devices)
                     {
                         DeviceUpdateResult result = UpsertPersonOnDevice(device, request);
-                        if (!result.Success)
+                        if (result.Success)
                         {
-                            personSucceeded = false;
-                            summary.Errors.Add(result.ErrorMessage);
-                            summary.ErrorDetails.Add(new GrpcErrorDetail
+                            ClearPersonRetryState(device.Id, request.EmployeeId, request.HasFace);
+                            if (request.HasFace)
                             {
-                                EmployeeId = request.EmployeeId,
-                                DeviceId = device.Id,
-                                DeviceName = device.Name,
-                                DeviceIp = device.IpAddress,
-                                Code = GrpcErrorCodes.DeviceError,
-                                Message = result.ErrorMessage
-                            });
+                                summary.FacesUploaded++;
+                            }
+
+                            continue;
                         }
-                        else if (request.HasFace)
+
+                        if (result.IsRetryable && TryQueuePersonRetry(device, request, result.ErrorMessage, summary.QueuedDetails))
                         {
-                            summary.FacesUploaded++;
+                            queued = true;
+                            continue;
                         }
+
+                        hardFailed = true;
+                        summary.Errors.Add(result.ErrorMessage);
+                        summary.ErrorDetails.Add(new GrpcErrorDetail
+                        {
+                            EmployeeId = request.EmployeeId,
+                            DeviceId = device.Id,
+                            DeviceName = device.Name,
+                            DeviceIp = device.IpAddress,
+                            Code = GrpcErrorCodes.DeviceError,
+                            Message = result.ErrorMessage
+                        });
                     }
 
-                    if (personSucceeded)
+                    if (hardFailed)
                     {
-                        summary.SuccessfulPersons++;
+                        summary.FailedPersons++;
+                    }
+                    else if (queued)
+                    {
+                        summary.QueuedCount++;
                     }
                     else
                     {
-                        summary.FailedPersons++;
+                        summary.SuccessfulPersons++;
                     }
                 }
             }
@@ -414,29 +448,43 @@ namespace ControlEntradaSalida
         }
 
 
-        private bool TryEnsureDeviceConnected(DeviceConnectionInfo device)
+        private bool TryEnsureDeviceConnected(DeviceConnectionInfo device, bool allowReconnect)
         {
             if (device == null)
             {
                 return false;
             }
 
-            if (device.IsConnected && device.UserID >= 0)
+            if (DeviceConnectionRetryPolicy.IsDeviceReady(device.IsConnected, device.UserID))
             {
                 return true;
             }
 
+            if (!DeviceConnectionRetryPolicy.ShouldAttemptReconnect(device.IsConnected,
+                device.UserID,
+                device.IsReconnecting,
+                allowReconnect))
+            {
+                return false;
+            }
+
             bool connected = deviceManager.ConnectToDevice(device);
-            return connected && device.UserID >= 0;
+            return connected && DeviceConnectionRetryPolicy.IsDeviceReady(device.IsConnected, device.UserID);
+        }
+
+        private List<DeviceConnectionInfo> GetEnabledGateDevices()
+        {
+            EnsureDevicesLoaded();
+
+            return deviceManager.GetAllDevices()
+                .Where(d => d.IsEnabled && !IsEnrollmentDevice(d))
+                .ToList();
         }
 
         private List<DeviceConnectionInfo> GetOnlineGateDevices()
         {
-            EnsureDevicesLoaded();
-
-            // 排除人脸录入仪设备，该设备仅用于连接和人脸录入功能
-            return deviceManager.GetAllDevices()
-                .Where(d => d.IsEnabled && d.IsConnected && d.UserID >= 0 && !IsEnrollmentDevice(d))
+            return GetEnabledGateDevices()
+                .Where(d => d.IsConnected && d.UserID >= 0)
                 .ToList();
         }
 
@@ -640,29 +688,33 @@ namespace ControlEntradaSalida
             foreach (DeviceAreaInfo device in devices)
             {
                 bool shouldEnable = ShouldEnable(device.Area, user.PermissionLevel);
-
                 DeviceUpdateResult updateResult = UpdateDeviceAccess(device, user, shouldEnable);
-                if (!updateResult.Success)
+                if (updateResult.Success)
                 {
-                    result.Success = false;
-                    result.Errors.Add(updateResult.ErrorMessage);
-                    result.ErrorDetails.Add(new GrpcErrorDetail
-                    {
-                        EmployeeId = user.EmployeeId,
-                        DeviceId = device.DeviceId,
-                        DeviceName = device.DeviceName,
-                        DeviceIp = device.Connection?.IpAddress,
-                        Code = GrpcErrorCodes.DeviceError,
-                        Message = updateResult.ErrorMessage
-                    });
+                    ClearPermissionRetryState(device.DeviceId, user.EmployeeId);
+                    continue;
                 }
+
+                if (updateResult.IsRetryable && TryQueuePermissionRetry(device, user, updateResult.ErrorMessage, result))
+                {
+                    continue;
+                }
+
+                result.Errors.Add(updateResult.ErrorMessage);
+                result.ErrorDetails.Add(new GrpcErrorDetail
+                {
+                    EmployeeId = user.EmployeeId,
+                    DeviceId = device.DeviceId,
+                    DeviceName = device.DeviceName,
+                    DeviceIp = device.Connection?.IpAddress,
+                    Code = GrpcErrorCodes.DeviceError,
+                    Message = updateResult.ErrorMessage
+                });
             }
 
-            if (result.Errors.Count == 0)
-            {
-                result.Success = true;
-            }
-
+            AllowPermissionSyncCompletion(user.EmployeeId, user.PermissionLevel, result);
+            result.Success = result.Errors.Count == 0;
+            result.CompletedImmediately = result.Success && !result.HasQueued;
             return result;
         }
 
@@ -675,7 +727,6 @@ namespace ControlEntradaSalida
                 case 1:
                     return area == DeviceArea.Office;
                 case 2:
-                    // 最高权限可通行所有已识别区域，包括未明确标注的其他区域
                     return area == DeviceArea.Office
                         || area == DeviceArea.Production
                         || area == DeviceArea.Other;
@@ -686,24 +737,21 @@ namespace ControlEntradaSalida
 
         private DeviceUpdateResult UpdateDeviceAccess(DeviceAreaInfo device, UserPermissionRecord user, bool enable)
         {
-            DeviceUpdateResult failure(string message)
-            {
-                return DeviceUpdateResult.Fail(message);
-            }
-
             DeviceConnectionInfo connection = device.Connection;
             if (connection == null)
             {
-                return failure(string.Format(CultureInfo.InvariantCulture,
-                    "设备 {0} 未在系统中加载，无法更新用户 {1} 的权限。",
-                    device.DeviceName, user.EmployeeId));
+                return DeviceUpdateResult.Fail(string.Format(CultureInfo.InvariantCulture,
+                    "未找到设备 {0}，无法同步员工 {1} 的权限。",
+                    device.DeviceName,
+                    user.EmployeeId));
             }
 
-            if (!TryEnsureDeviceConnected(connection))
+            if (!TryEnsureDeviceConnected(connection, allowReconnect: false))
             {
-                return failure(string.Format(CultureInfo.InvariantCulture,
-                    "无法连接设备 {0}，刷新用户 {1} 权限失败。",
-                    device.DeviceName, user.EmployeeId));
+                return DeviceUpdateResult.RetryableFail(string.Format(CultureInfo.InvariantCulture,
+                    "无法连接设备 {0}，同步员工 {1} 权限失败。",
+                    device.DeviceName,
+                    user.EmployeeId));
             }
 
             string payload = BuildUserInfoPayload(user, connection, enable);
@@ -711,93 +759,144 @@ namespace ControlEntradaSalida
             return ExecuteWithDeviceSdkLock(
                 connection,
                 $"PermissionSetUp-{connection.Id}-{user.EmployeeId}",
-                () =>
-                {
-                    bool queryResult = commonHelper.ISAPIQuery(connection.UserID,
-                        UserInfoSetupUrl,
-                        payload,
-                        out string outputResult,
-                        out string outputStatus);
+                () => UpdateDeviceAccessCore(device, user, payload),
+                () => DeviceUpdateResult.RetryableFail(string.Format(CultureInfo.InvariantCulture,
+                    "设备 {0} 获取设备 SDK 锁超时，员工 {1} 权限稍后重试。",
+                    device.DeviceName,
+                    user.EmployeeId)));
+        }
 
-                    if (!queryResult)
-                    {
-                        string errorMessage = ParseErrorMessage(outputStatus ?? outputResult);
-                        return failure(string.Format(CultureInfo.InvariantCulture,
-                            "设备 {0} 同步用户 {1} 权限失败：{2}",
-                            device.DeviceName, user.EmployeeId, errorMessage));
-                    }
+        private DeviceUpdateResult UpdateDeviceAccessCore(DeviceAreaInfo device, UserPermissionRecord user, string payload)
+        {
+            DeviceConnectionInfo connection = device.Connection;
+            bool queryResult = commonHelper.ISAPIQuery(connection.UserID,
+                UserInfoSetupUrl,
+                payload,
+                out string outputResult,
+                out string outputStatus);
 
-                    if (!IsResponseOk(outputResult))
-                    {
-                        string errorMessage = ParseErrorMessage(outputResult);
-                        return failure(string.Format(CultureInfo.InvariantCulture,
-                            "设备 {0} 返回错误，用户 {1} 权限未更新：{2}",
-                            device.DeviceName, user.EmployeeId, errorMessage));
-                    }
+            if (!queryResult)
+            {
+                string errorMessage = ParseErrorMessage(outputStatus ?? outputResult);
+                return CreateDeviceCommunicationFailureResult(
+                    string.Format(CultureInfo.InvariantCulture,
+                        "设备 {0} 更新员工 {1} 权限失败：{2}",
+                        device.DeviceName,
+                        user.EmployeeId,
+                        errorMessage),
+                    outputResult,
+                    outputStatus);
+            }
 
-                    return DeviceUpdateResult.SuccessResult;
-                },
-                () => failure(string.Format(CultureInfo.InvariantCulture,
-                    "设备 {0} 忙碌，等待设备SDK锁超时，跳过用户 {1} 权限刷新。",
-                    device.DeviceName, user.EmployeeId)));
+            if (!IsResponseOk(outputResult))
+            {
+                string errorMessage = ParseErrorMessage(outputResult);
+                return DeviceUpdateResult.Fail(string.Format(CultureInfo.InvariantCulture,
+                    "设备 {0} 同步员工 {1} 权限失败：{2}",
+                    device.DeviceName,
+                    user.EmployeeId,
+                    errorMessage));
+            }
+
+            return DeviceUpdateResult.SuccessResult;
         }
 
         private DeviceUpdateResult UpsertPersonOnDevice(DeviceConnectionInfo device, PersonSyncRequest person)
         {
+            DeviceUpdateResult personResult = UpsertPersonInfoOnDevice(device, person);
+            if (!personResult.Success || person == null || !person.HasFace)
+            {
+                return personResult;
+            }
+
+            return UploadFaceToDevice(device, person);
+        }
+
+        private DeviceUpdateResult UpsertPersonInfoOnDevice(DeviceConnectionInfo device, PersonSyncRequest person)
+        {
             if (device == null)
             {
                 return DeviceUpdateResult.Fail(string.Format(CultureInfo.InvariantCulture,
-                    "无法定位同步人员 {0} 的目标设备。", person?.EmployeeId));
+                    "未找到设备，无法下发员工 {0}。",
+                    person?.EmployeeId));
             }
 
-            if (!TryEnsureDeviceConnected(device))
+            if (!TryEnsureDeviceConnected(device, allowReconnect: false))
             {
-                return DeviceUpdateResult.Fail(string.Format(CultureInfo.InvariantCulture,
-                    "无法连接设备 {0}，同步人员 {1} 失败。", device.Name, person?.EmployeeId));
+                return DeviceUpdateResult.RetryableFail(string.Format(CultureInfo.InvariantCulture,
+                    "无法连接设备 {0}，下发员工 {1} 失败。",
+                    device.Name,
+                    person?.EmployeeId));
             }
 
             string payload = BuildPersonUserInfoPayload(person, device);
-
             return ExecuteWithDeviceSdkLock(
                 device,
                 $"UpsertPerson-{device.Id}-{person?.EmployeeId}",
-                () =>
-                {
-                    bool queryResult = commonHelper.ISAPIQuery(device.UserID,
-                        UserInfoSetupUrl,
-                        payload,
-                        out string outputResult,
-                        out string outputStatus);
+                () => UpsertPersonInfoOnDeviceCore(device, person, payload),
+                () => DeviceUpdateResult.RetryableFail(string.Format(CultureInfo.InvariantCulture,
+                    "设备 {0} 获取设备 SDK 锁超时，员工 {1} 下发稍后重试。",
+                    device.Name,
+                    person?.EmployeeId)));
+        }
 
-                    if (!queryResult)
-                    {
-                        string errorMessage = ParseErrorMessage(outputStatus ?? outputResult);
-                        return DeviceUpdateResult.Fail(string.Format(CultureInfo.InvariantCulture,
-                            "设备 {0} 下发人员 {1} 信息失败：{2}",
-                            device.Name,
-                            person.EmployeeId,
-                            errorMessage));
-                    }
+        private DeviceUpdateResult UpsertPersonInfoOnDeviceCore(DeviceConnectionInfo device, PersonSyncRequest person, string payload)
+        {
+            bool queryResult = commonHelper.ISAPIQuery(device.UserID,
+                UserInfoSetupUrl,
+                payload,
+                out string outputResult,
+                out string outputStatus);
 
-                    if (!IsResponseOk(outputResult))
-                    {
-                        string errorMessage = ParseErrorMessage(outputResult);
-                        return DeviceUpdateResult.Fail(string.Format(CultureInfo.InvariantCulture,
-                            "设备 {0} 返回错误，人员 {1} 信息未更新：{2}",
-                            device.Name,
-                            person.EmployeeId,
-                            errorMessage));
-                    }
+            if (!queryResult)
+            {
+                string errorMessage = ParseErrorMessage(outputStatus ?? outputResult);
+                return CreateDeviceCommunicationFailureResult(
+                    string.Format(CultureInfo.InvariantCulture,
+                        "设备 {0} 下发员工 {1} 信息失败：{2}",
+                        device.Name,
+                        person.EmployeeId,
+                        errorMessage),
+                    outputResult,
+                    outputStatus);
+            }
 
-                    if (!person.HasFace)
-                    {
-                        return DeviceUpdateResult.SuccessResult;
-                    }
+            if (!IsResponseOk(outputResult))
+            {
+                string errorMessage = ParseErrorMessage(outputResult);
+                return DeviceUpdateResult.Fail(string.Format(CultureInfo.InvariantCulture,
+                    "设备 {0} 下发员工 {1} 信息失败：{2}",
+                    device.Name,
+                    person.EmployeeId,
+                    errorMessage));
+            }
 
-                    return UploadFaceToDeviceInternal(device, person);
-                },
-                () => DeviceUpdateResult.Fail(string.Format(CultureInfo.InvariantCulture,
-                    "设备 {0} 忙碌，等待设备SDK锁超时，人员 {1} 同步失败。",
+            return DeviceUpdateResult.SuccessResult;
+        }
+
+        private DeviceUpdateResult UploadFaceToDevice(DeviceConnectionInfo device, PersonSyncRequest person)
+        {
+            if (device == null)
+            {
+                return DeviceUpdateResult.Fail(string.Format(CultureInfo.InvariantCulture,
+                    "未找到设备，无法下发员工 {0} 人脸。",
+                    person?.EmployeeId));
+            }
+
+            if (!TryEnsureDeviceConnected(device, allowReconnect: false))
+            {
+                return DeviceUpdateResult.RetryableFail(string.Format(CultureInfo.InvariantCulture,
+                    "无法连接设备 {0}，下发员工 {1} 人脸失败。",
+                    device.Name,
+                    person?.EmployeeId));
+            }
+
+            return ExecuteWithDeviceSdkLock(
+                device,
+                $"UploadFace-{device.Id}-{person?.EmployeeId}",
+                () => UploadFaceToDeviceInternal(device, person),
+                () => DeviceUpdateResult.RetryableFail(string.Format(CultureInfo.InvariantCulture,
+                    "设备 {0} 获取设备 SDK 锁超时，员工 {1} 人脸稍后重试。",
                     device.Name,
                     person?.EmployeeId)));
         }
@@ -930,10 +1029,12 @@ namespace ControlEntradaSalida
                 if (handle < 0)
                 {
                     uint errorCode = HCNetSDK.NET_DVR_GetLastError();
-                    return DeviceUpdateResult.Fail(string.Format(CultureInfo.InvariantCulture,
-                        "设备 {0} 启动人脸同步失败，错误码 {1}。",
-                        device.Name,
-                        errorCode));
+                    return CreateDeviceSdkFailureResult(
+                        string.Format(CultureInfo.InvariantCulture,
+                            "设备 {0} 启动人脸同步失败，错误码 {1}。",
+                            device.Name,
+                            errorCode),
+                        errorCode);
                 }
 
                 string jsonPayload = BuildFacePayload(person);
@@ -980,11 +1081,14 @@ namespace ControlEntradaSalida
                     ? string.Format(CultureInfo.InvariantCulture, "状态 {0}", status)
                     : ParseErrorMessage(response);
 
-                return DeviceUpdateResult.Fail(string.Format(CultureInfo.InvariantCulture,
-                    "设备 {0} 同步人员 {1} 的人脸失败：{2}",
-                    device.Name,
-                    person.EmployeeId,
-                    errorMessage));
+                return CreateRemoteConfigFailureResult(
+                    string.Format(CultureInfo.InvariantCulture,
+                        "设备 {0} 同步人员 {1} 的人脸失败：{2}",
+                        device.Name,
+                        person.EmployeeId,
+                        errorMessage),
+                    status,
+                    response);
             }
             finally
             {
@@ -1046,7 +1150,7 @@ namespace ControlEntradaSalida
                 return FaceCaptureResult.Fail("未找到名称为'人脸录入仪'的设备。");
             }
 
-            if (!TryEnsureDeviceConnected(device))
+            if (!TryEnsureDeviceConnected(device, allowReconnect: true))
             {
                 return FaceCaptureResult.Fail(string.Format(CultureInfo.InvariantCulture,
                     "无法连接设备 {0}。", device.Name), device.Id, device.Name, device.IpAddress);
@@ -1178,18 +1282,17 @@ return ExecuteWithDeviceSdkLock(
 
             if (ids.Count == 0)
             {
-                summary.Errors.Add("未提供需要删除人脸的员工编号。");
+                summary.Errors.Add("未提供任何需要删除人脸的员工。");
                 return summary;
             }
 
             lock (personSyncLock)
             {
-                List<DeviceConnectionInfo> onlineDevices = GetOnlineGateDevices();
-
-                summary.TargetDevices = onlineDevices.Count;
-                if (onlineDevices.Count == 0)
+                List<DeviceConnectionInfo> devices = GetEnabledGateDevices();
+                summary.TargetDevices = devices.Count;
+                if (devices.Count == 0)
                 {
-                    summary.Errors.Add("当前没有在线的门禁设备，无法删除人脸。");
+                    summary.Errors.Add("未找到可用的门禁设备，无法删除人脸。");
                     summary.Failed = summary.Total;
                     return summary;
                 }
@@ -1201,55 +1304,66 @@ return ExecuteWithDeviceSdkLock(
                         EmployeeId = id
                     };
 
-                    int failedDevices = 0;
+                    int immediateSuccessCount = 0;
+                    bool queued = false;
+                    bool hardFailed = false;
                     List<string> deviceErrors = new List<string>();
 
-                    foreach (DeviceConnectionInfo device in onlineDevices)
+                    foreach (DeviceConnectionInfo device in devices)
                     {
                         DeviceUpdateResult result = DeleteFaceOnDevice(device, id);
-                        if (!result.Success)
+                        if (result.Success)
                         {
-                            failedDevices++;
-                            if (!string.IsNullOrWhiteSpace(result.ErrorMessage))
-                            {
-                                deviceErrors.Add(result.ErrorMessage);
-                            }
-
-                            summary.ErrorDetails.Add(new GrpcErrorDetail
-                            {
-                                EmployeeId = id,
-                                DeviceId = device.Id,
-                                DeviceName = device.Name,
-                                DeviceIp = device.IpAddress,
-                                Code = GrpcErrorCodes.DeviceError,
-                                Message = result.ErrorMessage
-                            });
+                            immediateSuccessCount++;
+                            ClearDeleteFaceRetryState(device.Id, id);
+                            continue;
                         }
+
+                        if (result.IsRetryable && TryQueueDeleteFaceRetry(device, id, result.ErrorMessage, summary.QueuedDetails))
+                        {
+                            queued = true;
+                            continue;
+                        }
+
+                        hardFailed = true;
+                        if (!string.IsNullOrWhiteSpace(result.ErrorMessage))
+                        {
+                            deviceErrors.Add(result.ErrorMessage);
+                        }
+
+                        summary.ErrorDetails.Add(new GrpcErrorDetail
+                        {
+                            EmployeeId = id,
+                            DeviceId = device.Id,
+                            DeviceName = device.Name,
+                            DeviceIp = device.IpAddress,
+                            Code = GrpcErrorCodes.DeviceError,
+                            Message = result.ErrorMessage
+                        });
                     }
 
-                    if (failedDevices == 0)
+                    if (hardFailed)
+                    {
+                        item.Success = false;
+                        item.Error = deviceErrors.Count == 0
+                            ? $"员工 {id} 删除人脸失败。"
+                            : string.Join("; ", deviceErrors.Take(3));
+                        summary.Errors.Add(item.Error);
+                        summary.Failed++;
+                    }
+                    else if (queued)
+                    {
+                        item.Success = false;
+                        item.Error = $"员工 {id} 的人脸删除已加入重试队列。";
+                        summary.QueuedCount++;
+                    }
+                    else
                     {
                         item.Success = true;
                         summary.Succeeded++;
                     }
-                    else
-                    {
-                        item.Success = false;
-                        summary.Failed++;
 
-                        string detail = deviceErrors.Count == 0
-                            ? string.Format(CultureInfo.InvariantCulture,
-                                "员工 {0} 在 {1} 台设备上删除人脸失败。", id, failedDevices)
-                            : string.Format(CultureInfo.InvariantCulture,
-                                "员工 {0} 在 {1} 台设备上删除人脸失败：{2}",
-                                id,
-                                failedDevices,
-                                string.Join("; ", deviceErrors.Take(3)));
-
-                        item.Error = detail;
-                        summary.Errors.Add(detail);
-                    }
-
+                    item.RawResponse = immediateSuccessCount.ToString(CultureInfo.InvariantCulture);
                     summary.Items.Add(item);
                 }
             }
@@ -1283,19 +1397,18 @@ return ExecuteWithDeviceSdkLock(
 
             if (ids.Count == 0)
             {
-                summary.Errors.Add("未提供需要删除的员工编号。");
+                summary.Errors.Add("未提供任何需要删除的员工。");
                 return summary;
             }
 
             lock (personSyncLock)
             {
-                List<DeviceConnectionInfo> onlineDevices = GetOnlineGateDevices();
+                List<DeviceConnectionInfo> devices = GetEnabledGateDevices();
+                summary.TargetDevices = devices.Count;
 
-                summary.TargetDevices = onlineDevices.Count;
-
-                if (onlineDevices.Count == 0)
+                if (devices.Count == 0)
                 {
-                    summary.Errors.Add("当前没有在线的门禁设备，无法删除人员。");
+                    summary.Errors.Add("未找到可用的门禁设备，无法删除人员。");
                     summary.Failed = summary.Total;
                     return summary;
                 }
@@ -1307,65 +1420,70 @@ return ExecuteWithDeviceSdkLock(
                         EmployeeId = id
                     };
 
+                    bool queued = false;
                     int successCount = 0;
                     int failCount = 0;
 
-                    foreach (DeviceConnectionInfo device in onlineDevices)
+                    foreach (DeviceConnectionInfo device in devices)
                     {
-                        DeviceUpdateResult result = DeletePersonOnDevice(device, id);
+                        DeviceUpdateResult result = DeletePersonAndFaceOnDevice(device, id);
                         if (result.Success)
                         {
                             successCount++;
+                            ClearDeletePersonRetryState(device.Id, id);
+                            continue;
                         }
-                        else
+
+                        if (result.IsRetryable && TryQueueDeletePersonRetry(device, id, result, summary.QueuedDetails))
                         {
-                            failCount++;
-                            item.DeviceErrors.Add(string.Format(CultureInfo.InvariantCulture,
-                                "[{0}] {1}", device.Name, result.ErrorMessage));
-                            summary.ErrorDetails.Add(new GrpcErrorDetail
-                            {
-                                EmployeeId = id,
-                                DeviceId = device.Id,
-                                DeviceName = device.Name,
-                                DeviceIp = device.IpAddress,
-                                Code = GrpcErrorCodes.DeviceError,
-                                Message = result.ErrorMessage
-                            });
+                            queued = true;
+                            continue;
                         }
+
+                        failCount++;
+                        item.DeviceErrors.Add(string.Format(CultureInfo.InvariantCulture,
+                            "[{0}] {1}",
+                            device.Name,
+                            result.ErrorMessage));
+                        summary.ErrorDetails.Add(new GrpcErrorDetail
+                        {
+                            EmployeeId = id,
+                            DeviceId = device.Id,
+                            DeviceName = device.Name,
+                            DeviceIp = device.IpAddress,
+                            Code = GrpcErrorCodes.DeviceError,
+                            Message = result.ErrorMessage
+                        });
                     }
 
                     item.SuccessDevices = successCount;
                     item.FailedDevices = failCount;
 
-                    // 需要所有设备均成功删除，任一失败则判定失败
-                    if (failCount == 0 && successCount > 0)
-                    {
-                        item.Success = true;
-                        summary.Succeeded++;
-                    }
-                    else
+                    if (failCount > 0)
                     {
                         item.Success = false;
-                        summary.Failed++;
-
-                        string errorMessage;
-                        if (item.DeviceErrors.Count > 0)
-                        {
-                            errorMessage = string.Format(CultureInfo.InvariantCulture,
+                        string errorMessage = item.DeviceErrors.Count > 0
+                            ? string.Format(CultureInfo.InvariantCulture,
                                 "员工 {0} 在 {1} 台设备上删除失败：{2}",
                                 id,
                                 failCount,
-                                string.Join("; ", item.DeviceErrors.Take(3)));
-                        }
-                        else
-                        {
-                            errorMessage = string.Format(CultureInfo.InvariantCulture,
+                                string.Join("; ", item.DeviceErrors.Take(3)))
+                            : string.Format(CultureInfo.InvariantCulture,
                                 "员工 {0} 在 {1} 台设备上删除失败。",
                                 id,
                                 failCount);
-                        }
-
                         summary.Errors.Add(errorMessage);
+                        summary.Failed++;
+                    }
+                    else if (queued)
+                    {
+                        item.Success = false;
+                        summary.QueuedCount++;
+                    }
+                    else
+                    {
+                        item.Success = true;
+                        summary.Succeeded++;
                     }
 
                     summary.Items.Add(item);
@@ -1375,12 +1493,18 @@ return ExecuteWithDeviceSdkLock(
             return summary;
         }
 
-        /// <summary>
-        /// 在指定设备上删除单个人员信息。
-        /// </summary>
-        /// <param name="device">目标设备</param>
-        /// <param name="employeeId">员工编号</param>
-        /// <returns>删除结果</returns>
+        private DeviceUpdateResult DeletePersonAndFaceOnDevice(DeviceConnectionInfo device, string employeeId)
+        {
+            DeviceUpdateResult faceResult = DeleteFaceOnDevice(device, employeeId);
+            if (!faceResult.Success)
+            {
+                return faceResult;
+            }
+
+            return DeletePersonOnDevice(device, employeeId)
+                .MarkDeleteFaceApplied();
+        }
+
         private DeviceUpdateResult DeletePersonOnDevice(DeviceConnectionInfo device, string employeeId)
         {
             if (device == null)
@@ -1388,10 +1512,12 @@ return ExecuteWithDeviceSdkLock(
                 return DeviceUpdateResult.Fail("未找到可用的设备。");
             }
 
-            if (!TryEnsureDeviceConnected(device))
+            if (!TryEnsureDeviceConnected(device, allowReconnect: false))
             {
-                return DeviceUpdateResult.Fail(string.Format(CultureInfo.InvariantCulture,
-                    "无法连接设备 {0}，删除人员 {1} 失败。", device.Name, employeeId));
+                return DeviceUpdateResult.RetryableFail(string.Format(CultureInfo.InvariantCulture,
+                    "无法连接设备 {0}，删除员工 {1} 失败。",
+                    device.Name,
+                    employeeId));
             }
 
             var payload = new
@@ -1408,40 +1534,45 @@ return ExecuteWithDeviceSdkLock(
             return ExecuteWithDeviceSdkLock(
                 device,
                 $"DeletePerson-{device.Id}-{employeeId}",
-                () =>
-                {
-                    bool result = commonHelper.ISAPIQuery(device.UserID,
-                        UserInfoDeleteUrl,
-                        JsonConvert.SerializeObject(payload),
-                        out string outputResult,
-                        out string outputStatus);
-
-                    if (!result)
-                    {
-                        string errorMessage = ParseErrorMessage(outputStatus ?? outputResult);
-                        return DeviceUpdateResult.Fail(string.Format(CultureInfo.InvariantCulture,
-                            "设备 {0} 删除人员 {1} 失败：{2}",
-                            device.Name,
-                            employeeId,
-                            errorMessage));
-                    }
-
-                    if (!IsResponseOk(outputResult))
-                    {
-                        string errorMessage = ParseErrorMessage(outputResult);
-                        return DeviceUpdateResult.Fail(string.Format(CultureInfo.InvariantCulture,
-                            "设备 {0} 返回错误，人员 {1} 未删除：{2}",
-                            device.Name,
-                            employeeId,
-                            errorMessage));
-                    }
-
-                    return DeviceUpdateResult.SuccessResult;
-                },
-                () => DeviceUpdateResult.Fail(string.Format(CultureInfo.InvariantCulture,
-                    "设备 {0} 忙碌，等待设备SDK锁超时，删除人员 {1} 失败。",
+                () => DeletePersonOnDeviceCore(device, employeeId, JsonConvert.SerializeObject(payload)),
+                () => DeviceUpdateResult.RetryableFail(string.Format(CultureInfo.InvariantCulture,
+                    "设备 {0} 获取设备 SDK 锁超时，删除员工 {1} 稍后重试。",
                     device.Name,
                     employeeId)));
+        }
+
+        private DeviceUpdateResult DeletePersonOnDeviceCore(DeviceConnectionInfo device, string employeeId, string payload)
+        {
+            bool result = commonHelper.ISAPIQuery(device.UserID,
+                UserInfoDeleteUrl,
+                payload,
+                out string outputResult,
+                out string outputStatus);
+
+            if (!result)
+            {
+                string errorMessage = ParseErrorMessage(outputStatus ?? outputResult);
+                return CreateDeviceCommunicationFailureResult(
+                    string.Format(CultureInfo.InvariantCulture,
+                        "设备 {0} 删除员工 {1} 失败：{2}",
+                        device.Name,
+                        employeeId,
+                        errorMessage),
+                    outputResult,
+                    outputStatus);
+            }
+
+            if (!IsResponseOk(outputResult))
+            {
+                string errorMessage = ParseErrorMessage(outputResult);
+                return DeviceUpdateResult.Fail(string.Format(CultureInfo.InvariantCulture,
+                    "设备 {0} 删除员工 {1} 失败：{2}",
+                    device.Name,
+                    employeeId,
+                    errorMessage));
+            }
+
+            return DeviceUpdateResult.SuccessResult;
         }
 
         public FaceOperationSummary GetFacesFromDevices(IEnumerable<string> employeeIds)
@@ -1542,10 +1673,12 @@ return ExecuteWithDeviceSdkLock(
                 return DeviceUpdateResult.Fail("未找到可用的设备。");
             }
 
-            if (!TryEnsureDeviceConnected(device))
+            if (!TryEnsureDeviceConnected(device, allowReconnect: false))
             {
-                return DeviceUpdateResult.Fail(string.Format(CultureInfo.InvariantCulture,
-                    "无法连接设备 {0}，删除人员 {1} 的人脸失败。", device.Name, employeeId));
+                return DeviceUpdateResult.RetryableFail(string.Format(CultureInfo.InvariantCulture,
+                    "无法连接设备 {0}，删除员工 {1} 人脸失败。",
+                    device.Name,
+                    employeeId));
             }
 
             var payload = new
@@ -1559,44 +1692,52 @@ return ExecuteWithDeviceSdkLock(
             return ExecuteWithDeviceSdkLock(
                 device,
                 $"DeleteFace-{device.Id}-{employeeId}",
-                () =>
-                {
-                    bool result = commonHelper.ISAPIQuery(device.UserID,
-                        FaceDeleteUrl,
-                        JsonConvert.SerializeObject(payload),
-                        out string outputResult,
-                        out string outputStatus);
-
-                    string responseContent = string.IsNullOrWhiteSpace(outputResult) ? outputStatus : outputResult;
-
-                    if (!result)
-                    {
-                        string errorMessage = ParseErrorMessage(responseContent);
-                        return DeviceUpdateResult.Fail(string.Format(CultureInfo.InvariantCulture,
-                            "设备 {0} 删除人员 {1} 的人脸失败：{2}",
-                            device.Name,
-                            employeeId,
-                            errorMessage));
-                    }
-
-                    responseContent = ExtractJsonFromMultipart(responseContent);
-
-                    if (!IsResponseOkFromContent(responseContent))
-                    {
-                        string errorMessage = ParseErrorMessage(responseContent);
-                        return DeviceUpdateResult.Fail(string.Format(CultureInfo.InvariantCulture,
-                            "设备 {0} 返回错误，人员 {1} 人脸未删除：{2}",
-                            device.Name,
-                            employeeId,
-                            errorMessage));
-                    }
-
-                    return DeviceUpdateResult.SuccessResult;
-                },
-                () => DeviceUpdateResult.Fail(string.Format(CultureInfo.InvariantCulture,
-                    "设备 {0} 忙碌，等待设备SDK锁超时，删除人员 {1} 人脸失败。",
+                () => DeleteFaceOnDeviceCore(device, employeeId, JsonConvert.SerializeObject(payload)),
+                () => DeviceUpdateResult.RetryableFail(string.Format(CultureInfo.InvariantCulture,
+                    "设备 {0} 获取设备 SDK 锁超时，删除员工 {1} 人脸稍后重试。",
                     device.Name,
                     employeeId)));
+        }
+
+        private DeviceUpdateResult DeleteFaceOnDeviceCore(DeviceConnectionInfo device, string employeeId, string payload)
+        {
+            bool result = commonHelper.ISAPIQuery(device.UserID,
+                FaceDeleteUrl,
+                payload,
+                out string outputResult,
+                out string outputStatus);
+
+            string responseContent = string.IsNullOrWhiteSpace(outputResult) ? outputStatus : outputResult;
+            if (!result)
+            {
+                string errorMessage = ParseErrorMessage(responseContent);
+                return CreateDeviceCommunicationFailureResult(
+                    string.Format(CultureInfo.InvariantCulture,
+                        "设备 {0} 删除员工 {1} 人脸失败：{2}",
+                        device.Name,
+                        employeeId,
+                        errorMessage),
+                    outputResult,
+                    outputStatus);
+            }
+
+            responseContent = ExtractJsonFromMultipart(responseContent);
+            if (DeviceDeleteResponsePolicy.IsDeleteFaceAlreadyAbsent(responseContent))
+            {
+                return DeviceUpdateResult.SuccessResult;
+            }
+
+            if (!IsResponseOkFromContent(responseContent))
+            {
+                string errorMessage = ParseErrorMessage(responseContent);
+                return DeviceUpdateResult.Fail(string.Format(CultureInfo.InvariantCulture,
+                    "设备 {0} 删除员工 {1} 人脸失败：{2}",
+                    device.Name,
+                    employeeId,
+                    errorMessage));
+            }
+
+            return DeviceUpdateResult.SuccessResult;
         }
 
         private FaceQueryResult QueryFaceOnDevice(DeviceConnectionInfo device, string employeeId)
@@ -1613,7 +1754,7 @@ return ExecuteWithDeviceSdkLock(
                 return result;
             }
 
-            if (!TryEnsureDeviceConnected(device))
+            if (!TryEnsureDeviceConnected(device, allowReconnect: true))
             {
                 result.ErrorMessage = string.Format(CultureInfo.InvariantCulture,
                     "无法连接设备 {0}，查询人员 {1} 人脸失败。", device.Name, employeeId);
@@ -1915,6 +2056,27 @@ return ExecuteWithDeviceSdkLock(
             }
         }
 
+        private static DeviceUpdateResult CreateDeviceCommunicationFailureResult(string errorMessage, string outputResult, string outputStatus)
+        {
+            return DeviceOperationRetryFailurePolicy.IsRetryableTransportFailure(outputResult, outputStatus)
+                ? DeviceUpdateResult.RetryableFail(errorMessage)
+                : DeviceUpdateResult.Fail(errorMessage);
+        }
+
+        private static DeviceUpdateResult CreateDeviceSdkFailureResult(string errorMessage, uint errorCode)
+        {
+            return DeviceOperationRetryFailurePolicy.IsRetryableSdkError(errorCode)
+                ? DeviceUpdateResult.RetryableFail(errorMessage)
+                : DeviceUpdateResult.Fail(errorMessage);
+        }
+
+        private static DeviceUpdateResult CreateRemoteConfigFailureResult(string errorMessage, int status, string responseContent)
+        {
+            return DeviceOperationRetryFailurePolicy.IsRetryableRemoteConfigStatus(status, responseContent)
+                ? DeviceUpdateResult.RetryableFail(errorMessage)
+                : DeviceUpdateResult.Fail(errorMessage);
+        }
+
         private bool UpdateSyncedLevel(string employeeId, int permissionLevel)
         {
             if (!TryOpenDatabase(out SqlServerDatabase db))
@@ -1940,6 +2102,435 @@ return ExecuteWithDeviceSdkLock(
                     return affected > 0;
                 }
             }
+        }
+
+        internal bool CompletePermissionSyncIfNoPending(string employeeId, int permissionLevel)
+        {
+            if (retryStore != null && retryOptions != null && retryOptions.Enabled && retryStore.HasPendingPermission(employeeId))
+            {
+                return true;
+            }
+
+            return UpdateSyncedLevel(employeeId, permissionLevel);
+        }
+
+        private void AllowPermissionSyncCompletion(string employeeId, int permissionLevel, RefreshResult result)
+        {
+            if (result == null || !result.HasQueued || result.Errors.Count > 0)
+            {
+                return;
+            }
+
+            if (retryStore == null || retryOptions == null || !retryOptions.Enabled || string.IsNullOrWhiteSpace(employeeId))
+            {
+                return;
+            }
+
+            try
+            {
+                retryStore.AllowPermissionSyncCompletion(employeeId, permissionLevel);
+            }
+            catch (Exception ex)
+            {
+                string errorMessage = string.Format(CultureInfo.InvariantCulture,
+                    "\u5141\u8bb8\u5458\u5de5 {0} \u7684\u6743\u9650\u540c\u6b65\u6807\u8bb0\u843d\u5e93\u5931\u8d25\u3002",
+                    employeeId);
+                ServiceLogger.Error(errorMessage, ex);
+                result.Errors.Add(errorMessage);
+                result.ErrorDetails.Add(new GrpcErrorDetail
+                {
+                    EmployeeId = employeeId,
+                    Code = GrpcErrorCodes.DbError,
+                    Message = errorMessage
+                });
+            }
+        }
+
+        private void ClearPermissionRetryState(int deviceId, string employeeId)
+        {
+            if (retryStore == null || retryOptions == null || !retryOptions.Enabled)
+            {
+                return;
+            }
+
+            try
+            {
+                retryStore.MarkPermissionApplied(deviceId, employeeId);
+            }
+            catch (Exception ex)
+            {
+                ServiceLogger.Error($"清理设备 {deviceId} 员工 {employeeId} 的权限补偿状态失败。", ex);
+            }
+        }
+
+        private void ClearPersonRetryState(int deviceId, string employeeId, bool clearFaceRetry)
+        {
+            if (retryStore == null || retryOptions == null || !retryOptions.Enabled)
+            {
+                return;
+            }
+
+            try
+            {
+                if (clearFaceRetry)
+                {
+                    retryStore.MarkPersonAndFaceApplied(deviceId, employeeId);
+                }
+                else
+                {
+                    retryStore.MarkPersonAppliedAndClearFaceRetry(deviceId, employeeId);
+                }
+            }
+            catch (Exception ex)
+            {
+                ServiceLogger.Error($"清理设备 {deviceId} 员工 {employeeId} 的人员补偿状态失败。", ex);
+            }
+        }
+
+        private void ClearDeleteFaceRetryState(int deviceId, string employeeId)
+        {
+            if (retryStore == null || retryOptions == null || !retryOptions.Enabled)
+            {
+                return;
+            }
+
+            try
+            {
+                retryStore.MarkDeleteFaceApplied(deviceId, employeeId, clearDeletePersonPending: true);
+            }
+            catch (Exception ex)
+            {
+                ServiceLogger.Error($"清理设备 {deviceId} 员工 {employeeId} 的删脸补偿状态失败。", ex);
+            }
+        }
+
+        private void ClearDeletePersonRetryState(int deviceId, string employeeId)
+        {
+            if (retryStore == null || retryOptions == null || !retryOptions.Enabled)
+            {
+                return;
+            }
+
+            try
+            {
+                retryStore.MarkDeletePersonApplied(deviceId, employeeId);
+            }
+            catch (Exception ex)
+            {
+                ServiceLogger.Error($"清理设备 {deviceId} 员工 {employeeId} 的删人补偿状态失败。", ex);
+            }
+        }
+
+        private bool TryQueuePermissionRetry(DeviceAreaInfo device, UserPermissionRecord user, string message, RefreshResult result)
+        {
+            if (retryStore == null || retryOptions == null || !retryOptions.Enabled)
+            {
+                return false;
+            }
+
+            try
+            {
+                retryStore.QueuePermissionRetry(device.DeviceId, user.EmployeeId, user.PermissionLevel, message);
+                result.HasQueued = true;
+                result.QueuedDetails.Add(CreateQueuedDetail(user.EmployeeId, device.DeviceId, device.DeviceName, device.Connection?.IpAddress, "PermissionSync", message));
+                return true;
+            }
+            catch (Exception ex)
+            {
+                ServiceLogger.Error($"设备 {device.DeviceName} 员工 {user.EmployeeId} 写入权限补偿队列失败。", ex);
+                return false;
+            }
+        }
+
+        private bool TryQueuePersonRetry(DeviceConnectionInfo device, PersonSyncRequest person, string message, ICollection<QueuedOperationDetail> queuedDetails)
+        {
+            if (retryStore == null || retryOptions == null || !retryOptions.Enabled)
+            {
+                return false;
+            }
+
+            try
+            {
+                retryStore.QueuePersonRetry(device.Id, person, message);
+                queuedDetails.Add(CreateQueuedDetail(person.EmployeeId,
+                    device.Id,
+                    device.Name,
+                    device.IpAddress,
+                    person.HasFace ? "PersonAndFaceSync" : "PersonSync",
+                    message));
+                return true;
+            }
+            catch (Exception ex)
+            {
+                ServiceLogger.Error($"设备 {device.Name} 员工 {person?.EmployeeId} 写入人员补偿队列失败。", ex);
+                return false;
+            }
+        }
+
+        private bool TryQueueDeleteFaceRetry(DeviceConnectionInfo device, string employeeId, string message, ICollection<QueuedOperationDetail> queuedDetails)
+        {
+            if (retryStore == null || retryOptions == null || !retryOptions.Enabled)
+            {
+                return false;
+            }
+
+            try
+            {
+                retryStore.QueueDeleteFaceRetry(device.Id, employeeId, message);
+                queuedDetails.Add(CreateQueuedDetail(employeeId, device.Id, device.Name, device.IpAddress, "DeleteFace", message));
+                return true;
+            }
+            catch (Exception ex)
+            {
+                ServiceLogger.Error($"设备 {device.Name} 员工 {employeeId} 写入删脸补偿队列失败。", ex);
+                return false;
+            }
+        }
+
+        private bool TryQueueDeletePersonRetry(DeviceConnectionInfo device, string employeeId, DeviceUpdateResult result, ICollection<QueuedOperationDetail> queuedDetails)
+        {
+            if (retryStore == null || retryOptions == null || !retryOptions.Enabled)
+            {
+                return false;
+            }
+
+            try
+            {
+                retryStore.QueueDeletePersonRetry(device.Id,
+                    employeeId,
+                    result?.ErrorMessage,
+                    deleteFacePending: result == null || !result.DeleteFaceApplied);
+                queuedDetails.Add(CreateQueuedDetail(employeeId,
+                    device.Id,
+                    device.Name,
+                    device.IpAddress,
+                    "DeletePerson",
+                    result?.ErrorMessage));
+                return true;
+            }
+            catch (Exception ex)
+            {
+                ServiceLogger.Error($"?? {device.Name} ?? {employeeId} ???????????", ex);
+                return false;
+            }
+        }
+
+        private static QueuedOperationDetail CreateQueuedDetail(string employeeId, int deviceId, string deviceName, string deviceIp, string operation, string message)
+        {
+            return new QueuedOperationDetail
+            {
+                EmployeeId = employeeId,
+                DeviceId = deviceId,
+                DeviceName = deviceName,
+                DeviceIp = deviceIp,
+                Operation = operation,
+                Message = message
+            };
+        }
+
+        private DeviceAreaInfo LoadActiveDevice(int deviceId)
+        {
+            return LoadActiveDevices().FirstOrDefault(d => d.DeviceId == deviceId);
+        }
+
+        public DeviceOperationRetryExecutionResult ProcessQueuedState(DeviceOperationRetryState state)
+        {
+            if (state == null || !state.HasPendingOperations)
+            {
+                return DeviceOperationRetryExecutionResult.Completed;
+            }
+
+            if (retryStore == null || retryOptions == null || !retryOptions.Enabled)
+            {
+                return DeviceOperationRetryExecutionResult.HardFailure("补偿管理器未启用。");
+            }
+
+            DeviceConnectionInfo device = deviceManager.GetDeviceById(state.DeviceId);
+            if (device == null || !device.IsEnabled || IsEnrollmentDevice(device))
+            {
+                return DeviceOperationRetryExecutionResult.HardFailure(string.Format(CultureInfo.InvariantCulture,
+                    "设备 {0} 不可用或不支持补偿。",
+                    state.DeviceId));
+            }
+
+            if (!TryEnsureDeviceConnected(device, allowReconnect: true))
+            {
+                return DeviceOperationRetryExecutionResult.RetryableFailure(string.Format(CultureInfo.InvariantCulture,
+                    "无法连接设备 {0}，补偿任务稍后重试。",
+                    device.Name));
+            }
+
+            using (var sdkLock = device.TryAcquireDeviceSdkLock(deviceSdkLockTimeoutMs, $"Replay-{device.Id}-{state.EmployeeId}"))
+            {
+                if (!sdkLock.IsAcquired)
+                {
+                    return DeviceOperationRetryExecutionResult.RetryableFailure(string.Format(CultureInfo.InvariantCulture,
+                        "设备 {0} 获取设备 SDK 锁超时，补偿任务稍后重试。",
+                        device.Name));
+                }
+
+                DeviceOperationRetryState current = retryStore.GetState(state.DeviceId, state.EmployeeId);
+                if (current == null || !current.HasPendingOperations)
+                {
+                    return DeviceOperationRetryExecutionResult.Completed;
+                }
+
+                if (current.DeleteFacePending)
+                {
+                    DeviceUpdateResult deleteFaceResult = DeleteFaceOnDeviceCore(device,
+                        current.EmployeeId,
+                        JsonConvert.SerializeObject(new
+                        {
+                            FPID = new[]
+                            {
+                                new { value = current.EmployeeId }
+                            }
+                        }));
+                    if (!deleteFaceResult.Success)
+                    {
+                        return ToRetryExecutionResult(deleteFaceResult);
+                    }
+
+                    retryStore.MarkDeleteFaceApplied(current.DeviceId, current.EmployeeId);
+                    current = retryStore.GetState(current.DeviceId, current.EmployeeId);
+                    if (current == null || !current.HasPendingOperations)
+                    {
+                        return DeviceOperationRetryExecutionResult.Completed;
+                    }
+                }
+
+                if (current.DeletePersonPending)
+                {
+                    DeviceUpdateResult deletePersonResult = DeletePersonOnDeviceCore(device,
+                        current.EmployeeId,
+                        JsonConvert.SerializeObject(new
+                        {
+                            UserInfoDelCond = new
+                            {
+                                EmployeeNoList = new[]
+                                {
+                                    new { employeeNo = current.EmployeeId }
+                                }
+                            }
+                        }));
+                    if (!deletePersonResult.Success)
+                    {
+                        return ToRetryExecutionResult(deletePersonResult);
+                    }
+
+                    retryStore.MarkDeletePersonApplied(current.DeviceId, current.EmployeeId);
+                    current = retryStore.GetState(current.DeviceId, current.EmployeeId);
+                    if (current == null || !current.HasPendingOperations)
+                    {
+                        return DeviceOperationRetryExecutionResult.Completed;
+                    }
+                }
+
+                if (current.PersonPending)
+                {
+                    PersonSyncRequest personRequest = current.CreatePersonRequest();
+                    if (personRequest == null || string.IsNullOrWhiteSpace(personRequest.EmployeeId))
+                    {
+                        return DeviceOperationRetryExecutionResult.HardFailure($"员工 {current.EmployeeId} 的人员补偿数据无效。");
+                    }
+
+                    DeviceUpdateResult personResult = UpsertPersonInfoOnDeviceCore(device,
+                        personRequest,
+                        BuildPersonUserInfoPayload(personRequest, device));
+                    if (!personResult.Success)
+                    {
+                        return ToRetryExecutionResult(personResult);
+                    }
+
+                    retryStore.MarkPersonApplied(current.DeviceId, current.EmployeeId);
+                    current = retryStore.GetState(current.DeviceId, current.EmployeeId);
+                    if (current == null || !current.HasPendingOperations)
+                    {
+                        return DeviceOperationRetryExecutionResult.Completed;
+                    }
+                }
+
+                if (current.FacePending)
+                {
+                    PersonSyncRequest faceRequest = current.CreateFaceRequest();
+                    if (faceRequest == null || string.IsNullOrWhiteSpace(faceRequest.EmployeeId) || !faceRequest.HasFace)
+                    {
+                        return DeviceOperationRetryExecutionResult.HardFailure($"员工 {current.EmployeeId} 的人脸补偿数据无效。");
+                    }
+
+                    DeviceUpdateResult faceResult = UploadFaceToDeviceInternal(device, faceRequest);
+                    if (!faceResult.Success)
+                    {
+                        return ToRetryExecutionResult(faceResult);
+                    }
+
+                    retryStore.MarkFaceApplied(current.DeviceId, current.EmployeeId);
+                    current = retryStore.GetState(current.DeviceId, current.EmployeeId);
+                    if (current == null || !current.HasPendingOperations)
+                    {
+                        return DeviceOperationRetryExecutionResult.Completed;
+                    }
+                }
+
+                if (current.PermissionPending)
+                {
+                    if (!current.PermissionLevel.HasValue)
+                    {
+                        return DeviceOperationRetryExecutionResult.HardFailure($"员工 {current.EmployeeId} 的权限补偿数据无效。");
+                    }
+
+                    UserPermissionRecord userRecord = LoadUserPermission(current.EmployeeId);
+                    if (userRecord == null)
+                    {
+                        return DeviceOperationRetryExecutionResult.HardFailure(string.Format(CultureInfo.InvariantCulture,
+                            "未找到员工 {0} 的权限信息，无法执行补偿。",
+                            current.EmployeeId));
+                    }
+
+                    DeviceAreaInfo deviceInfo = LoadActiveDevice(current.DeviceId);
+                    if (deviceInfo == null)
+                    {
+                        return DeviceOperationRetryExecutionResult.HardFailure(string.Format(CultureInfo.InvariantCulture,
+                            "未找到设备 {0} 的权限区域信息，无法执行补偿。",
+                            current.DeviceId));
+                    }
+
+                    userRecord.PermissionLevel = current.PermissionLevel.Value;
+                    deviceInfo.Connection = device;
+                    bool shouldEnable = ShouldEnable(deviceInfo.Area, userRecord.PermissionLevel);
+                    DeviceUpdateResult permissionResult = UpdateDeviceAccessCore(
+                        deviceInfo,
+                        userRecord,
+                        BuildUserInfoPayload(userRecord, device, shouldEnable));
+                    if (!permissionResult.Success)
+                    {
+                        return ToRetryExecutionResult(permissionResult);
+                    }
+
+                    PermissionRetryCommitResult commitResult = retryStore.CompletePermissionRetry(
+                        current.DeviceId,
+                        current.EmployeeId,
+                        userRecord.PermissionLevel);
+                    if (!commitResult.Success)
+                    {
+                        return DeviceOperationRetryExecutionResult.RetryableFailure(commitResult.ErrorMessage);
+                    }
+                }
+            }
+
+            return DeviceOperationRetryExecutionResult.Completed;
+        }
+
+        private static DeviceOperationRetryExecutionResult ToRetryExecutionResult(DeviceUpdateResult result)
+        {
+            if (result == null || result.Success)
+            {
+                return DeviceOperationRetryExecutionResult.Completed;
+            }
+
+            return result.IsRetryable
+                ? DeviceOperationRetryExecutionResult.RetryableFailure(result.ErrorMessage)
+                : DeviceOperationRetryExecutionResult.HardFailure(result.ErrorMessage);
         }
 
         private class UserPermissionRecord
@@ -1968,16 +2559,26 @@ return ExecuteWithDeviceSdkLock(
         {
             public bool Success { get; set; }
 
+            public bool HasQueued { get; set; }
+
+            public bool CompletedImmediately { get; set; }
+
             public List<string> Errors { get; } = new List<string>();
 
-        public List<GrpcErrorDetail> ErrorDetails { get; } = new List<GrpcErrorDetail>();
+            public List<GrpcErrorDetail> ErrorDetails { get; } = new List<GrpcErrorDetail>();
+
+            public List<QueuedOperationDetail> QueuedDetails { get; } = new List<QueuedOperationDetail>();
         }
 
         private class DeviceUpdateResult
         {
             public bool Success { get; private set; }
 
+            public bool IsRetryable { get; private set; }
+
             public string ErrorMessage { get; private set; }
+
+            public bool DeleteFaceApplied { get; private set; }
 
             public static DeviceUpdateResult SuccessResult { get; } = new DeviceUpdateResult { Success = true };
 
@@ -1986,8 +2587,25 @@ return ExecuteWithDeviceSdkLock(
                 return new DeviceUpdateResult
                 {
                     Success = false,
-                    ErrorMessage = message
+                    ErrorMessage = message,
+                    IsRetryable = false
                 };
+            }
+
+            public static DeviceUpdateResult RetryableFail(string message)
+            {
+                return new DeviceUpdateResult
+                {
+                    Success = false,
+                    ErrorMessage = message,
+                    IsRetryable = true
+                };
+            }
+
+            public DeviceUpdateResult MarkDeleteFaceApplied()
+            {
+                DeleteFaceApplied = true;
+                return this;
             }
         }
     }
@@ -2009,53 +2627,36 @@ return ExecuteWithDeviceSdkLock(
 
         public int UsersFailed { get; set; }
 
+        public int QueuedCount { get; set; }
+
+        public List<QueuedOperationDetail> QueuedDetails { get; } = new List<QueuedOperationDetail>();
+
         public List<string> Errors { get; } = new List<string>();
 
         public List<GrpcErrorDetail> ErrorDetails { get; } = new List<GrpcErrorDetail>();
     }
 
-
-    /// <summary>
-    /// 统计人员删除操作的结果摘要。
-    /// </summary>
     public class PersonDeleteSummary
     {
-        /// <summary>
-        /// 请求删除的人员总数。
-        /// </summary>
         public int Total { get; set; }
 
-        /// <summary>
-        /// 成功删除的人员数量（至少在一个设备上成功）。
-        /// </summary>
         public int Succeeded { get; set; }
 
-        /// <summary>
-        /// 删除失败的人员数量（在所有设备上都失败）。
-        /// </summary>
         public int Failed { get; set; }
 
-        /// <summary>
-        /// 目标设备数量。
-        /// </summary>
         public int TargetDevices { get; set; }
 
-        /// <summary>
-        /// 错误消息列表。
-        /// </summary>
+        public int QueuedCount { get; set; }
+
+        public List<QueuedOperationDetail> QueuedDetails { get; } = new List<QueuedOperationDetail>();
+
         public List<string> Errors { get; } = new List<string>();
 
         public List<GrpcErrorDetail> ErrorDetails { get; } = new List<GrpcErrorDetail>();
 
-        /// <summary>
-        /// 每个人员的详细删除结果。
-        /// </summary>
         public List<PersonDeleteItem> Items { get; } = new List<PersonDeleteItem>();
     }
 
-    /// <summary>
-    /// 单个人员的删除操作结果。
-    /// </summary>
     public class PersonDeleteItem
     {
         /// <summary>

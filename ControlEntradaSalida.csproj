@@ -115,10 +115,10 @@
       <HintPath>packages\Google.Protobuf.3.30.0\lib\net45\Google.Protobuf.dll</HintPath>
     </Reference>
     <Reference Include="Grpc.Core">
-      <HintPath>e:\libs\grpc\Grpc.Core.dll</HintPath>
+      <HintPath>packages\Grpc.Core.2.46.6\lib\net45\Grpc.Core.dll</HintPath>
     </Reference>
     <Reference Include="Grpc.Core.Api">
-      <HintPath>e:\libs\grpc\Grpc.Core.Api.dll</HintPath>
+      <HintPath>packages\Grpc.Core.Api.2.46.6\lib\net45\Grpc.Core.Api.dll</HintPath>
     </Reference>
     <Reference Include="K4os.Compression.LZ4, Version=1.3.8.0, Culture=neutral, PublicKeyToken=2186fa9121ef231d, processorArchitecture=MSIL">
       <HintPath>packages\K4os.Compression.LZ4.1.3.8\lib\net462\K4os.Compression.LZ4.dll</HintPath>
@@ -184,6 +184,9 @@
       <SubType>Component</SubType>
     </Compile>
     <Compile Include="DeviceConnectionManager.cs" />
+    <Compile Include="DeviceOperationRetryBehavior.cs" />
+    <Compile Include="DeviceOperationRetryManager.cs" />
+    <Compile Include="DeviceOperationRetryStore.cs" />
     <Compile Include="DeviceStatusEngine.cs" />
     <Compile Include="EnrollmentTaskStore.cs" />
     <Compile Include="GrpcErrorCodes.cs" />
@@ -201,6 +204,7 @@
     <Compile Include="PermissionUpdateGrpcServer.cs" />
     <Compile Include="PermissionUpdateInfo.cs" />
     <Compile Include="Program.cs" />
+    <Compile Include="QueuedOperationDetail.cs" />
     <Compile Include="ProjectInstaller.cs">
       <SubType>Component</SubType>
     </Compile>

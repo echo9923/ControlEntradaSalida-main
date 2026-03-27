@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.ServiceProcess;
 
 namespace ControlEntradaSalida
@@ -10,6 +10,8 @@ namespace ControlEntradaSalida
     {
         private PermissionUpdateGrpcServer grpcServer;
         private PermissionRefreshManager refreshManager;
+        private DeviceOperationRetryStore retryStore;
+        private DeviceOperationRetryManager retryManager;
         private FaceEventService faceEventService;
         private bool initialized;
 
@@ -129,7 +131,10 @@ namespace ControlEntradaSalida
             DeviceConnectionManager.Instance.LoadAllDevices();
             DeviceConnectionManager.Instance.ResumeMonitoring();
 
-            refreshManager = new PermissionRefreshManager();
+            retryStore = new DeviceOperationRetryStore();
+            refreshManager = new PermissionRefreshManager(retryStore);
+            retryManager = new DeviceOperationRetryManager(config.DeviceOperationRetry, retryStore, refreshManager);
+            retryManager.Start();
 
             var accessControlService = new AccessControlGrpcService(
                 DeviceConnectionManager.Instance,
@@ -150,6 +155,19 @@ namespace ControlEntradaSalida
         private void StopCore()
         {
             DeviceConnectionManager.Instance.SuspendMonitoring();
+
+            try
+            {
+                retryManager?.Dispose();
+            }
+            catch (Exception ex)
+            {
+                ServiceLogger.Error("释放设备离线写操作补偿管理器时出现异常。", ex);
+            }
+            finally
+            {
+                retryManager = null;
+            }
 
             try
             {

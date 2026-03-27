@@ -1,4 +1,4 @@
-using Grpc.Core;
+﻿using Grpc.Core;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
@@ -408,6 +408,7 @@ namespace ControlEntradaSalida
                     requestId,
                     summary,
                     "人脸删除完成。",
+                    "部分离线设备已排队重试人脸删除。",
                     "人脸删除部分失败。",
                     "人脸删除失败。");
                 LogPayloadIfEnabled("出站", requestId, responsePayload, Encoding.UTF8.GetByteCount(responsePayload));
@@ -517,6 +518,7 @@ namespace ControlEntradaSalida
                     requestId,
                     summary,
                     "人脸查询完成。",
+                    "人脸查询结果待后续设备恢复后补齐。",
                     "人脸查询部分失败。",
                     "人脸查询失败。");
                 LogPayloadIfEnabled("出站", requestId, responsePayload, Encoding.UTF8.GetByteCount(responsePayload));
@@ -758,13 +760,14 @@ namespace ControlEntradaSalida
         {
             string baseMessage = string.Format(
                 CultureInfo.InvariantCulture,
-                "{0} 请求 {1} / 客户端 {2} 权限同步完成：总数 {3}，成功 {4}，跳过 {5}，失败 {6}，耗时 {7} ms。",
+                "{0} 请求 {1} / 客户端 {2}：总数 {3}，更新 {4}，跳过 {5}，排队 {6}，失败 {7}，耗时 {8} ms。",
                 GrpcLogPrefix,
                 requestId,
                 peer,
                 summary.TotalUsers,
                 summary.UsersUpdated,
                 summary.UsersSkipped,
+                summary.QueuedCount,
                 summary.UsersFailed,
                 Math.Round(duration.TotalMilliseconds, 2, MidpointRounding.AwayFromZero));
 
@@ -780,19 +783,20 @@ namespace ControlEntradaSalida
                 errorPreview += " ...";
             }
 
-            ServiceLogger.Warn($"{baseMessage} 错误示例：{errorPreview}");
+            ServiceLogger.Warn($"{baseMessage} 错误预览：{errorPreview}");
         }
 
         private static void LogPersonSummary(string peer, string requestId, PersonSyncSummary summary, TimeSpan duration)
         {
             string baseMessage = string.Format(
                 CultureInfo.InvariantCulture,
-                "{0} 请求 {1} / 客户端 {2} 人员下发完成：人员 {3}，成功 {4}，失败 {5}，人脸下发 {6} 次，涉及 {7} 台设备，耗时 {8} ms。",
+                "{0} 请求 {1} / 客户端 {2}：总人数 {3}，成功 {4}，排队 {5}，失败 {6}，人脸下发 {7}，目标设备 {8}，耗时 {9} ms。",
                 GrpcLogPrefix,
                 requestId,
                 peer,
                 summary.TotalPersons,
                 summary.SuccessfulPersons,
+                summary.QueuedCount,
                 summary.FailedPersons,
                 summary.FacesUploaded,
                 summary.TargetDevices,
@@ -810,7 +814,7 @@ namespace ControlEntradaSalida
                 errorPreview += " ...";
             }
 
-            ServiceLogger.Warn($"{baseMessage} 错误示例：{errorPreview}");
+            ServiceLogger.Warn($"{baseMessage} 错误预览：{errorPreview}");
         }
 
         private static List<PermissionUpdateInfo> ParseUpdates(string payload)
@@ -1120,10 +1124,14 @@ namespace ControlEntradaSalida
         private static string BuildResponse(string requestId, PermissionRefreshSummary summary)
         {
             int succeeded = summary.UsersUpdated + summary.UsersSkipped;
-            ResolveSummaryMeta(succeeded, summary.UsersFailed, summary.Errors.Count > 0,
-                "权限同步完成。",
-                "权限同步部分失败。",
-                "权限同步失败。",
+            ResolveSummaryMeta(succeeded,
+                summary.UsersFailed,
+                summary.QueuedCount,
+                summary.Errors.Count > 0,
+                "权限刷新完成。",
+                "部分离线设备已排队重试权限刷新。",
+                "权限刷新部分失败。",
+                "权限刷新失败。",
                 out bool success,
                 out string code,
                 out string message);
@@ -1133,7 +1141,9 @@ namespace ControlEntradaSalida
                 total = summary.TotalUsers,
                 updated = summary.UsersUpdated,
                 skipped = summary.UsersSkipped,
-                failed = summary.UsersFailed
+                failed = summary.UsersFailed,
+                queued = summary.QueuedCount,
+                queuedDetails = summary.QueuedDetails
             };
 
             return BuildStandardPayload(requestId, success, code, message, summary.Errors, summary.ErrorDetails, payload);
@@ -1141,8 +1151,12 @@ namespace ControlEntradaSalida
 
         private static string BuildPersonSyncResponse(string requestId, PersonSyncSummary summary)
         {
-            ResolveSummaryMeta(summary.SuccessfulPersons, summary.FailedPersons, summary.Errors.Count > 0,
+            ResolveSummaryMeta(summary.SuccessfulPersons,
+                summary.FailedPersons,
+                summary.QueuedCount,
+                summary.Errors.Count > 0,
                 "人员下发完成。",
+                "部分离线设备已排队重试人员下发。",
                 "人员下发部分失败。",
                 "人员下发失败。",
                 out bool success,
@@ -1154,17 +1168,23 @@ namespace ControlEntradaSalida
                 total = summary.TotalPersons,
                 succeeded = summary.SuccessfulPersons,
                 failed = summary.FailedPersons,
+                queued = summary.QueuedCount,
                 facesUploaded = summary.FacesUploaded,
-                targetDevices = summary.TargetDevices
+                targetDevices = summary.TargetDevices,
+                queuedDetails = summary.QueuedDetails
             };
 
             return BuildStandardPayload(requestId, success, code, message, summary.Errors, summary.ErrorDetails, payload);
         }
 
-        private static string BuildFaceOperationResponse(string requestId, FaceOperationSummary summary, string successMessage, string partialMessage, string failedMessage)
+        private static string BuildFaceOperationResponse(string requestId, FaceOperationSummary summary, string successMessage, string queuedMessage, string partialMessage, string failedMessage)
         {
-            ResolveSummaryMeta(summary.Succeeded, summary.Failed, summary.Errors.Count > 0,
+            ResolveSummaryMeta(summary.Succeeded,
+                summary.Failed,
+                summary.QueuedCount,
+                summary.Errors.Count > 0,
                 successMessage,
+                queuedMessage,
                 partialMessage,
                 failedMessage,
                 out bool success,
@@ -1176,7 +1196,9 @@ namespace ControlEntradaSalida
                 total = summary.Total,
                 succeeded = summary.Succeeded,
                 failed = summary.Failed,
+                queued = summary.QueuedCount,
                 targetDevices = summary.TargetDevices,
+                queuedDetails = summary.QueuedDetails,
                 items = summary.Items.Select(i => new
                 {
                     employeeId = i.EmployeeId,
@@ -1192,8 +1214,12 @@ namespace ControlEntradaSalida
 
         private static string BuildPersonDeleteResponse(string requestId, PersonDeleteSummary summary)
         {
-            ResolveSummaryMeta(summary.Succeeded, summary.Failed, summary.Errors.Count > 0,
+            ResolveSummaryMeta(summary.Succeeded,
+                summary.Failed,
+                summary.QueuedCount,
+                summary.Errors.Count > 0,
                 "人员删除完成。",
+                "部分离线设备已排队重试人员删除。",
                 "人员删除部分失败。",
                 "人员删除失败。",
                 out bool success,
@@ -1205,7 +1231,9 @@ namespace ControlEntradaSalida
                 total = summary.Total,
                 succeeded = summary.Succeeded,
                 failed = summary.Failed,
+                queued = summary.QueuedCount,
                 targetDevices = summary.TargetDevices,
+                queuedDetails = summary.QueuedDetails,
                 items = summary.Items.Select(i => new
                 {
                     employeeId = i.EmployeeId,
@@ -1220,19 +1248,31 @@ namespace ControlEntradaSalida
         }
 
 
-        private static void ResolveSummaryMeta(int succeeded, int failed, bool hasErrors,
+        private static void ResolveSummaryMeta(int succeeded,
+            int failed,
+            int queued,
+            bool hasErrors,
             string successMessage,
+            string queuedMessage,
             string partialMessage,
             string failedMessage,
             out bool success,
             out string code,
             out string message)
         {
-            if (failed <= 0 && succeeded <= 0 && hasErrors)
+            if (failed <= 0 && succeeded <= 0 && queued <= 0 && hasErrors)
             {
                 success = false;
                 code = GrpcErrorCodes.Failed;
                 message = failedMessage;
+                return;
+            }
+
+            if (failed <= 0 && queued > 0)
+            {
+                success = false;
+                code = GrpcErrorCodes.PartialSuccess;
+                message = queuedMessage;
                 return;
             }
 
@@ -1244,7 +1284,7 @@ namespace ControlEntradaSalida
                 return;
             }
 
-            if (succeeded > 0)
+            if (succeeded > 0 || queued > 0)
             {
                 success = false;
                 code = GrpcErrorCodes.PartialSuccess;

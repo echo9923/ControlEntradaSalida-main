@@ -18,6 +18,10 @@ namespace ControlEntradaSalida
         /// </summary>
         public int TargetDevices { get; set; }
 
+        public int QueuedCount { get; set; }
+
+        public List<QueuedOperationDetail> QueuedDetails { get; } = new List<QueuedOperationDetail>();
+
         public List<string> Errors { get; } = new List<string>();
 
         public List<GrpcErrorDetail> ErrorDetails { get; } = new List<GrpcErrorDetail>();

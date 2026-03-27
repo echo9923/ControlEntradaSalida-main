@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.IO;
 using System.Text;
 using Newtonsoft.Json;
@@ -29,6 +29,8 @@ namespace ControlEntradaSalida.Configuration
         public DeviceConnectionSection DeviceConnection { get; set; } = new DeviceConnectionSection();
 
         public ReconnectSection Reconnect { get; set; } = new ReconnectSection();
+
+        public DeviceOperationRetrySection DeviceOperationRetry { get; set; } = new DeviceOperationRetrySection();
 
         private static ExternalConfiguration Load()
         {
@@ -62,6 +64,7 @@ namespace ControlEntradaSalida.Configuration
             configuration.FaceEventLogging ??= new FaceEventLoggingSection();
             configuration.DeviceConnection ??= new DeviceConnectionSection();
             configuration.Reconnect ??= new ReconnectSection();
+            configuration.DeviceOperationRetry ??= new DeviceOperationRetrySection();
 
             return configuration;
         }
@@ -265,5 +268,33 @@ namespace ControlEntradaSalida.Configuration
             /// </summary>
             public int? ReconnectCheckIntervalMs { get; set; }
         }
+        public sealed class DeviceOperationRetrySection
+        {
+            /// <summary>
+            /// 是否启用设备离线写操作补偿。
+            /// </summary>
+            public bool? Enabled { get; set; }
+
+            /// <summary>
+            /// 补偿任务扫描间隔（秒）。
+            /// </summary>
+            public int? ScanIntervalSeconds { get; set; }
+
+            /// <summary>
+            /// 同一任务的重试间隔（秒）。
+            /// </summary>
+            public int? RetryIntervalSeconds { get; set; }
+
+            /// <summary>
+            /// 单条任务最大重试次数。
+            /// </summary>
+            public int? MaxRetryAttempts { get; set; }
+
+            /// <summary>
+            /// 终态失败记录保留天数。
+            /// </summary>
+            public int? FailureRetentionDays { get; set; }
+        }
+
     }
 }

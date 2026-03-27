@@ -34,6 +34,11 @@ namespace ControlEntradaSalida
         private const int DefaultReconnectPermanentFailureCooldownMs = 600000;
         private const int DefaultReconnectCheckIntervalMs = 5000;
 
+        private const int DefaultDeviceOperationRetryScanIntervalSeconds = 10;
+        private const int DefaultDeviceOperationRetryRetryIntervalSeconds = 30;
+        private const int DefaultDeviceOperationRetryMaxRetryAttempts = 20;
+        private const int DefaultDeviceOperationRetryFailureRetentionDays = 7;
+
         private static readonly Lazy<ServiceConfiguration> LazyInstance =
             new Lazy<ServiceConfiguration>(Load);
 
@@ -59,6 +64,8 @@ namespace ControlEntradaSalida
 
         public ReconnectOptions Reconnect { get; private set; }
 
+        public DeviceOperationRetryOptions DeviceOperationRetry { get; private set; }
+
         private ServiceConfiguration()
         {
         }
@@ -81,6 +88,7 @@ namespace ControlEntradaSalida
             configuration.FaceEvent = ResolveFaceEventOptions(ExternalConfiguration.Current.FaceEventLogging);
             configuration.DeviceConnection = ResolveDeviceConnectionOptions(ExternalConfiguration.Current.DeviceConnection);
             configuration.Reconnect = ResolveReconnectOptions(ExternalConfiguration.Current.Reconnect);
+            configuration.DeviceOperationRetry = ResolveDeviceOperationRetryOptions(ExternalConfiguration.Current.DeviceOperationRetry);
 
             EnsureLogDirectory(configuration.LogDirectory);
 
@@ -415,6 +423,42 @@ namespace ControlEntradaSalida
             return options;
         }
 
+        private static DeviceOperationRetryOptions ResolveDeviceOperationRetryOptions(ExternalConfiguration.DeviceOperationRetrySection section)
+        {
+            bool? enabledSetting = ReadAppSettingBool("DeviceOperationRetry.Enabled");
+            int? scanIntervalSetting = ReadAppSettingInt("DeviceOperationRetry.ScanIntervalSeconds");
+            int? retryIntervalSetting = ReadAppSettingInt("DeviceOperationRetry.RetryIntervalSeconds");
+            int? maxRetryAttemptsSetting = ReadAppSettingInt("DeviceOperationRetry.MaxRetryAttempts");
+            int? failureRetentionDaysSetting = ReadAppSettingInt("DeviceOperationRetry.FailureRetentionDays");
+
+            var options = new DeviceOperationRetryOptions
+            {
+                Enabled = enabledSetting ?? section?.Enabled ?? true,
+                ScanIntervalSeconds = ResolveIntInRange(
+                    scanIntervalSetting ?? section?.ScanIntervalSeconds,
+                    DefaultDeviceOperationRetryScanIntervalSeconds,
+                    minValue: 1,
+                    maxValue: 3600),
+                RetryIntervalSeconds = ResolveIntInRange(
+                    retryIntervalSetting ?? section?.RetryIntervalSeconds,
+                    DefaultDeviceOperationRetryRetryIntervalSeconds,
+                    minValue: 1,
+                    maxValue: 3600),
+                MaxRetryAttempts = ResolveIntInRange(
+                    maxRetryAttemptsSetting ?? section?.MaxRetryAttempts,
+                    DefaultDeviceOperationRetryMaxRetryAttempts,
+                    minValue: 1,
+                    maxValue: 1000),
+                FailureRetentionDays = ResolveIntInRange(
+                    failureRetentionDaysSetting ?? section?.FailureRetentionDays,
+                    DefaultDeviceOperationRetryFailureRetentionDays,
+                    minValue: 1,
+                    maxValue: 365)
+            };
+
+            return options;
+        }
+
         private static int ResolveIntInRange(int? configuredValue, int defaultValue, int minValue, int maxValue)
         {
             if (!configuredValue.HasValue)
@@ -508,6 +552,19 @@ namespace ControlEntradaSalida
             public int PermanentFailureCooldownMs { get; set; }
 
             public int ReconnectCheckIntervalMs { get; set; }
+        }
+
+        public sealed class DeviceOperationRetryOptions
+        {
+            public bool Enabled { get; set; }
+
+            public int ScanIntervalSeconds { get; set; }
+
+            public int RetryIntervalSeconds { get; set; }
+
+            public int MaxRetryAttempts { get; set; }
+
+            public int FailureRetentionDays { get; set; }
         }
     }
 }

@@ -357,6 +357,10 @@ ASALocalRun/
 
 *.png
 
+# 忽略本地产物与运行日志
+/bin/
+/门禁publish/
+/运行日志/
 
 .serena/
 # AGENTS.md 需要纳入版本控制
