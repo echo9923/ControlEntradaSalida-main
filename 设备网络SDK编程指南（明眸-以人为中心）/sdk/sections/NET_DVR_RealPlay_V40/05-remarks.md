@@ -1,0 +1,10 @@
+# Remarks
+
+
+fRealDataCallBack_V30回调函数中不能执行可能会占用时间较长的接口或操作，不建议调用该SDK（HCNetSDK.dll）本身的接口。
+
+该接口中的回调函数可以置为空，这样该函数将不回调码流数据给用户，不过用户仍可以通过接口NET_DVR_SetRealDataCallBack或NET_DVR_SetStandardDataCallBack注册捕获码流数据的回调函数以捕获码流数据。
+
+客户端异常离线时，设备端对取流连接的保持时间为10秒。
+
+Linux版本SDK开发，预览接口直接传入有效窗口句柄，在预览过程中，改变窗口大小时，需要调用NET_DVR_ChangeWndResolution通知底层播放库去获取窗口大小。Windows系统下开发不需要调用相关接口，可以自适应。

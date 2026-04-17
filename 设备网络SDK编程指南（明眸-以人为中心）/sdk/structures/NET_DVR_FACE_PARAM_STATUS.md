@@ -1,0 +1,43 @@
+# NET_DVR_FACE_PARAM_STATUS
+
+- 来源：[https://open.hikvision.com/hardware/structures/NET_DVR_FACE_PARAM_STATUS.html](https://open.hikvision.com/hardware/structures/NET_DVR_FACE_PARAM_STATUS.html)
+
+人脸参数下发状态信息结构体。
+
+## 语法
+
+```c
+struct{
+  DWORD    dwSize;
+  BYTE     byCardNo[ACS_CARD_NO_LEN];
+  BYTE     byCardReaderRecvStatus[MAX_CARD_READER_NUM_512];
+  BYTE     byErrorMsg[ERROR_MSG_LEN];
+  DWORD    dwCardReaderNo;
+  BYTE     byTotalStatus;
+  BYTE     byFaceID;
+  BYTE     byRes[130];
+}NET_DVR_FACE_PARAM_STATUS, *LPNET_DVR_FACE_PARAM_STATUS;
+```
+
+## Members
+
+- `dwSize`：结构体大小
+- `byCardNo`：人脸关联的卡号
+- `byCardReaderRecvStatus`：人脸读卡器状态，按数组表示，每位数组表示一个读卡器，取值：0-失败，1-成功，2-重试或人脸质量差，3-内存已满，4-已存在该人脸，5-非法人脸ID，6-算法建模失败，7-未下发卡权限，8-未定义（保留），9-人眼间距小，10-图片数据长度小于1KB，11-图片格式不符（png/jpg/bmp）,12-图片像素数量超过上限，13-图片像素数量低于下限，14-图片信息校验失败，15-图片解码失败，16-人脸检测失败，17-人脸评分失败
+- `byErrorMsg`：下发错误信息，当byCardReaderRecvStatus为4时表示已存在人脸对应的卡号
+- `dwCardReaderNo`：指纹读卡器编号
+- `byTotalStatus`：下发总的状态：0- 当前人脸未下完所有读卡器，1- 已下完所有读卡器(这里的所有指的是门禁主机往所有的读卡器下发了，不管成功与否)
+- `byFaceID`：人脸ID编号，有效取值范围：1~2
+- `byRes`：保留，置为0
+
+## Remarks
+
+对应ACS_ABILITY中节点下节点
+
+## See Also
+
+NET_DVR_StartRemoteConfig
+
+## 相关链接
+
+- [NET_DVR_StartRemoteConfig](../definitions/NET_DVR_StartRemoteConfig_ACS_FACE.md)

@@ -1,0 +1,1358 @@
+[
+  {
+    "symbol": "NET_DVR_CaptureJPEGPicture",
+    "category": "definitions",
+    "source_url": "https://open.hikvision.com/hardware/definitions/NET_DVR_CaptureJPEGPicture.html",
+    "local_md_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/definitions/NET_DVR_CaptureJPEGPicture.md",
+    "raw_cache_path": "设备网络SDK编程指南（明眸-以人为中心）/cache/raw-html/sdk/definitions/NET_DVR_CaptureJPEGPicture.html",
+    "fetched_at": "2026-04-17T09:39:27+00:00",
+    "sha256": "7f4cef5666e988fbcd3cd5a036ce961f6991944af8aee47b9a33aea0469079de",
+    "origin": "cache"
+  },
+  {
+    "symbol": "NET_DVR_Cleanup",
+    "category": "definitions",
+    "source_url": "https://open.hikvision.com/hardware/definitions/NET_DVR_Cleanup.html",
+    "local_md_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/definitions/NET_DVR_Cleanup.md",
+    "raw_cache_path": "设备网络SDK编程指南（明眸-以人为中心）/cache/raw-html/sdk/definitions/NET_DVR_Cleanup.html",
+    "fetched_at": "2026-04-17T09:39:27+00:00",
+    "sha256": "7425f8472411c3ff07e372cdaab11dde45f5bfd2361851abfed8c9a4e396925e",
+    "origin": "cache"
+  },
+  {
+    "symbol": "NET_DVR_CloseAlarmChan_V30",
+    "category": "definitions",
+    "source_url": "https://open.hikvision.com/hardware/definitions/NET_DVR_CloseAlarmChan_V30.html",
+    "local_md_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/definitions/NET_DVR_CloseAlarmChan_V30.md",
+    "raw_cache_path": "设备网络SDK编程指南（明眸-以人为中心）/cache/raw-html/sdk/definitions/NET_DVR_CloseAlarmChan_V30.html",
+    "fetched_at": "2026-04-17T09:39:28+00:00",
+    "sha256": "e000574dd74217117c5fc863f17297622f747ae332e248bc9a677f848fb1afe5",
+    "origin": "cache"
+  },
+  {
+    "symbol": "NET_DVR_CloseUpgradeHandle",
+    "category": "definitions",
+    "source_url": "https://open.hikvision.com/hardware/definitions/NET_DVR_CloseUpgradeHandle.html",
+    "local_md_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/definitions/NET_DVR_CloseUpgradeHandle.md",
+    "raw_cache_path": "设备网络SDK编程指南（明眸-以人为中心）/cache/raw-html/sdk/definitions/NET_DVR_CloseUpgradeHandle.html",
+    "fetched_at": "2026-04-17T09:39:28+00:00",
+    "sha256": "0795120d04f763b792d009f4dfb5aca99144ba4766d2336cd5a35fc2024ecb4e",
+    "origin": "cache"
+  },
+  {
+    "symbol": "NET_DVR_GetAlarmDeviceUser",
+    "category": "definitions",
+    "source_url": "https://open.hikvision.com/hardware/definitions/NET_DVR_GetAlarmDeviceUser.html",
+    "local_md_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/definitions/NET_DVR_GetAlarmDeviceUser.md",
+    "raw_cache_path": "设备网络SDK编程指南（明眸-以人为中心）/cache/raw-html/sdk/definitions/NET_DVR_GetAlarmDeviceUser.html",
+    "fetched_at": "2026-04-17T09:39:28+00:00",
+    "sha256": "26cd1856adeb40237acc488a175d3495c4e3d052222c5fa833c1d4b452d63bb0",
+    "origin": "cache"
+  },
+  {
+    "symbol": "NET_DVR_GetDeviceAbility",
+    "category": "definitions",
+    "source_url": "https://open.hikvision.com/hardware/definitions/NET_DVR_GetDeviceAbility.html",
+    "local_md_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/definitions/NET_DVR_GetDeviceAbility.md",
+    "raw_cache_path": "设备网络SDK编程指南（明眸-以人为中心）/cache/raw-html/sdk/definitions/NET_DVR_GetDeviceAbility.html",
+    "fetched_at": "2026-04-17T09:39:29+00:00",
+    "sha256": "7da3927e7001a2133222781b5ad07bd30e7adbb67227db0e27eb0b8be5440f50",
+    "origin": "cache"
+  },
+  {
+    "symbol": "NET_DVR_GetErrorMsg",
+    "category": "definitions",
+    "source_url": "https://open.hikvision.com/hardware/definitions/NET_DVR_GetErrorMsg.html",
+    "local_md_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/definitions/NET_DVR_GetErrorMsg.md",
+    "raw_cache_path": "设备网络SDK编程指南（明眸-以人为中心）/cache/raw-html/sdk/definitions/NET_DVR_GetErrorMsg.html",
+    "fetched_at": "2026-04-17T09:39:29+00:00",
+    "sha256": "77ceaf6e30ab500a6b9b3e288ad1efad668ccbe82255f56f3e7848269fb287ed",
+    "origin": "cache"
+  },
+  {
+    "symbol": "NET_DVR_GetLastError",
+    "category": "definitions",
+    "source_url": "https://open.hikvision.com/hardware/definitions/NET_DVR_GetLastError.html",
+    "local_md_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/definitions/NET_DVR_GetLastError.md",
+    "raw_cache_path": "设备网络SDK编程指南（明眸-以人为中心）/cache/raw-html/sdk/definitions/NET_DVR_GetLastError.html",
+    "fetched_at": "2026-04-17T09:39:29+00:00",
+    "sha256": "25a8cb17e32c67d3d18bf01e919f08d59215ee52c3aa10c4bcd186274b6887fb",
+    "origin": "cache"
+  },
+  {
+    "symbol": "NET_DVR_GetNextRemoteConfig",
+    "category": "definitions",
+    "source_url": "https://open.hikvision.com/hardware/definitions/NET_DVR_GetNextRemoteConfig.html",
+    "local_md_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/definitions/NET_DVR_GetNextRemoteConfig.md",
+    "raw_cache_path": "设备网络SDK编程指南（明眸-以人为中心）/cache/raw-html/sdk/definitions/NET_DVR_GetNextRemoteConfig.html",
+    "fetched_at": "2026-04-17T09:39:29+00:00",
+    "sha256": "8f97a2ec436267cac1c5d9e0f161b35d40f0f0a437948ae2ca5d92cdb03152e5",
+    "origin": "cache"
+  },
+  {
+    "symbol": "NET_DVR_GetRemoteConfigState",
+    "category": "definitions",
+    "source_url": "https://open.hikvision.com/hardware/definitions/NET_DVR_GetRemoteConfigState.html",
+    "local_md_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/definitions/NET_DVR_GetRemoteConfigState.md",
+    "raw_cache_path": "设备网络SDK编程指南（明眸-以人为中心）/cache/raw-html/sdk/definitions/NET_DVR_GetRemoteConfigState.html",
+    "fetched_at": "2026-04-17T09:39:30+00:00",
+    "sha256": "5572828574d4c61b5e40db2b77dedbff2b185390de95f38fb6b428bcc3d83788",
+    "origin": "cache"
+  },
+  {
+    "symbol": "NET_DVR_GetSDKBuildVersion",
+    "category": "definitions",
+    "source_url": "https://open.hikvision.com/hardware/definitions/NET_DVR_GetSDKBuildVersion.html",
+    "local_md_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/definitions/NET_DVR_GetSDKBuildVersion.md",
+    "raw_cache_path": "设备网络SDK编程指南（明眸-以人为中心）/cache/raw-html/sdk/definitions/NET_DVR_GetSDKBuildVersion.html",
+    "fetched_at": "2026-04-17T09:39:30+00:00",
+    "sha256": "d360b87ea4a8f310e5ac46279985dac3e7b4c82610eca42a8362a6476a1b150b",
+    "origin": "cache"
+  },
+  {
+    "symbol": "NET_DVR_GetSDKVersion",
+    "category": "definitions",
+    "source_url": "https://open.hikvision.com/hardware/definitions/NET_DVR_GetSDKVersion.html",
+    "local_md_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/definitions/NET_DVR_GetSDKVersion.md",
+    "raw_cache_path": "设备网络SDK编程指南（明眸-以人为中心）/cache/raw-html/sdk/definitions/NET_DVR_GetSDKVersion.html",
+    "fetched_at": "2026-04-17T09:39:30+00:00",
+    "sha256": "3c1dbfec9f69f91fb44c101786c9dfe338fc0e30d113bd5d54090e54cef64b22",
+    "origin": "cache"
+  },
+  {
+    "symbol": "NET_DVR_GetUpgradeProgress",
+    "category": "definitions",
+    "source_url": "https://open.hikvision.com/hardware/definitions/NET_DVR_GetUpgradeProgress.html",
+    "local_md_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/definitions/NET_DVR_GetUpgradeProgress.md",
+    "raw_cache_path": "设备网络SDK编程指南（明眸-以人为中心）/cache/raw-html/sdk/definitions/NET_DVR_GetUpgradeProgress.html",
+    "fetched_at": "2026-04-17T09:39:31+00:00",
+    "sha256": "f2d1984cbc0fdfd161f510ffc7d285cf0e17398c35fa687f7e8f94f4d7892814",
+    "origin": "cache"
+  },
+  {
+    "symbol": "NET_DVR_Init",
+    "category": "definitions",
+    "source_url": "https://open.hikvision.com/hardware/definitions/NET_DVR_Init.html",
+    "local_md_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/definitions/NET_DVR_Init.md",
+    "raw_cache_path": "设备网络SDK编程指南（明眸-以人为中心）/cache/raw-html/sdk/definitions/NET_DVR_Init.html",
+    "fetched_at": "2026-04-17T09:39:31+00:00",
+    "sha256": "77d6023af33581fde2b2093c73b85d88453019d56906f9831773c0eda326def3",
+    "origin": "cache"
+  },
+  {
+    "symbol": "NET_DVR_Login_V40",
+    "category": "definitions",
+    "source_url": "https://open.hikvision.com/hardware/definitions/NET_DVR_Login_V40.html",
+    "local_md_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/definitions/NET_DVR_Login_V40.md",
+    "raw_cache_path": "设备网络SDK编程指南（明眸-以人为中心）/cache/raw-html/sdk/definitions/NET_DVR_Login_V40.html",
+    "fetched_at": "2026-04-17T09:39:31+00:00",
+    "sha256": "c81fcfce7e2920b78e85499a8a60bb7bd7b5ab05e03d5da0ef0524d94c90e9ed",
+    "origin": "cache"
+  },
+  {
+    "symbol": "NET_DVR_Logout_V30",
+    "category": "definitions",
+    "source_url": "https://open.hikvision.com/hardware/definitions/NET_DVR_Logout_V30.html",
+    "local_md_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/definitions/NET_DVR_Logout_V30.md",
+    "raw_cache_path": "设备网络SDK编程指南（明眸-以人为中心）/cache/raw-html/sdk/definitions/NET_DVR_Logout_V30.html",
+    "fetched_at": "2026-04-17T09:39:31+00:00",
+    "sha256": "25948932676041f1860b6bb17a11e6c67ec6b7e32becbd21342cd2b472b24fb7",
+    "origin": "cache"
+  },
+  {
+    "symbol": "NET_DVR_RealPlay_V30",
+    "category": "definitions",
+    "source_url": "https://open.hikvision.com/hardware/definitions/NET_DVR_RealPlay_V30.html",
+    "local_md_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/definitions/NET_DVR_RealPlay_V30.md",
+    "raw_cache_path": "设备网络SDK编程指南（明眸-以人为中心）/cache/raw-html/sdk/definitions/NET_DVR_RealPlay_V30.html",
+    "fetched_at": "2026-04-17T09:39:32+00:00",
+    "sha256": "3dd09bfabdf94789e2312ec8f453a219baf41c35ce3abf97d3d6eb4198d64c9a",
+    "origin": "cache"
+  },
+  {
+    "symbol": "NET_DVR_RealPlay_V40",
+    "category": "definitions",
+    "source_url": "https://open.hikvision.com/hardware/definitions/NET_DVR_RealPlay_V40.html",
+    "local_md_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/definitions/NET_DVR_RealPlay_V40.md",
+    "raw_cache_path": "设备网络SDK编程指南（明眸-以人为中心）/cache/raw-html/sdk/definitions/NET_DVR_RealPlay_V40.html",
+    "fetched_at": "2026-04-17T09:39:32+00:00",
+    "sha256": "5e88f3673f0365b98ffec6431186113d79c40a29833ac5ece92f7d74c4ef5ecd",
+    "origin": "cache"
+  },
+  {
+    "symbol": "NET_DVR_RemoteControl",
+    "category": "definitions",
+    "source_url": "https://open.hikvision.com/hardware/definitions/NET_DVR_RemoteControl.html",
+    "local_md_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/definitions/NET_DVR_RemoteControl.md",
+    "raw_cache_path": "设备网络SDK编程指南（明眸-以人为中心）/cache/raw-html/sdk/definitions/NET_DVR_RemoteControl.html",
+    "fetched_at": "2026-04-17T09:39:32+00:00",
+    "sha256": "926bba32a7d920b70bf8e6e853ae135145c6aab0a40b0c7f6a05674564401dd6",
+    "origin": "cache"
+  },
+  {
+    "symbol": "NET_DVR_STDXMLConfig",
+    "category": "definitions",
+    "source_url": "https://open.hikvision.com/hardware/definitions/NET_DVR_STDXMLConfig.html",
+    "local_md_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/definitions/NET_DVR_STDXMLConfig.md",
+    "raw_cache_path": "设备网络SDK编程指南（明眸-以人为中心）/cache/raw-html/sdk/definitions/NET_DVR_STDXMLConfig.html",
+    "fetched_at": "2026-04-17T09:39:32+00:00",
+    "sha256": "6293ba7a5fb65748a0a08dd5887803ff905cd9e6fe5dda161cf7cf6a9f25935f",
+    "origin": "cache"
+  },
+  {
+    "symbol": "NET_DVR_SetAlarmDeviceUser",
+    "category": "definitions",
+    "source_url": "https://open.hikvision.com/hardware/definitions/NET_DVR_SetAlarmDeviceUser.html",
+    "local_md_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/definitions/NET_DVR_SetAlarmDeviceUser.md",
+    "raw_cache_path": "设备网络SDK编程指南（明眸-以人为中心）/cache/raw-html/sdk/definitions/NET_DVR_SetAlarmDeviceUser.html",
+    "fetched_at": "2026-04-17T09:39:33+00:00",
+    "sha256": "7ca633883e9318b2d4ddeb53f6d5fbb709f212f26d34c3a71010ceba070e103c",
+    "origin": "cache"
+  },
+  {
+    "symbol": "NET_DVR_SetDVRMessageCallBack_V50",
+    "category": "definitions",
+    "source_url": "https://open.hikvision.com/hardware/definitions/NET_DVR_SetDVRMessageCallBack_V50.html",
+    "local_md_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/definitions/NET_DVR_SetDVRMessageCallBack_V50.md",
+    "raw_cache_path": "设备网络SDK编程指南（明眸-以人为中心）/cache/raw-html/sdk/definitions/NET_DVR_SetDVRMessageCallBack_V50.html",
+    "fetched_at": "2026-04-17T09:39:33+00:00",
+    "sha256": "1c05c2910cba246bd10603e0bc5eba62654ab1e4d7f202da6e0e7a5ea42a61d5",
+    "origin": "cache"
+  },
+  {
+    "symbol": "NET_DVR_SetLogToFile",
+    "category": "definitions",
+    "source_url": "https://open.hikvision.com/hardware/definitions/NET_DVR_SetLogToFile.html",
+    "local_md_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/definitions/NET_DVR_SetLogToFile.md",
+    "raw_cache_path": "设备网络SDK编程指南（明眸-以人为中心）/cache/raw-html/sdk/definitions/NET_DVR_SetLogToFile.html",
+    "fetched_at": "2026-04-17T09:39:34+00:00",
+    "sha256": "4a8e994f7d6d3e532bcbb0df39b397718a70bb46c568939068984ca1117af6c8",
+    "origin": "cache"
+  },
+  {
+    "symbol": "NET_DVR_SetVoiceComClientVolume",
+    "category": "definitions",
+    "source_url": "https://open.hikvision.com/hardware/definitions/NET_DVR_SetVoiceComClientVolume.html",
+    "local_md_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/definitions/NET_DVR_SetVoiceComClientVolume.md",
+    "raw_cache_path": "设备网络SDK编程指南（明眸-以人为中心）/cache/raw-html/sdk/definitions/NET_DVR_SetVoiceComClientVolume.html",
+    "fetched_at": "2026-04-17T09:39:34+00:00",
+    "sha256": "e0b2a618bbaa71b11210642500bc2fd7a37bda5a6357ebb3e011f702db54ddcf",
+    "origin": "cache"
+  },
+  {
+    "symbol": "NET_DVR_SetupAlarmChan_V41",
+    "category": "definitions",
+    "source_url": "https://open.hikvision.com/hardware/definitions/NET_DVR_SetupAlarmChan_V41.html",
+    "local_md_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/definitions/NET_DVR_SetupAlarmChan_V41.md",
+    "raw_cache_path": "设备网络SDK编程指南（明眸-以人为中心）/cache/raw-html/sdk/definitions/NET_DVR_SetupAlarmChan_V41.html",
+    "fetched_at": "2026-04-17T09:39:34+00:00",
+    "sha256": "fe33a0e8f505d7297c9bdaafbba5589aa96118430a3f8a43ed0bcbcc9b6c944c",
+    "origin": "cache"
+  },
+  {
+    "symbol": "NET_DVR_StartRemoteConfig",
+    "category": "definitions",
+    "source_url": "https://open.hikvision.com/hardware/definitions/NET_DVR_StartRemoteConfig.html",
+    "local_md_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/definitions/NET_DVR_StartRemoteConfig.md",
+    "raw_cache_path": "设备网络SDK编程指南（明眸-以人为中心）/cache/raw-html/sdk/definitions/NET_DVR_StartRemoteConfig.html",
+    "fetched_at": "2026-04-17T09:39:34+00:00",
+    "sha256": "2028b2045cf83caa9aacf4913d6ef5161236bb0c6e141df9141c598bad5e292d",
+    "origin": "cache"
+  },
+  {
+    "symbol": "NET_DVR_StartVoiceCom_V30",
+    "category": "definitions",
+    "source_url": "https://open.hikvision.com/hardware/definitions/NET_DVR_StartVoiceCom_V30.html",
+    "local_md_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/definitions/NET_DVR_StartVoiceCom_V30.md",
+    "raw_cache_path": "设备网络SDK编程指南（明眸-以人为中心）/cache/raw-html/sdk/definitions/NET_DVR_StartVoiceCom_V30.html",
+    "fetched_at": "2026-04-17T09:39:35+00:00",
+    "sha256": "fc0e498cca5fab097b9d60b271a161afc2f7ce01fc5d4af22efdd2883e9af828",
+    "origin": "cache"
+  },
+  {
+    "symbol": "NET_DVR_StopRealPlay",
+    "category": "definitions",
+    "source_url": "https://open.hikvision.com/hardware/definitions/NET_DVR_StopRealPlay.html",
+    "local_md_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/definitions/NET_DVR_StopRealPlay.md",
+    "raw_cache_path": "设备网络SDK编程指南（明眸-以人为中心）/cache/raw-html/sdk/definitions/NET_DVR_StopRealPlay.html",
+    "fetched_at": "2026-04-17T09:39:35+00:00",
+    "sha256": "3b2d2f1accecd4d639790384f5fb5d1267410f2b544adb29d5d4e952d9976ba3",
+    "origin": "cache"
+  },
+  {
+    "symbol": "NET_DVR_StopRemoteConfig",
+    "category": "definitions",
+    "source_url": "https://open.hikvision.com/hardware/definitions/NET_DVR_StopRemoteConfig.html",
+    "local_md_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/definitions/NET_DVR_StopRemoteConfig.md",
+    "raw_cache_path": "设备网络SDK编程指南（明眸-以人为中心）/cache/raw-html/sdk/definitions/NET_DVR_StopRemoteConfig.html",
+    "fetched_at": "2026-04-17T09:39:35+00:00",
+    "sha256": "5fe66cf3727a83a481f579c77e24397c1a1e142ddd8dfeb4235998eb2c8c5ba7",
+    "origin": "cache"
+  },
+  {
+    "symbol": "NET_DVR_StopVoiceCom",
+    "category": "definitions",
+    "source_url": "https://open.hikvision.com/hardware/definitions/NET_DVR_StopVoiceCom.html",
+    "local_md_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/definitions/NET_DVR_StopVoiceCom.md",
+    "raw_cache_path": "设备网络SDK编程指南（明眸-以人为中心）/cache/raw-html/sdk/definitions/NET_DVR_StopVoiceCom.html",
+    "fetched_at": "2026-04-17T09:39:36+00:00",
+    "sha256": "6053b4e5614f51a33aa9345decac91369f98a85e16701f3be61f90e3d9973adb",
+    "origin": "cache"
+  },
+  {
+    "symbol": "NET_DVR_Upgrade_V40",
+    "category": "definitions",
+    "source_url": "https://open.hikvision.com/hardware/definitions/NET_DVR_Upgrade_V40.html",
+    "local_md_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/definitions/NET_DVR_Upgrade_V40.md",
+    "raw_cache_path": "设备网络SDK编程指南（明眸-以人为中心）/cache/raw-html/sdk/definitions/NET_DVR_Upgrade_V40.html",
+    "fetched_at": "2026-04-17T09:39:36+00:00",
+    "sha256": "1764140fea96ecad995e27c9673d0f2ef2444f1ac36e4c47dcab69def33062eb",
+    "origin": "cache"
+  },
+  {
+    "symbol": "NET_DVR_ACS_ALARM_INFO",
+    "category": "structures",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_ACS_ALARM_INFO.html",
+    "local_md_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_ACS_ALARM_INFO.md",
+    "raw_cache_path": "设备网络SDK编程指南（明眸-以人为中心）/cache/raw-html/sdk/structures/NET_DVR_ACS_ALARM_INFO.html",
+    "fetched_at": "2026-04-17T09:39:36+00:00",
+    "sha256": "d2a11eb18342e87de493d4c66ff8283350f64d503692a3667edfd776babed503",
+    "origin": "cache"
+  },
+  {
+    "symbol": "NET_DVR_ACS_EVENT_CFG",
+    "category": "structures",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_ACS_EVENT_CFG.html",
+    "local_md_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_ACS_EVENT_CFG.md",
+    "raw_cache_path": "设备网络SDK编程指南（明眸-以人为中心）/cache/raw-html/sdk/structures/NET_DVR_ACS_EVENT_CFG.html",
+    "fetched_at": "2026-04-17T09:39:36+00:00",
+    "sha256": "dca7364ef7450dc398359923ff912ff760bea7d00e1e1a767fc297ac2c25d349",
+    "origin": "cache"
+  },
+  {
+    "symbol": "NET_DVR_ACS_EVENT_COND",
+    "category": "structures",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_ACS_EVENT_COND.html",
+    "local_md_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_ACS_EVENT_COND.md",
+    "raw_cache_path": "设备网络SDK编程指南（明眸-以人为中心）/cache/raw-html/sdk/structures/NET_DVR_ACS_EVENT_COND.html",
+    "fetched_at": "2026-04-17T09:39:36+00:00",
+    "sha256": "141a8ead857e8ef4c8613c257ee929e055ff14a445639d12772f2c4012f52dec",
+    "origin": "cache"
+  },
+  {
+    "symbol": "NET_DVR_ACS_EVENT_DETAIL",
+    "category": "structures",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_ACS_EVENT_DETAIL.html",
+    "local_md_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_ACS_EVENT_DETAIL.md",
+    "raw_cache_path": "设备网络SDK编程指南（明眸-以人为中心）/cache/raw-html/sdk/structures/NET_DVR_ACS_EVENT_DETAIL.html",
+    "fetched_at": "2026-04-17T09:39:36+00:00",
+    "sha256": "cd76d6d8e67f62575e47339436e632d1bf74464b476b8090ee226addc4ac2bad",
+    "origin": "cache"
+  },
+  {
+    "symbol": "NET_DVR_ACS_EVENT_INFO",
+    "category": "structures",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_ACS_EVENT_INFO.html",
+    "local_md_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_ACS_EVENT_INFO.md",
+    "raw_cache_path": "设备网络SDK编程指南（明眸-以人为中心）/cache/raw-html/sdk/structures/NET_DVR_ACS_EVENT_INFO.html",
+    "fetched_at": "2026-04-17T09:39:36+00:00",
+    "sha256": "98ca4d60a113e576369b228fd073b3aaa691e2517e9a222f4c8bc455c71077ee",
+    "origin": "cache"
+  },
+  {
+    "symbol": "NET_DVR_ACS_PARAM_TYPE",
+    "category": "structures",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_ACS_PARAM_TYPE.html",
+    "local_md_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_ACS_PARAM_TYPE.md",
+    "raw_cache_path": "设备网络SDK编程指南（明眸-以人为中心）/cache/raw-html/sdk/structures/NET_DVR_ACS_PARAM_TYPE.html",
+    "fetched_at": "2026-04-17T09:39:37+00:00",
+    "sha256": "179374900684c362d3fcc016d200eb5b4839c842642fd053f6db22a5b76cfdb2",
+    "origin": "cache"
+  },
+  {
+    "symbol": "NET_DVR_ACS_WORK_STATUS_V50",
+    "category": "structures",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_ACS_WORK_STATUS_V50.html",
+    "local_md_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_ACS_WORK_STATUS_V50.md",
+    "raw_cache_path": "设备网络SDK编程指南（明眸-以人为中心）/cache/raw-html/sdk/structures/NET_DVR_ACS_WORK_STATUS_V50.html",
+    "fetched_at": "2026-04-17T09:39:37+00:00",
+    "sha256": "b45aeb03e739c69947753ae7a4e6b8a6f6d0ff71ad5efe1da34aa1cd2e7e1f34",
+    "origin": "cache"
+  },
+  {
+    "symbol": "NET_DVR_ALARMER",
+    "category": "structures",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_ALARMER.html",
+    "local_md_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_ALARMER.md",
+    "raw_cache_path": "设备网络SDK编程指南（明眸-以人为中心）/cache/raw-html/sdk/structures/NET_DVR_ALARMER.html",
+    "fetched_at": "2026-04-17T09:39:37+00:00",
+    "sha256": "3e95b14eb196234cbe5ed37e420036f756a6e58ac548c850b6ae40e52d0a7ffb",
+    "origin": "cache"
+  },
+  {
+    "symbol": "NET_DVR_ALARM_DEVICE_USER",
+    "category": "structures",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_ALARM_DEVICE_USER.html",
+    "local_md_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_ALARM_DEVICE_USER.md",
+    "raw_cache_path": "设备网络SDK编程指南（明眸-以人为中心）/cache/raw-html/sdk/structures/NET_DVR_ALARM_DEVICE_USER.html",
+    "fetched_at": "2026-04-17T09:39:38+00:00",
+    "sha256": "9aad287b3b6875a89afd645838548ee0919c8a8aa8f381d10654e9c3f8aebf75",
+    "origin": "cache"
+  },
+  {
+    "symbol": "NET_DVR_CAPTURE_FACE_CFG",
+    "category": "structures",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_CAPTURE_FACE_CFG.html",
+    "local_md_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_CAPTURE_FACE_CFG.md",
+    "raw_cache_path": "设备网络SDK编程指南（明眸-以人为中心）/cache/raw-html/sdk/structures/NET_DVR_CAPTURE_FACE_CFG.html",
+    "fetched_at": "2026-04-17T09:39:38+00:00",
+    "sha256": "ee7bcde397a128978ff0b9a5edb54d3603b83dcc6478657982905317fd5401f0",
+    "origin": "cache"
+  },
+  {
+    "symbol": "NET_DVR_CAPTURE_FACE_COND",
+    "category": "structures",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_CAPTURE_FACE_COND.html",
+    "local_md_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_CAPTURE_FACE_COND.md",
+    "raw_cache_path": "设备网络SDK编程指南（明眸-以人为中心）/cache/raw-html/sdk/structures/NET_DVR_CAPTURE_FACE_COND.html",
+    "fetched_at": "2026-04-17T09:39:38+00:00",
+    "sha256": "ad6d51579b7b29ada20490dac35611dbf7a83647b6e417aa41ce373e4e9f5f0e",
+    "origin": "cache"
+  },
+  {
+    "symbol": "NET_DVR_CARD_CFG_COND",
+    "category": "structures",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_CARD_CFG_COND.html",
+    "local_md_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_CARD_CFG_COND.md",
+    "raw_cache_path": "设备网络SDK编程指南（明眸-以人为中心）/cache/raw-html/sdk/structures/NET_DVR_CARD_CFG_COND.html",
+    "fetched_at": "2026-04-17T09:39:39+00:00",
+    "sha256": "0cb1b544e1dd2bd6d585a481a60c2e33a312b9356cc0f670a640c1ce9d38ef7f",
+    "origin": "cache"
+  },
+  {
+    "symbol": "NET_DVR_CARD_CFG_SEND_DATA",
+    "category": "structures",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_CARD_CFG_SEND_DATA.html",
+    "local_md_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_CARD_CFG_SEND_DATA.md",
+    "raw_cache_path": "设备网络SDK编程指南（明眸-以人为中心）/cache/raw-html/sdk/structures/NET_DVR_CARD_CFG_SEND_DATA.html",
+    "fetched_at": "2026-04-17T09:39:39+00:00",
+    "sha256": "08415a9e509a84075ba5b428238a07215c568a1cfda9d17ac3e44a1749552f6c",
+    "origin": "cache"
+  },
+  {
+    "symbol": "NET_DVR_CARD_CFG_V50",
+    "category": "structures",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_CARD_CFG_V50.html",
+    "local_md_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_CARD_CFG_V50.md",
+    "raw_cache_path": "设备网络SDK编程指南（明眸-以人为中心）/cache/raw-html/sdk/structures/NET_DVR_CARD_CFG_V50.html",
+    "fetched_at": "2026-04-17T09:39:39+00:00",
+    "sha256": "763738585f7ed57b50875029051b3afd22e7d3f591e147bd55e77cae46213099",
+    "origin": "cache"
+  },
+  {
+    "symbol": "NET_DVR_CARD_READER_CFG_V50",
+    "category": "structures",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_CARD_READER_CFG_V50.html",
+    "local_md_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_CARD_READER_CFG_V50.md",
+    "raw_cache_path": "设备网络SDK编程指南（明眸-以人为中心）/cache/raw-html/sdk/structures/NET_DVR_CARD_READER_CFG_V50.html",
+    "fetched_at": "2026-04-17T09:39:40+00:00",
+    "sha256": "41d94476c7ff08708ce533ff783db477493f299d9ed417a0c1333e2f18880b16",
+    "origin": "cache"
+  },
+  {
+    "symbol": "NET_DVR_CARD_READER_PLAN",
+    "category": "structures",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_CARD_READER_PLAN.html",
+    "local_md_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_CARD_READER_PLAN.md",
+    "raw_cache_path": "设备网络SDK编程指南（明眸-以人为中心）/cache/raw-html/sdk/structures/NET_DVR_CARD_READER_PLAN.html",
+    "fetched_at": "2026-04-17T09:39:40+00:00",
+    "sha256": "4950c7f952e02a4b0f09fb5914d03f0f2ea1fd877639652cdd746f2b274e0a3e",
+    "origin": "cache"
+  },
+  {
+    "symbol": "NET_DVR_CARD_USER_INFO_CFG",
+    "category": "structures",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_CARD_USER_INFO_CFG.html",
+    "local_md_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_CARD_USER_INFO_CFG.md",
+    "raw_cache_path": "设备网络SDK编程指南（明眸-以人为中心）/cache/raw-html/sdk/structures/NET_DVR_CARD_USER_INFO_CFG.html",
+    "fetched_at": "2026-04-17T09:39:41+00:00",
+    "sha256": "93de4b6147e0b4e4e37092fa11b6009161e493eb6f361bc8daad89d14daa4de7",
+    "origin": "cache"
+  },
+  {
+    "symbol": "NET_DVR_CLIENTINFO",
+    "category": "structures",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_CLIENTINFO.html",
+    "local_md_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_CLIENTINFO.md",
+    "raw_cache_path": "设备网络SDK编程指南（明眸-以人为中心）/cache/raw-html/sdk/structures/NET_DVR_CLIENTINFO.html",
+    "fetched_at": "2026-04-17T09:39:41+00:00",
+    "sha256": "7bc1a1220dad3dfbf00b1c5b910091d4da506eb0f9796d3e2de632ebeb8fbf2f",
+    "origin": "cache"
+  },
+  {
+    "symbol": "NET_DVR_DATE",
+    "category": "structures",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_DATE.html",
+    "local_md_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_DATE.md",
+    "raw_cache_path": "设备网络SDK编程指南（明眸-以人为中心）/cache/raw-html/sdk/structures/NET_DVR_DATE.html",
+    "fetched_at": "2026-04-17T09:39:41+00:00",
+    "sha256": "450c15190324c18b60554af4d8a0228602abaf174a2b78b25aa2ce7945a4a753",
+    "origin": "cache"
+  },
+  {
+    "symbol": "NET_DVR_DDNS_STREAM_CFG",
+    "category": "structures",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_DDNS_STREAM_CFG.html",
+    "local_md_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_DDNS_STREAM_CFG.md",
+    "raw_cache_path": "设备网络SDK编程指南（明眸-以人为中心）/cache/raw-html/sdk/structures/NET_DVR_DDNS_STREAM_CFG.html",
+    "fetched_at": "2026-04-17T09:39:42+00:00",
+    "sha256": "0deb47d9dda7ca1baf5e2818fae2de3455363b57af0486c3d888a8bb405bb95b",
+    "origin": "cache"
+  },
+  {
+    "symbol": "NET_DVR_DEVICECFG_V40",
+    "category": "structures",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_DEVICECFG_V40.html",
+    "local_md_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_DEVICECFG_V40.md",
+    "raw_cache_path": "设备网络SDK编程指南（明眸-以人为中心）/cache/raw-html/sdk/structures/NET_DVR_DEVICECFG_V40.html",
+    "fetched_at": "2026-04-17T09:39:42+00:00",
+    "sha256": "641ccb51fbd49a0c6b6a2187f741f48f7716c88765190212f91d84e38b0f24b2",
+    "origin": "cache"
+  },
+  {
+    "symbol": "NET_DVR_DEVICEINFO_V30",
+    "category": "structures",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_DEVICEINFO_V30.html",
+    "local_md_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_DEVICEINFO_V30.md",
+    "raw_cache_path": "设备网络SDK编程指南（明眸-以人为中心）/cache/raw-html/sdk/structures/NET_DVR_DEVICEINFO_V30.html",
+    "fetched_at": "2026-04-17T09:39:42+00:00",
+    "sha256": "b035ecb2acb46cc03c9dc7de9861ac6a9ea71efc245044d100816cdd3e039d87",
+    "origin": "cache"
+  },
+  {
+    "symbol": "NET_DVR_DEVICEINFO_V40",
+    "category": "structures",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_DEVICEINFO_V40.html",
+    "local_md_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_DEVICEINFO_V40.md",
+    "raw_cache_path": "设备网络SDK编程指南（明眸-以人为中心）/cache/raw-html/sdk/structures/NET_DVR_DEVICEINFO_V40.html",
+    "fetched_at": "2026-04-17T09:39:42+00:00",
+    "sha256": "72abf23b2537a5af98d1eb4ca805afcf9f81a26aa9e2a20652755037581a4cf8",
+    "origin": "cache"
+  },
+  {
+    "symbol": "NET_DVR_DEV_CHAN_INFO",
+    "category": "structures",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_DEV_CHAN_INFO.html",
+    "local_md_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_DEV_CHAN_INFO.md",
+    "raw_cache_path": "设备网络SDK编程指南（明眸-以人为中心）/cache/raw-html/sdk/structures/NET_DVR_DEV_CHAN_INFO.html",
+    "fetched_at": "2026-04-17T09:39:42+00:00",
+    "sha256": "b22e51985ee1200d98a3357534a4f1217dd08211d14f702594d6cceec4ce224a",
+    "origin": "cache"
+  },
+  {
+    "symbol": "NET_DVR_DOOR_CFG",
+    "category": "structures",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_DOOR_CFG.html",
+    "local_md_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_DOOR_CFG.md",
+    "raw_cache_path": "设备网络SDK编程指南（明眸-以人为中心）/cache/raw-html/sdk/structures/NET_DVR_DOOR_CFG.html",
+    "fetched_at": "2026-04-17T09:39:43+00:00",
+    "sha256": "ef656843a6bda91db0168dc3f5fda439e16f5b87c1f89cb21d5d569b3437d426",
+    "origin": "cache"
+  },
+  {
+    "symbol": "NET_DVR_DOOR_STATUS_PLAN",
+    "category": "structures",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_DOOR_STATUS_PLAN.html",
+    "local_md_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_DOOR_STATUS_PLAN.md",
+    "raw_cache_path": "设备网络SDK编程指南（明眸-以人为中心）/cache/raw-html/sdk/structures/NET_DVR_DOOR_STATUS_PLAN.html",
+    "fetched_at": "2026-04-17T09:39:43+00:00",
+    "sha256": "490270db6545491a967f89e9f93f07866500d7d07cbf4fbeb9e707ea39a57701",
+    "origin": "cache"
+  },
+  {
+    "symbol": "NET_DVR_ETHERNET_V30",
+    "category": "structures",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_ETHERNET_V30.html",
+    "local_md_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_ETHERNET_V30.md",
+    "raw_cache_path": "设备网络SDK编程指南（明眸-以人为中心）/cache/raw-html/sdk/structures/NET_DVR_ETHERNET_V30.html",
+    "fetched_at": "2026-04-17T09:39:43+00:00",
+    "sha256": "d42e9c95424c3b3d0144272562310958372adba145d1275f9562f7d37cd17395",
+    "origin": "cache"
+  },
+  {
+    "symbol": "NET_DVR_EVENT_CARD_LINKAGE_CFG_V50",
+    "category": "structures",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_EVENT_CARD_LINKAGE_CFG_V50.html",
+    "local_md_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_EVENT_CARD_LINKAGE_CFG_V50.md",
+    "raw_cache_path": "设备网络SDK编程指南（明眸-以人为中心）/cache/raw-html/sdk/structures/NET_DVR_EVENT_CARD_LINKAGE_CFG_V50.html",
+    "fetched_at": "2026-04-17T09:39:43+00:00",
+    "sha256": "5daef897934c13ba60c5ae26f4a51fe2dfa724708f47937169d1fa6471509964",
+    "origin": "cache"
+  },
+  {
+    "symbol": "NET_DVR_EVENT_CARD_LINKAGE_CFG_V51",
+    "category": "structures",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_EVENT_CARD_LINKAGE_CFG_V51.html",
+    "local_md_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_EVENT_CARD_LINKAGE_CFG_V51.md",
+    "raw_cache_path": "设备网络SDK编程指南（明眸-以人为中心）/cache/raw-html/sdk/structures/NET_DVR_EVENT_CARD_LINKAGE_CFG_V51.html",
+    "fetched_at": "2026-04-17T09:39:44+00:00",
+    "sha256": "e40261aa9ecbe2a9827757aececbeeaeeca3313a261b45f9d10ba72917d051af",
+    "origin": "cache"
+  },
+  {
+    "symbol": "NET_DVR_EVENT_CARD_LINKAGE_COND",
+    "category": "structures",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_EVENT_CARD_LINKAGE_COND.html",
+    "local_md_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_EVENT_CARD_LINKAGE_COND.md",
+    "raw_cache_path": "设备网络SDK编程指南（明眸-以人为中心）/cache/raw-html/sdk/structures/NET_DVR_EVENT_CARD_LINKAGE_COND.html",
+    "fetched_at": "2026-04-17T09:39:44+00:00",
+    "sha256": "140f396571963ff17eb80d3c5571c8613c4c75af4762c8b25db63b2f1d32a62f",
+    "origin": "cache"
+  },
+  {
+    "symbol": "NET_DVR_EVENT_LINKAGE_INFO",
+    "category": "structures",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_EVENT_LINKAGE_INFO.html",
+    "local_md_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_EVENT_LINKAGE_INFO.md",
+    "raw_cache_path": "设备网络SDK编程指南（明眸-以人为中心）/cache/raw-html/sdk/structures/NET_DVR_EVENT_LINKAGE_INFO.html",
+    "fetched_at": "2026-04-17T09:39:44+00:00",
+    "sha256": "039bf3bb4edb15cc45fbf126f10b3215cf73c464876ce526dd277478880e881b",
+    "origin": "cache"
+  },
+  {
+    "symbol": "NET_DVR_EVETN_CARD_LINKAGE_UNION",
+    "category": "structures",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_EVETN_CARD_LINKAGE_UNION.html",
+    "local_md_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_EVETN_CARD_LINKAGE_UNION.md",
+    "raw_cache_path": "设备网络SDK编程指南（明眸-以人为中心）/cache/raw-html/sdk/structures/NET_DVR_EVETN_CARD_LINKAGE_UNION.html",
+    "fetched_at": "2026-04-17T09:39:45+00:00",
+    "sha256": "f245d9c99b4508e5be485385a374bd6e67efb1726c290d4cb6493640d5087eb2",
+    "origin": "cache"
+  },
+  {
+    "symbol": "NET_DVR_FACE_PARAM_BYCARD",
+    "category": "structures",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_FACE_PARAM_BYCARD.html",
+    "local_md_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_FACE_PARAM_BYCARD.md",
+    "raw_cache_path": "设备网络SDK编程指南（明眸-以人为中心）/cache/raw-html/sdk/structures/NET_DVR_FACE_PARAM_BYCARD.html",
+    "fetched_at": "2026-04-17T09:39:45+00:00",
+    "sha256": "9d2e294202e74c6bb77ebe66090ba097d9a7383bf796e1da7020410c07925706",
+    "origin": "cache"
+  },
+  {
+    "symbol": "NET_DVR_FACE_PARAM_BYREADER",
+    "category": "structures",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_FACE_PARAM_BYREADER.html",
+    "local_md_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_FACE_PARAM_BYREADER.md",
+    "raw_cache_path": "设备网络SDK编程指南（明眸-以人为中心）/cache/raw-html/sdk/structures/NET_DVR_FACE_PARAM_BYREADER.html",
+    "fetched_at": "2026-04-17T09:39:45+00:00",
+    "sha256": "01d0bd303d71ccf625f88c52a0e49821795b720b5332f4ac3fe1bcfc26d8b1fc",
+    "origin": "cache"
+  },
+  {
+    "symbol": "NET_DVR_FACE_PARAM_CFG",
+    "category": "structures",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_FACE_PARAM_CFG.html",
+    "local_md_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_FACE_PARAM_CFG.md",
+    "raw_cache_path": "设备网络SDK编程指南（明眸-以人为中心）/cache/raw-html/sdk/structures/NET_DVR_FACE_PARAM_CFG.html",
+    "fetched_at": "2026-04-17T09:39:46+00:00",
+    "sha256": "6f2a6c465e3cfe27c29405c5f84326e6a714898392760f991d153dc0cd3fa10b",
+    "origin": "cache"
+  },
+  {
+    "symbol": "NET_DVR_FACE_PARAM_COND",
+    "category": "structures",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_FACE_PARAM_COND.html",
+    "local_md_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_FACE_PARAM_COND.md",
+    "raw_cache_path": "设备网络SDK编程指南（明眸-以人为中心）/cache/raw-html/sdk/structures/NET_DVR_FACE_PARAM_COND.html",
+    "fetched_at": "2026-04-17T09:39:46+00:00",
+    "sha256": "f1e1b5c7ff14ea33c23c44872d5276118de10c8cb5caa88b6bf09ed296fd8515",
+    "origin": "cache"
+  },
+  {
+    "symbol": "NET_DVR_FACE_PARAM_STATUS",
+    "category": "structures",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_FACE_PARAM_STATUS.html",
+    "local_md_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_FACE_PARAM_STATUS.md",
+    "raw_cache_path": "设备网络SDK编程指南（明眸-以人为中心）/cache/raw-html/sdk/structures/NET_DVR_FACE_PARAM_STATUS.html",
+    "fetched_at": "2026-04-17T09:39:47+00:00",
+    "sha256": "a9e8a598ace02378529e5fa0c5cd4e0d792cdcd585e3a35ec5b6dc80f74d1db3",
+    "origin": "cache"
+  },
+  {
+    "symbol": "NET_DVR_FAILED_FACE_INFO",
+    "category": "structures",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_FAILED_FACE_INFO.html",
+    "local_md_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_FAILED_FACE_INFO.md",
+    "raw_cache_path": "设备网络SDK编程指南（明眸-以人为中心）/cache/raw-html/sdk/structures/NET_DVR_FAILED_FACE_INFO.html",
+    "fetched_at": "2026-04-17T09:39:48+00:00",
+    "sha256": "3e7e50cbdbebc23cae4fbca47b9300ec29407c7124c58498b843bfca69e0737a",
+    "origin": "cache"
+  },
+  {
+    "symbol": "NET_DVR_FINGER_PRINT_BYCARD",
+    "category": "structures",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_FINGER_PRINT_BYCARD.html",
+    "local_md_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_FINGER_PRINT_BYCARD.md",
+    "raw_cache_path": "设备网络SDK编程指南（明眸-以人为中心）/cache/raw-html/sdk/structures/NET_DVR_FINGER_PRINT_BYCARD.html",
+    "fetched_at": "2026-04-17T09:39:48+00:00",
+    "sha256": "76029f86e9ca4553fb2ada8573e4a2b0bfdd15748c9365ad131ffce0aade1118",
+    "origin": "cache"
+  },
+  {
+    "symbol": "NET_DVR_FINGER_PRINT_BYCARD_V50",
+    "category": "structures",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_FINGER_PRINT_BYCARD_V50.html",
+    "local_md_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_FINGER_PRINT_BYCARD_V50.md",
+    "raw_cache_path": "设备网络SDK编程指南（明眸-以人为中心）/cache/raw-html/sdk/structures/NET_DVR_FINGER_PRINT_BYCARD_V50.html",
+    "fetched_at": "2026-04-17T09:39:49+00:00",
+    "sha256": "ef79990c8d1085ee8123f350cd13b1eb11cd721f21c54a550583323cfc021a33",
+    "origin": "cache"
+  },
+  {
+    "symbol": "NET_DVR_FINGER_PRINT_BYREADER",
+    "category": "structures",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_FINGER_PRINT_BYREADER.html",
+    "local_md_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_FINGER_PRINT_BYREADER.md",
+    "raw_cache_path": "设备网络SDK编程指南（明眸-以人为中心）/cache/raw-html/sdk/structures/NET_DVR_FINGER_PRINT_BYREADER.html",
+    "fetched_at": "2026-04-17T09:39:49+00:00",
+    "sha256": "db9b083477661a7c8c02128946bfef11086016adf3c25377e165cb5c89849920",
+    "origin": "cache"
+  },
+  {
+    "symbol": "NET_DVR_FINGER_PRINT_BYREADER_V50",
+    "category": "structures",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_FINGER_PRINT_BYREADER_V50.html",
+    "local_md_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_FINGER_PRINT_BYREADER_V50.md",
+    "raw_cache_path": "设备网络SDK编程指南（明眸-以人为中心）/cache/raw-html/sdk/structures/NET_DVR_FINGER_PRINT_BYREADER_V50.html",
+    "fetched_at": "2026-04-17T09:39:50+00:00",
+    "sha256": "8bd78545c4a3a938371986dc8feee3469b25bbbcf828db4b10fa554b02db8342",
+    "origin": "cache"
+  },
+  {
+    "symbol": "NET_DVR_FINGER_PRINT_CFG",
+    "category": "structures",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_FINGER_PRINT_CFG.html",
+    "local_md_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_FINGER_PRINT_CFG.md",
+    "raw_cache_path": "设备网络SDK编程指南（明眸-以人为中心）/cache/raw-html/sdk/structures/NET_DVR_FINGER_PRINT_CFG.html",
+    "fetched_at": "2026-04-17T09:39:50+00:00",
+    "sha256": "0e158947e73da8e958e4880c905043d29afebb08513ec3f26ab98344160fd2a5",
+    "origin": "cache"
+  },
+  {
+    "symbol": "NET_DVR_FINGER_PRINT_INFO_COND",
+    "category": "structures",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_FINGER_PRINT_INFO_COND.html",
+    "local_md_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_FINGER_PRINT_INFO_COND.md",
+    "raw_cache_path": "设备网络SDK编程指南（明眸-以人为中心）/cache/raw-html/sdk/structures/NET_DVR_FINGER_PRINT_INFO_COND.html",
+    "fetched_at": "2026-04-17T09:39:51+00:00",
+    "sha256": "543301d335107fbe662c48e285b754ab9706725517fb6f9b8fd0d22c7fc378fc",
+    "origin": "cache"
+  },
+  {
+    "symbol": "NET_DVR_FINGER_PRINT_INFO_CTRL",
+    "category": "structures",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_FINGER_PRINT_INFO_CTRL.html",
+    "local_md_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_FINGER_PRINT_INFO_CTRL.md",
+    "raw_cache_path": "设备网络SDK编程指南（明眸-以人为中心）/cache/raw-html/sdk/structures/NET_DVR_FINGER_PRINT_INFO_CTRL.html",
+    "fetched_at": "2026-04-17T09:39:51+00:00",
+    "sha256": "2e3d3ead9da8a90bf2675cca8f6817c7fcda8e9de49a1e4efaaef6ca1499c0aa",
+    "origin": "cache"
+  },
+  {
+    "symbol": "NET_DVR_FINGER_PRINT_INFO_STATUS_V50",
+    "category": "structures",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_FINGER_PRINT_INFO_STATUS_V50.html",
+    "local_md_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_FINGER_PRINT_INFO_STATUS_V50.md",
+    "raw_cache_path": "设备网络SDK编程指南（明眸-以人为中心）/cache/raw-html/sdk/structures/NET_DVR_FINGER_PRINT_INFO_STATUS_V50.html",
+    "fetched_at": "2026-04-17T09:39:52+00:00",
+    "sha256": "44ca54fc17b3ea53979385abf5006233bebf8ad1164d09ae17478db133911124",
+    "origin": "cache"
+  },
+  {
+    "symbol": "NET_DVR_FINGER_PRINT_STATUS",
+    "category": "structures",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_FINGER_PRINT_STATUS.html",
+    "local_md_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_FINGER_PRINT_STATUS.md",
+    "raw_cache_path": "设备网络SDK编程指南（明眸-以人为中心）/cache/raw-html/sdk/structures/NET_DVR_FINGER_PRINT_STATUS.html",
+    "fetched_at": "2026-04-17T09:39:52+00:00",
+    "sha256": "ebad170bfffa27920516ef2c4ca589bc23aa3b6f41e0aaf659d96c54c2f91ef2",
+    "origin": "cache"
+  },
+  {
+    "symbol": "NET_DVR_GET_STREAM_UNION",
+    "category": "structures",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_GET_STREAM_UNION.html",
+    "local_md_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_GET_STREAM_UNION.md",
+    "raw_cache_path": "设备网络SDK编程指南（明眸-以人为中心）/cache/raw-html/sdk/structures/NET_DVR_GET_STREAM_UNION.html",
+    "fetched_at": "2026-04-17T09:39:53+00:00",
+    "sha256": "ebfc28f95a13d3618c69b479ad6479269002e293c2e3f2ce9fd8f3e7195689cc",
+    "origin": "cache"
+  },
+  {
+    "symbol": "NET_DVR_GROUP_CFG",
+    "category": "structures",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_GROUP_CFG.html",
+    "local_md_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_GROUP_CFG.md",
+    "raw_cache_path": "设备网络SDK编程指南（明眸-以人为中心）/cache/raw-html/sdk/structures/NET_DVR_GROUP_CFG.html",
+    "fetched_at": "2026-04-17T09:39:53+00:00",
+    "sha256": "f13a43a8eb2ff77335bb0ac7968dcc9e483f37bd1069e014e9f36f91a59d39ae",
+    "origin": "cache"
+  },
+  {
+    "symbol": "NET_DVR_HKDDNS_STREAM",
+    "category": "structures",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_HKDDNS_STREAM.html",
+    "local_md_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_HKDDNS_STREAM.md",
+    "raw_cache_path": "设备网络SDK编程指南（明眸-以人为中心）/cache/raw-html/sdk/structures/NET_DVR_HKDDNS_STREAM.html",
+    "fetched_at": "2026-04-17T09:39:54+00:00",
+    "sha256": "96561f078493e7036c745cf9c7db90b3cd9e80cae35d3d542c1ec6347b4c2796",
+    "origin": "cache"
+  },
+  {
+    "symbol": "NET_DVR_HOLIDAY_GROUP_CFG",
+    "category": "structures",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_HOLIDAY_GROUP_CFG.html",
+    "local_md_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_HOLIDAY_GROUP_CFG.md",
+    "raw_cache_path": "设备网络SDK编程指南（明眸-以人为中心）/cache/raw-html/sdk/structures/NET_DVR_HOLIDAY_GROUP_CFG.html",
+    "fetched_at": "2026-04-17T09:39:54+00:00",
+    "sha256": "bc6275ce6a63965245a6475062232310b68272980846d892bcbef2cd198595e4",
+    "origin": "cache"
+  },
+  {
+    "symbol": "NET_DVR_HOLIDAY_GROUP_COND",
+    "category": "structures",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_HOLIDAY_GROUP_COND.html",
+    "local_md_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_HOLIDAY_GROUP_COND.md",
+    "raw_cache_path": "设备网络SDK编程指南（明眸-以人为中心）/cache/raw-html/sdk/structures/NET_DVR_HOLIDAY_GROUP_COND.html",
+    "fetched_at": "2026-04-17T09:39:55+00:00",
+    "sha256": "cdd1e413f82f3c0448087b323c2964bd96ef01b05fec10cd6ed79e4a0be7d6d6",
+    "origin": "cache"
+  },
+  {
+    "symbol": "NET_DVR_HOLIDAY_PLAN_CFG",
+    "category": "structures",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_HOLIDAY_PLAN_CFG.html",
+    "local_md_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_HOLIDAY_PLAN_CFG.md",
+    "raw_cache_path": "设备网络SDK编程指南（明眸-以人为中心）/cache/raw-html/sdk/structures/NET_DVR_HOLIDAY_PLAN_CFG.html",
+    "fetched_at": "2026-04-17T09:39:55+00:00",
+    "sha256": "b58237c3e086d5b8e24726d5dcdc17f7a5a86c0e92b0344cc5a03e920716c2d1",
+    "origin": "cache"
+  },
+  {
+    "symbol": "NET_DVR_HOLIDAY_PLAN_COND",
+    "category": "structures",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_HOLIDAY_PLAN_COND.html",
+    "local_md_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_HOLIDAY_PLAN_COND.md",
+    "raw_cache_path": "设备网络SDK编程指南（明眸-以人为中心）/cache/raw-html/sdk/structures/NET_DVR_HOLIDAY_PLAN_COND.html",
+    "fetched_at": "2026-04-17T09:39:56+00:00",
+    "sha256": "683de17a24ab3ecb30e20472756c9d1a65e7549725346383efcc870d5de605e5",
+    "origin": "cache"
+  },
+  {
+    "symbol": "NET_DVR_IPADDR",
+    "category": "structures",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_IPADDR.html",
+    "local_md_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_IPADDR.md",
+    "raw_cache_path": "设备网络SDK编程指南（明眸-以人为中心）/cache/raw-html/sdk/structures/NET_DVR_IPADDR.html",
+    "fetched_at": "2026-04-17T09:39:56+00:00",
+    "sha256": "f994b3bdc1cfdabe77ecdf2e25f1d0729ef66b0775bcc92a35a2f521e86d6d5e",
+    "origin": "cache"
+  },
+  {
+    "symbol": "NET_DVR_IPALARMINCFG",
+    "category": "structures",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_IPALARMINCFG.html",
+    "local_md_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_IPALARMINCFG.md",
+    "raw_cache_path": "设备网络SDK编程指南（明眸-以人为中心）/cache/raw-html/sdk/structures/NET_DVR_IPALARMINCFG.html",
+    "fetched_at": "2026-04-17T09:39:56+00:00",
+    "sha256": "5e0c2bbcd6d43a118102d9a8d49e5786a8ee55f8a7166ff5442dd0ba8bbf6175",
+    "origin": "cache"
+  },
+  {
+    "symbol": "NET_DVR_IPALARMINCFG_V40",
+    "category": "structures",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_IPALARMINCFG_V40.html",
+    "local_md_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_IPALARMINCFG_V40.md",
+    "raw_cache_path": "设备网络SDK编程指南（明眸-以人为中心）/cache/raw-html/sdk/structures/NET_DVR_IPALARMINCFG_V40.html",
+    "fetched_at": "2026-04-17T09:39:56+00:00",
+    "sha256": "bfa2242a64685308ecc31944451e49a93bb40d2e1d46e11b0e2bc51ca29b7ef7",
+    "origin": "cache"
+  },
+  {
+    "symbol": "NET_DVR_IPALARMININFO",
+    "category": "structures",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_IPALARMININFO.html",
+    "local_md_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_IPALARMININFO.md",
+    "raw_cache_path": "设备网络SDK编程指南（明眸-以人为中心）/cache/raw-html/sdk/structures/NET_DVR_IPALARMININFO.html",
+    "fetched_at": "2026-04-17T09:39:57+00:00",
+    "sha256": "d247ce3e0b146bcf8de415cb8e83ba964b09b954e0d512884001758dc7bffa78",
+    "origin": "cache"
+  },
+  {
+    "symbol": "NET_DVR_IPALARMININFO_V40",
+    "category": "structures",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_IPALARMININFO_V40.html",
+    "local_md_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_IPALARMININFO_V40.md",
+    "raw_cache_path": "设备网络SDK编程指南（明眸-以人为中心）/cache/raw-html/sdk/structures/NET_DVR_IPALARMININFO_V40.html",
+    "fetched_at": "2026-04-17T09:39:57+00:00",
+    "sha256": "0edafad34897ba221e0a40f9b6571a9cc58b7102b6f96c675de546e6a5a77c9a",
+    "origin": "cache"
+  },
+  {
+    "symbol": "NET_DVR_IPALARMOUTCFG",
+    "category": "structures",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_IPALARMOUTCFG.html",
+    "local_md_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_IPALARMOUTCFG.md",
+    "raw_cache_path": "设备网络SDK编程指南（明眸-以人为中心）/cache/raw-html/sdk/structures/NET_DVR_IPALARMOUTCFG.html",
+    "fetched_at": "2026-04-17T09:39:58+00:00",
+    "sha256": "7392a37266806ad56d034b1623e339dd2355bdaf9300042e0773d45a826e046d",
+    "origin": "cache"
+  },
+  {
+    "symbol": "NET_DVR_IPALARMOUTCFG_V40",
+    "category": "structures",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_IPALARMOUTCFG_V40.html",
+    "local_md_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_IPALARMOUTCFG_V40.md",
+    "raw_cache_path": "设备网络SDK编程指南（明眸-以人为中心）/cache/raw-html/sdk/structures/NET_DVR_IPALARMOUTCFG_V40.html",
+    "fetched_at": "2026-04-17T09:39:58+00:00",
+    "sha256": "7dd0d4571a104d49f287f37446ce3b8bb0b3531d98645fdc4854d1d9a17dc276",
+    "origin": "cache"
+  },
+  {
+    "symbol": "NET_DVR_IPALARMOUTINFO",
+    "category": "structures",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_IPALARMOUTINFO.html",
+    "local_md_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_IPALARMOUTINFO.md",
+    "raw_cache_path": "设备网络SDK编程指南（明眸-以人为中心）/cache/raw-html/sdk/structures/NET_DVR_IPALARMOUTINFO.html",
+    "fetched_at": "2026-04-17T09:39:59+00:00",
+    "sha256": "00e210baeaf0bd46bf153fcb03cbed554313ca3cd12c6027794ceb5c96dc0d49",
+    "origin": "cache"
+  },
+  {
+    "symbol": "NET_DVR_IPALARMOUTINFO_V40",
+    "category": "structures",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_IPALARMOUTINFO_V40.html",
+    "local_md_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_IPALARMOUTINFO_V40.md",
+    "raw_cache_path": "设备网络SDK编程指南（明眸-以人为中心）/cache/raw-html/sdk/structures/NET_DVR_IPALARMOUTINFO_V40.html",
+    "fetched_at": "2026-04-17T09:39:59+00:00",
+    "sha256": "6a6301997edb6def22e778785d0bace6d49940c2a93bbc1f2ae5f0c0543483e9",
+    "origin": "cache"
+  },
+  {
+    "symbol": "NET_DVR_IPCHANINFO",
+    "category": "structures",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_IPCHANINFO.html",
+    "local_md_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_IPCHANINFO.md",
+    "raw_cache_path": "设备网络SDK编程指南（明眸-以人为中心）/cache/raw-html/sdk/structures/NET_DVR_IPCHANINFO.html",
+    "fetched_at": "2026-04-17T09:39:59+00:00",
+    "sha256": "36520f37ce59a35b9083c558638f744ce49bda3ab9316b008fb9e4dc688c428d",
+    "origin": "cache"
+  },
+  {
+    "symbol": "NET_DVR_IPCHANINFO_V40",
+    "category": "structures",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_IPCHANINFO_V40.html",
+    "local_md_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_IPCHANINFO_V40.md",
+    "raw_cache_path": "设备网络SDK编程指南（明眸-以人为中心）/cache/raw-html/sdk/structures/NET_DVR_IPCHANINFO_V40.html",
+    "fetched_at": "2026-04-17T09:40:00+00:00",
+    "sha256": "a2ed688cabcfd9f8072af026deb09f175666e9334b9d41fbb3c1d50baf8ff77c",
+    "origin": "cache"
+  },
+  {
+    "symbol": "NET_DVR_IPDEVINFO_V31",
+    "category": "structures",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_IPDEVINFO_V31.html",
+    "local_md_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_IPDEVINFO_V31.md",
+    "raw_cache_path": "设备网络SDK编程指南（明眸-以人为中心）/cache/raw-html/sdk/structures/NET_DVR_IPDEVINFO_V31.html",
+    "fetched_at": "2026-04-17T09:40:00+00:00",
+    "sha256": "3524435acfe7763e5bac8853ad580f2773a3951bc42e26443fa0dec94f2fbe16",
+    "origin": "cache"
+  },
+  {
+    "symbol": "NET_DVR_IPPARACFG_V40",
+    "category": "structures",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_IPPARACFG_V40.html",
+    "local_md_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_IPPARACFG_V40.md",
+    "raw_cache_path": "设备网络SDK编程指南（明眸-以人为中心）/cache/raw-html/sdk/structures/NET_DVR_IPPARACFG_V40.html",
+    "fetched_at": "2026-04-17T09:40:01+00:00",
+    "sha256": "baaf2760e57d6894c60b546d5eb8c14cdf456b8a2434d7582a000ce16ad735e7",
+    "origin": "cache"
+  },
+  {
+    "symbol": "NET_DVR_IPSERVER_STREAM",
+    "category": "structures",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_IPSERVER_STREAM.html",
+    "local_md_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_IPSERVER_STREAM.md",
+    "raw_cache_path": "设备网络SDK编程指南（明眸-以人为中心）/cache/raw-html/sdk/structures/NET_DVR_IPSERVER_STREAM.html",
+    "fetched_at": "2026-04-17T09:40:01+00:00",
+    "sha256": "13d29f28f4fa146b3609c2af2afe5d112366b122b4a59fbec6d4ac42de82102b",
+    "origin": "cache"
+  },
+  {
+    "symbol": "NET_DVR_JPEGPARA",
+    "category": "structures",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_JPEGPARA.html",
+    "local_md_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_JPEGPARA.md",
+    "raw_cache_path": "设备网络SDK编程指南（明眸-以人为中心）/cache/raw-html/sdk/structures/NET_DVR_JPEGPARA.html",
+    "fetched_at": "2026-04-17T09:40:01+00:00",
+    "sha256": "61716c49a863934e123449162fba3bda7f45875336ed211fc6d461812c812192",
+    "origin": "cache"
+  },
+  {
+    "symbol": "NET_DVR_LOG_V30",
+    "category": "structures",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_LOG_V30.html",
+    "local_md_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_LOG_V30.md",
+    "raw_cache_path": "设备网络SDK编程指南（明眸-以人为中心）/cache/raw-html/sdk/structures/NET_DVR_LOG_V30.html",
+    "fetched_at": "2026-04-17T09:40:02+00:00",
+    "sha256": "6618e75dd56e5499df4eb3b7f50e16ae14a8d6343b6c9dec034fab7f0b20235f",
+    "origin": "cache"
+  },
+  {
+    "symbol": "NET_DVR_NETCFG_V30",
+    "category": "structures",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_NETCFG_V30.html",
+    "local_md_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_NETCFG_V30.md",
+    "raw_cache_path": "设备网络SDK编程指南（明眸-以人为中心）/cache/raw-html/sdk/structures/NET_DVR_NETCFG_V30.html",
+    "fetched_at": "2026-04-17T09:40:02+00:00",
+    "sha256": "60b13520c7deddb77413153e51c06c544abc0c583114a47b3f977f53fbaeb421",
+    "origin": "cache"
+  },
+  {
+    "symbol": "NET_DVR_NETCFG_V50",
+    "category": "structures",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_NETCFG_V50.html",
+    "local_md_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_NETCFG_V50.md",
+    "raw_cache_path": "设备网络SDK编程指南（明眸-以人为中心）/cache/raw-html/sdk/structures/NET_DVR_NETCFG_V50.html",
+    "fetched_at": "2026-04-17T09:40:02+00:00",
+    "sha256": "2f0a3ba5b0f0179a774f6d05a37cd94bec417c22154599cde9244fce311f89b5",
+    "origin": "cache"
+  },
+  {
+    "symbol": "NET_DVR_PLAN_TEMPLATE",
+    "category": "structures",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_PLAN_TEMPLATE.html",
+    "local_md_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_PLAN_TEMPLATE.md",
+    "raw_cache_path": "设备网络SDK编程指南（明眸-以人为中心）/cache/raw-html/sdk/structures/NET_DVR_PLAN_TEMPLATE.html",
+    "fetched_at": "2026-04-17T09:40:03+00:00",
+    "sha256": "7d60c53345ecf83f429377e6eb0cc6dfbf401c9a7d3893ae66885ab5df6b788b",
+    "origin": "cache"
+  },
+  {
+    "symbol": "NET_DVR_PLAN_TEMPLATE_COND",
+    "category": "structures",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_PLAN_TEMPLATE_COND.html",
+    "local_md_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_PLAN_TEMPLATE_COND.md",
+    "raw_cache_path": "设备网络SDK编程指南（明眸-以人为中心）/cache/raw-html/sdk/structures/NET_DVR_PLAN_TEMPLATE_COND.html",
+    "fetched_at": "2026-04-17T09:40:03+00:00",
+    "sha256": "9c7d04aed341eece3b036b4da41879099c0769297b0ab51218452eccedeff81f",
+    "origin": "cache"
+  },
+  {
+    "symbol": "NET_DVR_PPPOECFG",
+    "category": "structures",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_PPPOECFG.html",
+    "local_md_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_PPPOECFG.md",
+    "raw_cache_path": "设备网络SDK编程指南（明眸-以人为中心）/cache/raw-html/sdk/structures/NET_DVR_PPPOECFG.html",
+    "fetched_at": "2026-04-17T09:40:03+00:00",
+    "sha256": "e92a94636e10d273ccf7421b6ce1646ed23c7004074178ff037745dba9a9971a",
+    "origin": "cache"
+  },
+  {
+    "symbol": "NET_DVR_PREVIEWINFO",
+    "category": "structures",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_PREVIEWINFO.html",
+    "local_md_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_PREVIEWINFO.md",
+    "raw_cache_path": "设备网络SDK编程指南（明眸-以人为中心）/cache/raw-html/sdk/structures/NET_DVR_PREVIEWINFO.html",
+    "fetched_at": "2026-04-17T09:40:03+00:00",
+    "sha256": "a38d734833bb5a627ed2a01dadfa60727e0186ec68b3c1a188d3bfbb078dc5a9",
+    "origin": "cache"
+  },
+  {
+    "symbol": "NET_DVR_PU_STREAM_CFG",
+    "category": "structures",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_PU_STREAM_CFG.html",
+    "local_md_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_PU_STREAM_CFG.md",
+    "raw_cache_path": "设备网络SDK编程指南（明眸-以人为中心）/cache/raw-html/sdk/structures/NET_DVR_PU_STREAM_CFG.html",
+    "fetched_at": "2026-04-17T09:40:04+00:00",
+    "sha256": "e5e33ac73b6234fa6293090d8f9eba21d38abaabc3214fdf498b56d0d94faac3",
+    "origin": "cache"
+  },
+  {
+    "symbol": "NET_DVR_PU_STREAM_URL",
+    "category": "structures",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_PU_STREAM_URL.html",
+    "local_md_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_PU_STREAM_URL.md",
+    "raw_cache_path": "设备网络SDK编程指南（明眸-以人为中心）/cache/raw-html/sdk/structures/NET_DVR_PU_STREAM_URL.html",
+    "fetched_at": "2026-04-17T09:40:04+00:00",
+    "sha256": "f3ba32243939c46e572ee934a9094da6c265c7cb81e009daa1a2d2e335feab33",
+    "origin": "cache"
+  },
+  {
+    "symbol": "NET_DVR_SETUPALARM_PARAM",
+    "category": "structures",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_SETUPALARM_PARAM.html",
+    "local_md_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_SETUPALARM_PARAM.md",
+    "raw_cache_path": "设备网络SDK编程指南（明眸-以人为中心）/cache/raw-html/sdk/structures/NET_DVR_SETUPALARM_PARAM.html",
+    "fetched_at": "2026-04-17T09:40:04+00:00",
+    "sha256": "5fa4c9b371dfb046a1f41c8b8c4ccc0fe1273b9fe39e452e98c0d7690f782242",
+    "origin": "cache"
+  },
+  {
+    "symbol": "NET_DVR_SIMPLE_DAYTIME",
+    "category": "structures",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_SIMPLE_DAYTIME.html",
+    "local_md_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_SIMPLE_DAYTIME.md",
+    "raw_cache_path": "设备网络SDK编程指南（明眸-以人为中心）/cache/raw-html/sdk/structures/NET_DVR_SIMPLE_DAYTIME.html",
+    "fetched_at": "2026-04-17T09:40:04+00:00",
+    "sha256": "cb5ef026688d64707c0d90c45995bafc5862e3054d905ab2e01db56b7a804848",
+    "origin": "cache"
+  },
+  {
+    "symbol": "NET_DVR_SINGLE_PLAN_SEGMENT",
+    "category": "structures",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_SINGLE_PLAN_SEGMENT.html",
+    "local_md_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_SINGLE_PLAN_SEGMENT.md",
+    "raw_cache_path": "设备网络SDK编程指南（明眸-以人为中心）/cache/raw-html/sdk/structures/NET_DVR_SINGLE_PLAN_SEGMENT.html",
+    "fetched_at": "2026-04-17T09:40:04+00:00",
+    "sha256": "56654c084d261cdacbb586197db6ee0fc3506913b0cf10374d9591fa2b919c6c",
+    "origin": "cache"
+  },
+  {
+    "symbol": "NET_DVR_STREAM_MEDIA_SERVER_CFG",
+    "category": "structures",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_STREAM_MEDIA_SERVER_CFG.html",
+    "local_md_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_STREAM_MEDIA_SERVER_CFG.md",
+    "raw_cache_path": "设备网络SDK编程指南（明眸-以人为中心）/cache/raw-html/sdk/structures/NET_DVR_STREAM_MEDIA_SERVER_CFG.html",
+    "fetched_at": "2026-04-17T09:40:05+00:00",
+    "sha256": "df5701cd91873f17c4c2fd1fbb19129bb5ea79b529238a1ca5f35ed440d08259",
+    "origin": "cache"
+  },
+  {
+    "symbol": "NET_DVR_STREAM_MODE",
+    "category": "structures",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_STREAM_MODE.html",
+    "local_md_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_STREAM_MODE.md",
+    "raw_cache_path": "设备网络SDK编程指南（明眸-以人为中心）/cache/raw-html/sdk/structures/NET_DVR_STREAM_MODE.html",
+    "fetched_at": "2026-04-17T09:40:05+00:00",
+    "sha256": "4601995d8b60524b5539b278ae3f7d382f8e8bd733b7a309de97348781d1bf06",
+    "origin": "cache"
+  },
+  {
+    "symbol": "NET_DVR_TIME",
+    "category": "structures",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_TIME.html",
+    "local_md_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_TIME.md",
+    "raw_cache_path": "设备网络SDK编程指南（明眸-以人为中心）/cache/raw-html/sdk/structures/NET_DVR_TIME.html",
+    "fetched_at": "2026-04-17T09:40:05+00:00",
+    "sha256": "1dfdc98d356b1f8eb565c50fdc71a22ab7235af5124ad57b33111e1e65d28e16",
+    "origin": "cache"
+  },
+  {
+    "symbol": "NET_DVR_TIME_EX",
+    "category": "structures",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_TIME_EX.html",
+    "local_md_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_TIME_EX.md",
+    "raw_cache_path": "设备网络SDK编程指南（明眸-以人为中心）/cache/raw-html/sdk/structures/NET_DVR_TIME_EX.html",
+    "fetched_at": "2026-04-17T09:40:06+00:00",
+    "sha256": "9bba230a26c3903efe225a031d9887593e167831faba765bc34fbf6ab4cde74c",
+    "origin": "cache"
+  },
+  {
+    "symbol": "NET_DVR_TIME_SEGMENT",
+    "category": "structures",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_TIME_SEGMENT.html",
+    "local_md_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_TIME_SEGMENT.md",
+    "raw_cache_path": "设备网络SDK编程指南（明眸-以人为中心）/cache/raw-html/sdk/structures/NET_DVR_TIME_SEGMENT.html",
+    "fetched_at": "2026-04-17T09:40:06+00:00",
+    "sha256": "ff7ef9ca33da14040046669278c7d87faafe1b9a1f10c6dfeb1251e68d01e3ee",
+    "origin": "cache"
+  },
+  {
+    "symbol": "NET_DVR_USER_LOGIN_INFO",
+    "category": "structures",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_USER_LOGIN_INFO.html",
+    "local_md_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_USER_LOGIN_INFO.md",
+    "raw_cache_path": "设备网络SDK编程指南（明眸-以人为中心）/cache/raw-html/sdk/structures/NET_DVR_USER_LOGIN_INFO.html",
+    "fetched_at": "2026-04-17T09:40:06+00:00",
+    "sha256": "b00c3b53fbeab3e8e8f348c685bbee2bf470ec336e7952b3ee4750fd535efdfa",
+    "origin": "cache"
+  },
+  {
+    "symbol": "NET_DVR_VALID_PERIOD_CFG",
+    "category": "structures",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_VALID_PERIOD_CFG.html",
+    "local_md_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_VALID_PERIOD_CFG.md",
+    "raw_cache_path": "设备网络SDK编程指南（明眸-以人为中心）/cache/raw-html/sdk/structures/NET_DVR_VALID_PERIOD_CFG.html",
+    "fetched_at": "2026-04-17T09:40:06+00:00",
+    "sha256": "0e6f1bec97b643965b538a34a0d92ebd867d48dd27bb4798b32d736a25a832af",
+    "origin": "cache"
+  },
+  {
+    "symbol": "NET_DVR_VIDEO_CALL_COND",
+    "category": "structures",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_VIDEO_CALL_COND.html",
+    "local_md_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_VIDEO_CALL_COND.md",
+    "raw_cache_path": "设备网络SDK编程指南（明眸-以人为中心）/cache/raw-html/sdk/structures/NET_DVR_VIDEO_CALL_COND.html",
+    "fetched_at": "2026-04-17T09:40:06+00:00",
+    "sha256": "1f8192cdc33bb8b1628f11165ab31f19f8632f62e60c0c657e2106d58f7738f1",
+    "origin": "cache"
+  },
+  {
+    "symbol": "NET_DVR_VIDEO_CALL_PARAM",
+    "category": "structures",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_VIDEO_CALL_PARAM.html",
+    "local_md_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_VIDEO_CALL_PARAM.md",
+    "raw_cache_path": "设备网络SDK编程指南（明眸-以人为中心）/cache/raw-html/sdk/structures/NET_DVR_VIDEO_CALL_PARAM.html",
+    "fetched_at": "2026-04-17T09:40:07+00:00",
+    "sha256": "8d5e73c06841f0a3f720529210b2d891cd82a2df86db22e66454ee9f543bbebd",
+    "origin": "cache"
+  },
+  {
+    "symbol": "NET_DVR_VOLUME_CFG",
+    "category": "structures",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_VOLUME_CFG.html",
+    "local_md_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_VOLUME_CFG.md",
+    "raw_cache_path": "设备网络SDK编程指南（明眸-以人为中心）/cache/raw-html/sdk/structures/NET_DVR_VOLUME_CFG.html",
+    "fetched_at": "2026-04-17T09:40:07+00:00",
+    "sha256": "0ae553f579c52fa0b36cfddf4870293b7a5a7fbc182f927a6b9ea32862090e88",
+    "origin": "cache"
+  },
+  {
+    "symbol": "NET_DVR_WEEK_PLAN_CFG",
+    "category": "structures",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_WEEK_PLAN_CFG.html",
+    "local_md_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_WEEK_PLAN_CFG.md",
+    "raw_cache_path": "设备网络SDK编程指南（明眸-以人为中心）/cache/raw-html/sdk/structures/NET_DVR_WEEK_PLAN_CFG.html",
+    "fetched_at": "2026-04-17T09:40:07+00:00",
+    "sha256": "63dbc865f52ab991693f244765f5e54050cd9b0afa781d0acccaf410019d0365",
+    "origin": "cache"
+  },
+  {
+    "symbol": "NET_DVR_WEEK_PLAN_COND",
+    "category": "structures",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_WEEK_PLAN_COND.html",
+    "local_md_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_WEEK_PLAN_COND.md",
+    "raw_cache_path": "设备网络SDK编程指南（明眸-以人为中心）/cache/raw-html/sdk/structures/NET_DVR_WEEK_PLAN_COND.html",
+    "fetched_at": "2026-04-17T09:40:08+00:00",
+    "sha256": "b5e5a5ec83d8e9c366383ce5d20572fa446be5221022039a4096465e8515a4e5",
+    "origin": "cache"
+  },
+  {
+    "symbol": "NET_DVR_XML_CONFIG_INPUT",
+    "category": "structures",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_XML_CONFIG_INPUT.html",
+    "local_md_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_XML_CONFIG_INPUT.md",
+    "raw_cache_path": "设备网络SDK编程指南（明眸-以人为中心）/cache/raw-html/sdk/structures/NET_DVR_XML_CONFIG_INPUT.html",
+    "fetched_at": "2026-04-17T09:40:08+00:00",
+    "sha256": "3d549b6d54339b88fbfdb52f61f19f9d5fa87336c62ba88ae3d3d5979b4e71d4",
+    "origin": "cache"
+  },
+  {
+    "symbol": "NET_DVR_XML_CONFIG_OUTPUT",
+    "category": "structures",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_XML_CONFIG_OUTPUT.html",
+    "local_md_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_XML_CONFIG_OUTPUT.md",
+    "raw_cache_path": "设备网络SDK编程指南（明眸-以人为中心）/cache/raw-html/sdk/structures/NET_DVR_XML_CONFIG_OUTPUT.html",
+    "fetched_at": "2026-04-17T09:40:08+00:00",
+    "sha256": "c85ada34c4789c2cd521a1c28d3185a456d5d516eefd59a0d9e6addb2063c402",
+    "origin": "cache"
+  },
+  {
+    "symbol": "superbrain-product-page",
+    "category": "superbrain",
+    "source_url": "https://www.hikvision.com/cn/products/pdplist/65730/",
+    "local_md_path": "设备网络SDK编程指南（明眸-以人为中心）/superbrain/pages/superbrain-product-page.md",
+    "raw_cache_path": "设备网络SDK编程指南（明眸-以人为中心）/cache/raw-html/superbrain/superbrain-product-page.html",
+    "fetched_at": "2026-04-17T09:40:08+00:00",
+    "sha256": "5cf128e711206e2b7d60fbaf6bbb3c1e6f01bacd3e5d41a4869dde9999cea948",
+    "origin": "cache"
+  },
+  {
+    "symbol": "superbrain-user-manual-detail",
+    "category": "superbrain",
+    "source_url": "https://partners.hikvision.com/material-product/detail/579534258720653312?type=pdf&source=gw",
+    "local_md_path": "设备网络SDK编程指南（明眸-以人为中心）/superbrain/pages/superbrain-user-manual-detail.md",
+    "raw_cache_path": "设备网络SDK编程指南（明眸-以人为中心）/cache/raw-html/superbrain/superbrain-user-manual-detail.html",
+    "fetched_at": "2026-04-17T09:40:08+00:00",
+    "sha256": "d50f5d0e7d1098232180c966c7419ebc548b74e7449a3fbdb554d6851031f6ea",
+    "origin": "cache"
+  },
+  {
+    "symbol": "superbrain-web-manual-detail",
+    "category": "superbrain",
+    "source_url": "https://partners.hikvision.com/material-product/detail/579534259735674880?type=pdf&source=gw",
+    "local_md_path": "设备网络SDK编程指南（明眸-以人为中心）/superbrain/pages/superbrain-web-manual-detail.md",
+    "raw_cache_path": "设备网络SDK编程指南（明眸-以人为中心）/cache/raw-html/superbrain/superbrain-web-manual-detail.html",
+    "fetched_at": "2026-04-17T09:40:08+00:00",
+    "sha256": "1fdf9146c72730c1cd31630be46bd05142711548ee781b27110fb636d7c01789",
+    "origin": "cache"
+  },
+  {
+    "symbol": "network-camera-product-page",
+    "category": "network-camera",
+    "source_url": "https://www.hikvision.com/cn/products/pdplist/100381/",
+    "local_md_path": "设备网络SDK编程指南（明眸-以人为中心）/network-camera/pages/network-camera-product-page.md",
+    "raw_cache_path": "设备网络SDK编程指南（明眸-以人为中心）/cache/raw-html/network-camera/network-camera-product-page.html",
+    "fetched_at": "2026-04-17T09:40:08+00:00",
+    "sha256": "16ed48d55a2f5ec90fcb223238d5a4ce5bb43e26044b71a25709cee67e3e59f4",
+    "origin": "cache"
+  },
+  {
+    "symbol": "network-camera-user-manual-detail",
+    "category": "network-camera",
+    "source_url": "https://partners.hikvision.com/material-product/detail/640614855664640000?type=pdf&source=gw",
+    "local_md_path": "设备网络SDK编程指南（明眸-以人为中心）/network-camera/pages/network-camera-user-manual-detail.md",
+    "raw_cache_path": "设备网络SDK编程指南（明眸-以人为中心）/cache/raw-html/network-camera/network-camera-user-manual-detail.html",
+    "fetched_at": "2026-04-17T09:40:08+00:00",
+    "sha256": "7844be83ed4985b3afe7db27f6bc96159edbe9a332ab1620178b32aaf53fe0e8",
+    "origin": "cache"
+  },
+  {
+    "symbol": "superbrain-ids-manual",
+    "category": "superbrain",
+    "source_url": "https://www.hikvision.com/content/dam/hikvision/products/S000000365/S000000641/S000001011/S000000652/OFR001036/M000032007/SM000022028/%E6%93%8D%E4%BD%9C%E6%89%8B%E5%86%8C/UD18776B_%E6%B5%B7%E5%BA%B7%E5%A8%81%E8%A7%86iDS%E6%99%BA%E8%84%91%E7%BD%91%E7%BB%9C%E7%A1%AC%E7%9B%98%E5%BD%95%E5%83%8F%E6%9C%BA%EF%BC%8879-S%E7%B3%BB%E5%88%97%EF%BC%89_%E6%93%8D%E4%BD%9C%E6%89%8B%E5%86%8C_V4.22.400_20200327.pdf",
+    "local_md_path": "设备网络SDK编程指南（明眸-以人为中心）/superbrain/pages/superbrain-ids-manual.md",
+    "fetched_at": "2026-04-17T09:40:08+00:00",
+    "fetch_error": "HTTP Error 403: Forbidden"
+  },
+  {
+    "symbol": "hcwebsdk-guide",
+    "category": "network-camera",
+    "source_url": "https://open.hikvision.com/fileserver/resourcedocsonline/HCWebSDK3.3.0%E7%BC%96%E7%A8%8B%E6%8C%87%E5%8D%97_20230420134609.pdf",
+    "local_pdf_path": "设备网络SDK编程指南（明眸-以人为中心）/network-camera/pdf/HCWebSDK3.3.0编程指南_20230420134609.pdf",
+    "raw_cache_path": "设备网络SDK编程指南（明眸-以人为中心）/cache/raw-pdf/network-camera/HCWebSDK3.3.0编程指南_20230420134609.pdf",
+    "fetched_at": "2026-04-17T09:40:08+00:00",
+    "sha256": "e20a871b7fdf616688facee2dce786c4b32cef3714d0f480d91b4f60c693baf4",
+    "origin": "cache"
+  },
+  {
+    "symbol": "web3-control-guide",
+    "category": "network-camera",
+    "source_url": "https://open.hikvision.com/fileserver/resourcedocsonline/Web3.0_%E6%8E%A7%E4%BB%B6%E5%BC%80%E5%8F%91%E5%8C%85%E7%BC%96%E7%A8%8B%E6%8C%87%E5%8D%97_20201102162751.pdf",
+    "local_pdf_path": "设备网络SDK编程指南（明眸-以人为中心）/network-camera/pdf/Web3.0_控件开发包编程指南_20201102162751.pdf",
+    "raw_cache_path": "设备网络SDK编程指南（明眸-以人为中心）/cache/raw-pdf/network-camera/Web3.0_控件开发包编程指南_20201102162751.pdf",
+    "fetched_at": "2026-04-17T09:41:39+00:00",
+    "sha256": "b9405d698301c2e01bdb95a516c0feb4632f1a5f3f14c957bc03817e6b6076bb",
+    "origin": "cache"
+  },
+  {
+    "symbol": "network-camera-g5-manual",
+    "category": "network-camera",
+    "source_url": "https://www.hikvision.com/content/dam/hikvision/products/S000000365/S000000509/S000000534/S000000983/OFR011448/M000063304/SM000044226/%E7%94%A8%E6%88%B7%E6%89%8B%E5%86%8C/UD29694B_%E6%B5%B7%E5%BA%B7%E5%A8%81%E8%A7%86%E7%BD%91%E7%BB%9C%E6%91%84%E5%83%8F%E6%9C%BA%E6%93%8D%E4%BD%9C%E6%89%8B%E5%86%8CG5_V5.7.50_20220809.PDF",
+    "local_md_path": "设备网络SDK编程指南（明眸-以人为中心）/network-camera/pages/network-camera-g5-manual.md",
+    "fetched_at": "2026-04-17T09:43:09+00:00",
+    "fetch_error": "HTTP Error 403: Forbidden"
+  },
+  {
+    "symbol": "video-web-plugin-guide",
+    "category": "network-camera",
+    "source_url": "https://open.hikvision.com/fileserver/resourcedocsonline/%E8%A7%86%E9%A2%91WEB%E6%8F%92%E4%BB%B6V1.5.2%E5%BC%80%E5%8F%91%E6%8C%87%E5%8D%97_20210916162843_20210918161557.pdf",
+    "local_pdf_path": "设备网络SDK编程指南（明眸-以人为中心）/network-camera/pdf/视频WEB插件V1.5.2开发指南_20210918161557.pdf",
+    "raw_cache_path": "设备网络SDK编程指南（明眸-以人为中心）/cache/raw-pdf/network-camera/视频WEB插件V1.5.2开发指南_20210918161557.pdf",
+    "fetched_at": "2026-04-17T09:43:09+00:00",
+    "sha256": "7b978e25ae090cff4cbb4b7236c7f2af7f2f1fb843e8c82159543a29ecbbe1e7",
+    "origin": "cache"
+  }
+]

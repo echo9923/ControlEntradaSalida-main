@@ -1,0 +1,3754 @@
+[
+  {
+    "doc_type": "sdk_html",
+    "category": "sdk",
+    "title": "NET_DVR_CaptureJPEGPicture",
+    "symbol_or_topic": "NET_DVR_CaptureJPEGPicture",
+    "keywords": [
+      "NET_DVR_CaptureJPEGPicture",
+      "definitions",
+      "海康设备网络SDK"
+    ],
+    "summary": "单帧数据捕获并保存成JPEG图。",
+    "source_url": "https://open.hikvision.com/hardware/definitions/NET_DVR_CaptureJPEGPicture.html",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/definitions/NET_DVR_CaptureJPEGPicture.md",
+    "section_anchor": null,
+    "project_usage": [
+      {
+        "path": "HCNetSDK.cs",
+        "line": 3618,
+        "snippet": "public static extern bool NET_DVR_CaptureJPEGPicture(int lUserID, int lChannel, ref HCNetSDK.NET_DVR_JPEGPARA lpJpegPara, IntPtr sPicFileName);"
+      }
+    ]
+  },
+  {
+    "doc_type": "sdk_html",
+    "category": "sdk",
+    "title": "NET_DVR_Cleanup",
+    "symbol_or_topic": "NET_DVR_Cleanup",
+    "keywords": [
+      "NET_DVR_Cleanup",
+      "definitions",
+      "海康设备网络SDK"
+    ],
+    "summary": "释放SDK资源，在程序结束之前调用。",
+    "source_url": "https://open.hikvision.com/hardware/definitions/NET_DVR_Cleanup.html",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/definitions/NET_DVR_Cleanup.md",
+    "section_anchor": null,
+    "project_usage": [
+      {
+        "path": "ControlEntradaSalidaService.cs",
+        "line": 209,
+        "snippet": "HCNetSDK.NET_DVR_Cleanup();"
+      },
+      {
+        "path": "HCNetSDK.cs",
+        "line": 3386,
+        "snippet": "public static extern bool NET_DVR_Cleanup();"
+      }
+    ]
+  },
+  {
+    "doc_type": "sdk_html",
+    "category": "sdk",
+    "title": "NET_DVR_CloseAlarmChan_V30",
+    "symbol_or_topic": "NET_DVR_CloseAlarmChan_V30",
+    "keywords": [
+      "NET_DVR_CloseAlarmChan_V30",
+      "definitions",
+      "海康设备网络SDK"
+    ],
+    "summary": "撤销报警上传通道。",
+    "source_url": "https://open.hikvision.com/hardware/definitions/NET_DVR_CloseAlarmChan_V30.html",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/definitions/NET_DVR_CloseAlarmChan_V30.md",
+    "section_anchor": null,
+    "project_usage": [
+      {
+        "path": "FaceEventService.cs",
+        "line": 978,
+        "snippet": "HCNetSDK.NET_DVR_CloseAlarmChan_V30(previousAlarmHandle);"
+      },
+      {
+        "path": "FaceEventService.cs",
+        "line": 1071,
+        "snippet": "HCNetSDK.NET_DVR_CloseAlarmChan_V30(alarmHandle);"
+      },
+      {
+        "path": "HCNetSDK.cs",
+        "line": 3571,
+        "snippet": "public static extern bool NET_DVR_CloseAlarmChan_V30(int lAlarmHandle);"
+      }
+    ]
+  },
+  {
+    "doc_type": "sdk_html",
+    "category": "sdk",
+    "title": "NET_DVR_CloseUpgradeHandle",
+    "symbol_or_topic": "NET_DVR_CloseUpgradeHandle",
+    "keywords": [
+      "NET_DVR_CloseUpgradeHandle",
+      "definitions",
+      "海康设备网络SDK"
+    ],
+    "summary": "关闭远程升级句柄，释放资源。",
+    "source_url": "https://open.hikvision.com/hardware/definitions/NET_DVR_CloseUpgradeHandle.html",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/definitions/NET_DVR_CloseUpgradeHandle.md",
+    "section_anchor": null,
+    "project_usage": [
+      {
+        "path": "HCNetSDK.cs",
+        "line": 3477,
+        "snippet": "public static extern int NET_DVR_CloseUpgradeHandle(int lUpgradeHandle);"
+      }
+    ]
+  },
+  {
+    "doc_type": "sdk_html",
+    "category": "sdk",
+    "title": "NET_DVR_GetAlarmDeviceUser",
+    "symbol_or_topic": "NET_DVR_GetAlarmDeviceUser",
+    "keywords": [
+      "NET_DVR_GetAlarmDeviceUser",
+      "definitions",
+      "海康设备网络SDK"
+    ],
+    "summary": "获取报警主机设备用户配置信息。",
+    "source_url": "https://open.hikvision.com/hardware/definitions/NET_DVR_GetAlarmDeviceUser.html",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/definitions/NET_DVR_GetAlarmDeviceUser.md",
+    "section_anchor": null,
+    "project_usage": [
+      {
+        "path": "HCNetSDK.cs",
+        "line": 3412,
+        "snippet": "public static extern bool NET_DVR_GetAlarmDeviceUser(int lUserID, int lUserIndex, ref NET_DVR_ALARM_DEVICE_USER lpDeviceUser);"
+      }
+    ]
+  },
+  {
+    "doc_type": "sdk_html",
+    "category": "sdk",
+    "title": "NET_DVR_GetDeviceAbility",
+    "symbol_or_topic": "NET_DVR_GetDeviceAbility",
+    "keywords": [
+      "NET_DVR_GetDeviceAbility",
+      "definitions",
+      "海康设备网络SDK"
+    ],
+    "summary": "获取设备能力集。",
+    "source_url": "https://open.hikvision.com/hardware/definitions/NET_DVR_GetDeviceAbility.html",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/definitions/NET_DVR_GetDeviceAbility.md",
+    "section_anchor": null,
+    "project_usage": [
+      {
+        "path": "DeviceStatusEngine.cs",
+        "line": 64,
+        "snippet": "bool result = HCNetSDK.NET_DVR_GetDeviceAbility("
+      },
+      {
+        "path": "DeviceStatusEngine.cs",
+        "line": 224,
+        "snippet": "bool result = HCNetSDK.NET_DVR_GetDeviceAbility("
+      },
+      {
+        "path": "HCNetSDK.cs",
+        "line": 3572,
+        "snippet": "/* NET_DVR_GetDeviceAbility get device ability"
+      },
+      {
+        "path": "HCNetSDK.cs",
+        "line": 3581,
+        "snippet": "public static extern bool NET_DVR_GetDeviceAbility(int lUserID, uint dwAbilityType, IntPtr pInBuf, uint dwInLength, IntPtr pOutBuf, uint dwOutLength);"
+      }
+    ]
+  },
+  {
+    "doc_type": "sdk_html",
+    "category": "sdk",
+    "title": "NET_DVR_GetErrorMsg",
+    "symbol_or_topic": "NET_DVR_GetErrorMsg",
+    "keywords": [
+      "NET_DVR_GetErrorMsg",
+      "definitions",
+      "海康设备网络SDK"
+    ],
+    "summary": "返回最后操作的错误码信息。",
+    "source_url": "https://open.hikvision.com/hardware/definitions/NET_DVR_GetErrorMsg.html",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/definitions/NET_DVR_GetErrorMsg.md",
+    "section_anchor": null,
+    "project_usage": [
+      {
+        "path": "FaceEventService.cs",
+        "line": 2084,
+        "snippet": "IntPtr msgPtr = HCNetSDK.NET_DVR_GetErrorMsg(ref err);"
+      },
+      {
+        "path": "HCNetSDK.cs",
+        "line": 3402,
+        "snippet": "public static extern IntPtr NET_DVR_GetErrorMsg(ref int pErrorNo);"
+      }
+    ]
+  },
+  {
+    "doc_type": "sdk_html",
+    "category": "sdk",
+    "title": "NET_DVR_GetLastError",
+    "symbol_or_topic": "NET_DVR_GetLastError",
+    "keywords": [
+      "NET_DVR_GetLastError",
+      "definitions",
+      "海康设备网络SDK"
+    ],
+    "summary": "返回最后操作的错误码。",
+    "source_url": "https://open.hikvision.com/hardware/definitions/NET_DVR_GetLastError.html",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/definitions/NET_DVR_GetLastError.md",
+    "section_anchor": null,
+    "project_usage": [
+      {
+        "path": "Common.cs",
+        "line": 144,
+        "snippet": "iLastErr = HCNetSDK.NET_DVR_GetLastError();"
+      },
+      {
+        "path": "Common.cs",
+        "line": 293,
+        "snippet": "uint nErr = HCNetSDK.NET_DVR_GetLastError();"
+      },
+      {
+        "path": "DeviceConnectionManager.cs",
+        "line": 1074,
+        "snippet": "uint nErr = HCNetSDK.NET_DVR_GetLastError();"
+      },
+      {
+        "path": "DeviceStatusEngine.cs",
+        "line": 118,
+        "snippet": "uint errorCode = HCNetSDK.NET_DVR_GetLastError();"
+      },
+      {
+        "path": "DeviceStatusEngine.cs",
+        "line": 166,
+        "snippet": "uint errorCode = HCNetSDK.NET_DVR_GetLastError();"
+      }
+    ]
+  },
+  {
+    "doc_type": "sdk_html",
+    "category": "sdk",
+    "title": "NET_DVR_GetNextRemoteConfig",
+    "symbol_or_topic": "NET_DVR_GetNextRemoteConfig",
+    "keywords": [
+      "NET_DVR_GetNextRemoteConfig",
+      "definitions",
+      "海康设备网络SDK"
+    ],
+    "summary": "逐个获取查找到的信息。",
+    "source_url": "https://open.hikvision.com/hardware/definitions/NET_DVR_GetNextRemoteConfig.html",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/definitions/NET_DVR_GetNextRemoteConfig.md",
+    "section_anchor": null,
+    "project_usage": [
+      {
+        "path": "FaceEventService.cs",
+        "line": 1784,
+        "snippet": "int status = HCNetSDK.NET_DVR_GetNextRemoteConfig(handle, outPtr, (uint)cfgSize);"
+      },
+      {
+        "path": "HCNetSDK.cs",
+        "line": 3492,
+        "snippet": "public static extern int NET_DVR_GetNextRemoteConfig(int lHandle, IntPtr lpOutBuff, uint dwOutBuffSize);"
+      },
+      {
+        "path": "HCNetSDK_Facial.cs",
+        "line": 321,
+        "snippet": "public static extern int NET_DVR_GetNextRemoteConfig(int lHandle, ref HCNetSDK_Facial.NET_DVR_FACE_RECORD lpOutBuff, int dwOutBuffSize);"
+      },
+      {
+        "path": "HCNetSDK_Facial.cs",
+        "line": 333,
+        "snippet": "public static extern int NET_DVR_GetNextRemoteConfig(int lHandle, ref HCNetSDK_Facial.NET_DVR_CAPTURE_FACE_CFG lpOutBuff, int dwOutBuffSize);"
+      },
+      {
+        "path": "PermissionRefreshManager.cs",
+        "line": 1203,
+        "snippet": "int status = HCNetSDK_Facial.NET_DVR_GetNextRemoteConfig("
+      }
+    ]
+  },
+  {
+    "doc_type": "sdk_html",
+    "category": "sdk",
+    "title": "NET_DVR_GetRemoteConfigState",
+    "symbol_or_topic": "NET_DVR_GetRemoteConfigState",
+    "keywords": [
+      "NET_DVR_GetRemoteConfigState",
+      "definitions",
+      "海康设备网络SDK"
+    ],
+    "summary": "获取长连接配置的状态。",
+    "source_url": "https://open.hikvision.com/hardware/definitions/NET_DVR_GetRemoteConfigState.html",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/definitions/NET_DVR_GetRemoteConfigState.md",
+    "section_anchor": null,
+    "project_usage": [
+      {
+        "path": "HCNetSDK.cs",
+        "line": 3484,
+        "snippet": "public static extern bool NET_DVR_GetRemoteConfigState(int lHandle, IntPtr pState);"
+      }
+    ]
+  },
+  {
+    "doc_type": "sdk_html",
+    "category": "sdk",
+    "title": "NET_DVR_GetSDKBuildVersion",
+    "symbol_or_topic": "NET_DVR_GetSDKBuildVersion",
+    "keywords": [
+      "NET_DVR_GetSDKBuildVersion",
+      "definitions",
+      "海康设备网络SDK"
+    ],
+    "summary": "获取SDK的版本号和build信息。",
+    "source_url": "https://open.hikvision.com/hardware/definitions/NET_DVR_GetSDKBuildVersion.html",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/definitions/NET_DVR_GetSDKBuildVersion.md",
+    "section_anchor": null,
+    "project_usage": [
+      {
+        "path": "HCNetSDK.cs",
+        "line": 3589,
+        "snippet": "public static extern uint NET_DVR_GetSDKBuildVersion();"
+      }
+    ]
+  },
+  {
+    "doc_type": "sdk_html",
+    "category": "sdk",
+    "title": "NET_DVR_GetSDKVersion",
+    "symbol_or_topic": "NET_DVR_GetSDKVersion",
+    "keywords": [
+      "NET_DVR_GetSDKVersion",
+      "definitions",
+      "海康设备网络SDK"
+    ],
+    "summary": "获取SDK的版本信息。",
+    "source_url": "https://open.hikvision.com/hardware/definitions/NET_DVR_GetSDKVersion.html",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/definitions/NET_DVR_GetSDKVersion.md",
+    "section_anchor": null,
+    "project_usage": [
+      {
+        "path": "HCNetSDK.cs",
+        "line": 3585,
+        "snippet": "public static extern uint NET_DVR_GetSDKVersion();"
+      }
+    ]
+  },
+  {
+    "doc_type": "sdk_html",
+    "category": "sdk",
+    "title": "NET_DVR_GetUpgradeProgress",
+    "symbol_or_topic": "NET_DVR_GetUpgradeProgress",
+    "keywords": [
+      "NET_DVR_GetUpgradeProgress",
+      "definitions",
+      "海康设备网络SDK"
+    ],
+    "summary": "获取远程升级的进度。",
+    "source_url": "https://open.hikvision.com/hardware/definitions/NET_DVR_GetUpgradeProgress.html",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/definitions/NET_DVR_GetUpgradeProgress.md",
+    "section_anchor": null,
+    "project_usage": [
+      {
+        "path": "HCNetSDK.cs",
+        "line": 3474,
+        "snippet": "public static extern int NET_DVR_GetUpgradeProgress(int lUpgradeHandle);"
+      }
+    ]
+  },
+  {
+    "doc_type": "sdk_html",
+    "category": "sdk",
+    "title": "NET_DVR_Init",
+    "symbol_or_topic": "NET_DVR_Init",
+    "keywords": [
+      "NET_DVR_Init",
+      "definitions",
+      "海康设备网络SDK"
+    ],
+    "summary": "初始化SDK，调用其他SDK函数的前提。",
+    "source_url": "https://open.hikvision.com/hardware/definitions/NET_DVR_Init.html",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/definitions/NET_DVR_Init.md",
+    "section_anchor": null,
+    "project_usage": [
+      {
+        "path": "Common.cs",
+        "line": 239,
+        "snippet": "if (HCNetSDK.NET_DVR_Init() == true)"
+      },
+      {
+        "path": "HCNetSDK.cs",
+        "line": 3382,
+        "snippet": "public static extern bool NET_DVR_Init();"
+      },
+      {
+        "path": "HCNetSDK_Facial.cs",
+        "line": 305,
+        "snippet": "public static extern bool NET_DVR_Init();"
+      }
+    ]
+  },
+  {
+    "doc_type": "sdk_html",
+    "category": "sdk",
+    "title": "NET_DVR_Login_V40",
+    "symbol_or_topic": "NET_DVR_Login_V40",
+    "keywords": [
+      "NET_DVR_Login_V40",
+      "definitions",
+      "海康设备网络SDK"
+    ],
+    "summary": "用户注册设备（支持异步登录）。",
+    "source_url": "https://open.hikvision.com/hardware/definitions/NET_DVR_Login_V40.html",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/definitions/NET_DVR_Login_V40.md",
+    "section_anchor": null,
+    "project_usage": [
+      {
+        "path": "Common.cs",
+        "line": 285,
+        "snippet": "lUserID = HCNetSDK.NET_DVR_Login_V40(ref struLoginInfo, ref struDeviceInfoV40);"
+      },
+      {
+        "path": "DeviceConnectionManager.cs",
+        "line": 1038,
+        "snippet": "int lUserID = HCNetSDK.NET_DVR_Login_V40(ref struLoginInfo, ref struDeviceInfoV40);"
+      },
+      {
+        "path": "HCNetSDK.cs",
+        "line": 2418,
+        "snippet": "* [out] lUserID - NET_DVR_Login_V40 return value"
+      },
+      {
+        "path": "HCNetSDK.cs",
+        "line": 3405,
+        "snippet": "* [in] lUserID - NET_DVR_Login_V40 return value"
+      },
+      {
+        "path": "HCNetSDK.cs",
+        "line": 3415,
+        "snippet": "* [in] lUserID - NET_DVR_Login_V40 return value"
+      }
+    ]
+  },
+  {
+    "doc_type": "sdk_html",
+    "category": "sdk",
+    "title": "NET_DVR_Logout_V30",
+    "symbol_or_topic": "NET_DVR_Logout_V30",
+    "keywords": [
+      "NET_DVR_Logout_V30",
+      "definitions",
+      "海康设备网络SDK"
+    ],
+    "summary": "用户注销。",
+    "source_url": "https://open.hikvision.com/hardware/definitions/NET_DVR_Logout_V30.html",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/definitions/NET_DVR_Logout_V30.md",
+    "section_anchor": null,
+    "project_usage": [
+      {
+        "path": "DeviceConnectionManager.cs",
+        "line": 1181,
+        "snippet": "HCNetSDK.NET_DVR_Logout_V30(userIdToLogout);"
+      },
+      {
+        "path": "HCNetSDK.cs",
+        "line": 3539,
+        "snippet": "public static extern bool NET_DVR_Logout_V30(Int32 lUserID);"
+      }
+    ]
+  },
+  {
+    "doc_type": "sdk_html",
+    "category": "sdk",
+    "title": "NET_DVR_RealPlay_V30",
+    "symbol_or_topic": "NET_DVR_RealPlay_V30",
+    "keywords": [
+      "NET_DVR_RealPlay_V30",
+      "definitions",
+      "海康设备网络SDK"
+    ],
+    "summary": "实时预览。",
+    "source_url": "https://open.hikvision.com/hardware/definitions/NET_DVR_RealPlay_V30.html",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/definitions/NET_DVR_RealPlay_V30.md",
+    "section_anchor": null,
+    "project_usage": [
+      {
+        "path": "HCNetSDK.cs",
+        "line": 3599,
+        "snippet": "public static extern int NET_DVR_RealPlay_V30(int iUserID, ref NET_DVR_CLIENTINFO lpClientInfo, REALDATACALLBACK fRealDataCallBack_V30, IntPtr pUser, UInt32 bBlocked);"
+      }
+    ]
+  },
+  {
+    "doc_type": "sdk_html",
+    "category": "sdk",
+    "title": "NET_DVR_RealPlay_V40",
+    "symbol_or_topic": "NET_DVR_RealPlay_V40",
+    "keywords": [
+      "NET_DVR_RealPlay_V40",
+      "definitions",
+      "海康设备网络SDK"
+    ],
+    "summary": "实时预览（支持多码流）。",
+    "source_url": "https://open.hikvision.com/hardware/definitions/NET_DVR_RealPlay_V40.html",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/definitions/NET_DVR_RealPlay_V40.md",
+    "section_anchor": null,
+    "project_usage": [
+      {
+        "path": "HCNetSDK.cs",
+        "line": 3544,
+        "snippet": "public static extern int NET_DVR_RealPlay_V40(int lUserID, ref NET_DVR_PREVIEWINFO lpPreviewInfo, RealDataCallBack fRealDataCallBack_V30, IntPtr pUser);"
+      }
+    ]
+  },
+  {
+    "doc_type": "sdk_html",
+    "category": "sdk",
+    "title": "NET_DVR_RemoteControl",
+    "symbol_or_topic": "NET_DVR_RemoteControl",
+    "keywords": [
+      "NET_DVR_RemoteControl",
+      "definitions",
+      "海康设备网络SDK"
+    ],
+    "summary": "远程控制。",
+    "source_url": "https://open.hikvision.com/hardware/definitions/NET_DVR_RemoteControl.html",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/definitions/NET_DVR_RemoteControl.md",
+    "section_anchor": null,
+    "project_usage": [
+      {
+        "path": "HCNetSDK.cs",
+        "line": 3529,
+        "snippet": "public static extern bool NET_DVR_RemoteControl(int lUserID, uint dwCommand, IntPtr lpInBuffer, uint dwInBufferSize);"
+      },
+      {
+        "path": "HCNetSDK_Facial.cs",
+        "line": 330,
+        "snippet": "public static extern bool NET_DVR_RemoteControl(int lUserID, int dwCommand, ref HCNetSDK_Facial.NET_DVR_FACE_PARAM_CTRL_CARDNO lpInBuffer, int dwInBufferSize);"
+      }
+    ]
+  },
+  {
+    "doc_type": "sdk_html",
+    "category": "sdk",
+    "title": "NET_DVR_STDXMLConfig",
+    "symbol_or_topic": "NET_DVR_STDXMLConfig",
+    "keywords": [
+      "NET_DVR_STDXMLConfig",
+      "definitions",
+      "海康设备网络SDK"
+    ],
+    "summary": "ISAPI协议命令透传。",
+    "source_url": "https://open.hikvision.com/hardware/definitions/NET_DVR_STDXMLConfig.html",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/definitions/NET_DVR_STDXMLConfig.md",
+    "section_anchor": null,
+    "project_usage": [
+      {
+        "path": "Common.cs",
+        "line": 39,
+        "snippet": "outputResult = \"NET_DVR_STDXMLConfig failed, error code= \" + iLastErr;"
+      },
+      {
+        "path": "Common.cs",
+        "line": 72,
+        "snippet": "/// 统一封装 NET_DVR_STDXMLConfig 调用，避免重复的非托管内存分配与释放。"
+      },
+      {
+        "path": "Common.cs",
+        "line": 139,
+        "snippet": "bool success = HCNetSDK.NET_DVR_STDXMLConfig(userID, ref inputStruct, ref outputStruct);"
+      },
+      {
+        "path": "HCNetSDK.cs",
+        "line": 3594,
+        "snippet": "public static extern bool NET_DVR_STDXMLConfig(int iUserID, ref NET_DVR_XML_CONFIG_INPUT lpInputParam, ref NET_DVR_XML_CONFIG_OUTPUT lpOutputParam);"
+      },
+      {
+        "path": "HCNetSDK.cs",
+        "line": 3595,
+        "snippet": "//public static extern bool NET_DVR_STDXMLConfig(int lUserID, IntPtr lpInputParam, IntPtr lpOutputParam);"
+      }
+    ]
+  },
+  {
+    "doc_type": "sdk_html",
+    "category": "sdk",
+    "title": "NET_DVR_SetAlarmDeviceUser",
+    "symbol_or_topic": "NET_DVR_SetAlarmDeviceUser",
+    "keywords": [
+      "NET_DVR_SetAlarmDeviceUser",
+      "definitions",
+      "海康设备网络SDK"
+    ],
+    "summary": "报警主机设备用户配置。",
+    "source_url": "https://open.hikvision.com/hardware/definitions/NET_DVR_SetAlarmDeviceUser.html",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/definitions/NET_DVR_SetAlarmDeviceUser.md",
+    "section_anchor": null,
+    "project_usage": [
+      {
+        "path": "HCNetSDK.cs",
+        "line": 3410,
+        "snippet": "public static extern bool NET_DVR_SetAlarmDeviceUser(int lUserID, int lUserIndex, ref NET_DVR_ALARM_DEVICE_USER lpDeviceUser);"
+      }
+    ]
+  },
+  {
+    "doc_type": "sdk_html",
+    "category": "sdk",
+    "title": "NET_DVR_SetDVRMessageCallBack_V50",
+    "symbol_or_topic": "NET_DVR_SetDVRMessageCallBack_V50",
+    "keywords": [
+      "NET_DVR_SetDVRMessageCallBack_V50",
+      "definitions",
+      "海康设备网络SDK"
+    ],
+    "summary": "注册报警信息回调函数。",
+    "source_url": "https://open.hikvision.com/hardware/definitions/NET_DVR_SetDVRMessageCallBack_V50.html",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/definitions/NET_DVR_SetDVRMessageCallBack_V50.md",
+    "section_anchor": null,
+    "project_usage": [
+      {
+        "path": "FaceEventService.cs",
+        "line": 198,
+        "snippet": "callbackRegistered = HCNetSDK.NET_DVR_SetDVRMessageCallBack_V50(0, alarmCallback, IntPtr.Zero);"
+      },
+      {
+        "path": "HCNetSDK.cs",
+        "line": 3565,
+        "snippet": "public static extern bool NET_DVR_SetDVRMessageCallBack_V50(int iIndex, MSGCallBack fMessageCallBack, IntPtr pUser);"
+      }
+    ]
+  },
+  {
+    "doc_type": "sdk_html",
+    "category": "sdk",
+    "title": "NET_DVR_SetLogToFile",
+    "symbol_or_topic": "NET_DVR_SetLogToFile",
+    "keywords": [
+      "NET_DVR_SetLogToFile",
+      "definitions",
+      "海康设备网络SDK"
+    ],
+    "summary": "启用写日志文件。",
+    "source_url": "https://open.hikvision.com/hardware/definitions/NET_DVR_SetLogToFile.html",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/definitions/NET_DVR_SetLogToFile.md",
+    "section_anchor": null,
+    "project_usage": [
+      {
+        "path": "HCNetSDK.cs",
+        "line": 3394,
+        "snippet": "public static extern bool NET_DVR_SetLogToFile(int nLogLevel, string strLogDir, bool bAutoDel);"
+      },
+      {
+        "path": "HCNetSDK_Facial.cs",
+        "line": 314,
+        "snippet": "public static extern bool NET_DVR_SetLogToFile(int nLogLevel, string strLogDir, bool bAutoDel);"
+      }
+    ]
+  },
+  {
+    "doc_type": "sdk_html",
+    "category": "sdk",
+    "title": "NET_DVR_SetVoiceComClientVolume",
+    "symbol_or_topic": "NET_DVR_SetVoiceComClientVolume",
+    "keywords": [
+      "NET_DVR_SetVoiceComClientVolume",
+      "definitions",
+      "海康设备网络SDK"
+    ],
+    "summary": "设置语音对讲客户端的音量。",
+    "source_url": "https://open.hikvision.com/hardware/definitions/NET_DVR_SetVoiceComClientVolume.html",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/definitions/NET_DVR_SetVoiceComClientVolume.md",
+    "section_anchor": null,
+    "project_usage": [
+      {
+        "path": "HCNetSDK.cs",
+        "line": 3609,
+        "snippet": "public static extern bool NET_DVR_SetVoiceComClientVolume(int lVoiceComHandle, ushort wVolume);"
+      }
+    ]
+  },
+  {
+    "doc_type": "sdk_html",
+    "category": "sdk",
+    "title": "NET_DVR_SetupAlarmChan_V41",
+    "symbol_or_topic": "NET_DVR_SetupAlarmChan_V41",
+    "keywords": [
+      "NET_DVR_SetupAlarmChan_V41",
+      "definitions",
+      "海康设备网络SDK"
+    ],
+    "summary": "建立报警上传通道，获取报警等信息。",
+    "source_url": "https://open.hikvision.com/hardware/definitions/NET_DVR_SetupAlarmChan_V41.html",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/definitions/NET_DVR_SetupAlarmChan_V41.md",
+    "section_anchor": null,
+    "project_usage": [
+      {
+        "path": "FaceEventService.cs",
+        "line": 993,
+        "snippet": "int handle = HCNetSDK.NET_DVR_SetupAlarmChan_V41(device.UserID, ref param);"
+      },
+      {
+        "path": "HCNetSDK.cs",
+        "line": 3568,
+        "snippet": "public static extern int NET_DVR_SetupAlarmChan_V41(int lUserID, ref NET_DVR_SETUPALARM_PARAM lpSetupParam);"
+      }
+    ]
+  },
+  {
+    "doc_type": "sdk_html",
+    "category": "sdk",
+    "title": "NET_DVR_StartRemoteConfig",
+    "symbol_or_topic": "NET_DVR_StartRemoteConfig",
+    "keywords": [
+      "NET_DVR_StartRemoteConfig",
+      "definitions",
+      "海康设备网络SDK"
+    ],
+    "summary": "启动远程配置。",
+    "source_url": "https://open.hikvision.com/hardware/definitions/NET_DVR_StartRemoteConfig.html",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/definitions/NET_DVR_StartRemoteConfig.md",
+    "section_anchor": null,
+    "project_usage": [
+      {
+        "path": "FaceEventService.cs",
+        "line": 1627,
+        "snippet": "handle = HCNetSDK.NET_DVR_StartRemoteConfig(device.UserID, HCNetSDK.NET_DVR_GET_ACS_EVENT, ptrCond, size, null, IntPtr.Zero);"
+      },
+      {
+        "path": "FaceEventService.cs",
+        "line": 1649,
+        "snippet": "retryHandle = HCNetSDK.NET_DVR_StartRemoteConfig(device.UserID, HCNetSDK.NET_DVR_GET_ACS_EVENT, ptrCond, size, null, IntPtr.Zero);"
+      },
+      {
+        "path": "FaceEventService.cs",
+        "line": 1675,
+        "snippet": "retryHandle = HCNetSDK.NET_DVR_StartRemoteConfig(device.UserID, HCNetSDK.NET_DVR_GET_ACS_EVENT, ptrCond, size, null, IntPtr.Zero);"
+      },
+      {
+        "path": "FaceEventService.cs",
+        "line": 1702,
+        "snippet": "retryHandle = HCNetSDK.NET_DVR_StartRemoteConfig(device.UserID, HCNetSDK.NET_DVR_GET_ACS_EVENT, ptrCond, size, null, IntPtr.Zero);"
+      },
+      {
+        "path": "FaceEventService.cs",
+        "line": 1728,
+        "snippet": "retryHandle = HCNetSDK.NET_DVR_StartRemoteConfig(device.UserID, HCNetSDK.NET_DVR_GET_ACS_EVENT, ptrCond, size, null, IntPtr.Zero);"
+      }
+    ]
+  },
+  {
+    "doc_type": "sdk_html",
+    "category": "sdk",
+    "title": "NET_DVR_StartVoiceCom_V30",
+    "symbol_or_topic": "NET_DVR_StartVoiceCom_V30",
+    "keywords": [
+      "NET_DVR_StartVoiceCom_V30",
+      "definitions",
+      "海康设备网络SDK"
+    ],
+    "summary": "启动语音对讲(Linux版本暂不支持)。",
+    "source_url": "https://open.hikvision.com/hardware/definitions/NET_DVR_StartVoiceCom_V30.html",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/definitions/NET_DVR_StartVoiceCom_V30.md",
+    "section_anchor": null,
+    "project_usage": [
+      {
+        "path": "HCNetSDK.cs",
+        "line": 3606,
+        "snippet": "public static extern int NET_DVR_StartVoiceCom_V30(int lUserID, uint dwVoiceChan, bool bNeedCBNoEncData, VOICEDATACALLBACKV30 fVoiceDataCallBack, IntPtr pUser);"
+      }
+    ]
+  },
+  {
+    "doc_type": "sdk_html",
+    "category": "sdk",
+    "title": "NET_DVR_StopRealPlay",
+    "symbol_or_topic": "NET_DVR_StopRealPlay",
+    "keywords": [
+      "NET_DVR_StopRealPlay",
+      "definitions",
+      "海康设备网络SDK"
+    ],
+    "summary": "停止预览。",
+    "source_url": "https://open.hikvision.com/hardware/definitions/NET_DVR_StopRealPlay.html",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/definitions/NET_DVR_StopRealPlay.md",
+    "section_anchor": null,
+    "project_usage": [
+      {
+        "path": "HCNetSDK.cs",
+        "line": 3602,
+        "snippet": "public static extern bool NET_DVR_StopRealPlay(int iRealHandle);"
+      }
+    ]
+  },
+  {
+    "doc_type": "sdk_html",
+    "category": "sdk",
+    "title": "NET_DVR_StopRemoteConfig",
+    "symbol_or_topic": "NET_DVR_StopRemoteConfig",
+    "keywords": [
+      "NET_DVR_StopRemoteConfig",
+      "definitions",
+      "海康设备网络SDK"
+    ],
+    "summary": "关闭长连接配置接口所创建的句柄，释放资源。",
+    "source_url": "https://open.hikvision.com/hardware/definitions/NET_DVR_StopRemoteConfig.html",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/definitions/NET_DVR_StopRemoteConfig.md",
+    "section_anchor": null,
+    "project_usage": [
+      {
+        "path": "FaceEventService.cs",
+        "line": 1899,
+        "snippet": "HCNetSDK.NET_DVR_StopRemoteConfig(handle);"
+      },
+      {
+        "path": "FaceEventService.cs",
+        "line": 2235,
+        "snippet": "HCNetSDK.NET_DVR_StopRemoteConfig(handle);"
+      },
+      {
+        "path": "HCNetSDK.cs",
+        "line": 731,
+        "snippet": "NET_SDK_GET_NEXT_STATUS_FINISH,            // Get data finish, call API NET_DVR_StopRemoteConfig"
+      },
+      {
+        "path": "HCNetSDK.cs",
+        "line": 732,
+        "snippet": "NET_SDK_GET_NEXT_STATUS_FAILED,            // Get data failed, call API NET_DVR_StopRemoteConfig"
+      },
+      {
+        "path": "HCNetSDK.cs",
+        "line": 3468,
+        "snippet": "public static extern bool NET_DVR_StopRemoteConfig(int lHandle);"
+      }
+    ]
+  },
+  {
+    "doc_type": "sdk_html",
+    "category": "sdk",
+    "title": "NET_DVR_StopVoiceCom",
+    "symbol_or_topic": "NET_DVR_StopVoiceCom",
+    "keywords": [
+      "NET_DVR_StopVoiceCom",
+      "definitions",
+      "海康设备网络SDK"
+    ],
+    "summary": "停止语音对讲或者语音转发。",
+    "source_url": "https://open.hikvision.com/hardware/definitions/NET_DVR_StopVoiceCom.html",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/definitions/NET_DVR_StopVoiceCom.md",
+    "section_anchor": null,
+    "project_usage": [
+      {
+        "path": "HCNetSDK.cs",
+        "line": 3612,
+        "snippet": "public static extern bool NET_DVR_StopVoiceCom(int lVoiceComHandle);"
+      }
+    ]
+  },
+  {
+    "doc_type": "sdk_html",
+    "category": "sdk",
+    "title": "NET_DVR_Upgrade_V40",
+    "symbol_or_topic": "NET_DVR_Upgrade_V40",
+    "keywords": [
+      "NET_DVR_Upgrade_V40",
+      "definitions",
+      "海康设备网络SDK"
+    ],
+    "summary": "远程升级设备固件。",
+    "source_url": "https://open.hikvision.com/hardware/definitions/NET_DVR_Upgrade_V40.html",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/definitions/NET_DVR_Upgrade_V40.md",
+    "section_anchor": null,
+    "project_usage": [
+      {
+        "path": "HCNetSDK.cs",
+        "line": 3471,
+        "snippet": "public static extern int NET_DVR_Upgrade_V40(int lUserID, uint dwUpgradeType, string sFileName, IntPtr pInbuffer, Int32 dwInBufferLen);"
+      }
+    ]
+  },
+  {
+    "doc_type": "sdk_html",
+    "category": "sdk",
+    "title": "NET_DVR_ACS_ALARM_INFO",
+    "symbol_or_topic": "NET_DVR_ACS_ALARM_INFO",
+    "keywords": [
+      "NET_DVR_ACS_ALARM_INFO",
+      "structures",
+      "海康设备网络SDK"
+    ],
+    "summary": "门禁主机报警信息结构体。",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_ACS_ALARM_INFO.html",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_ACS_ALARM_INFO.md",
+    "section_anchor": null,
+    "project_usage": [
+      {
+        "path": "FaceEventService.cs",
+        "line": 31,
+        "snippet": "private static readonly int AcsAlarmInfoSize = Marshal.SizeOf(typeof(HCNetSDK.NET_DVR_ACS_ALARM_INFO));"
+      },
+      {
+        "path": "FaceEventService.cs",
+        "line": 713,
+        "snippet": "var info = Marshal.PtrToStructure<HCNetSDK.NET_DVR_ACS_ALARM_INFO>(alarmInfo);"
+      },
+      {
+        "path": "FaceEventService.cs",
+        "line": 812,
+        "snippet": "private FaceEventRecord BuildRecordFromAlarm(HCNetSDK.NET_DVR_ACS_ALARM_INFO info, string deviceIp, DeviceConnectionInfo device)"
+      },
+      {
+        "path": "FaceEventService.cs",
+        "line": 2304,
+        "snippet": "private static string TryGetEmployeeNoFromExtend(HCNetSDK.NET_DVR_ACS_ALARM_INFO info)"
+      },
+      {
+        "path": "FaceEventService.cs",
+        "line": 2324,
+        "snippet": "private static byte? TryGetCurrentEventFlag(HCNetSDK.NET_DVR_ACS_ALARM_INFO info)"
+      }
+    ]
+  },
+  {
+    "doc_type": "sdk_html",
+    "category": "sdk",
+    "title": "NET_DVR_ACS_EVENT_CFG",
+    "symbol_or_topic": "NET_DVR_ACS_EVENT_CFG",
+    "keywords": [
+      "NET_DVR_ACS_EVENT_CFG",
+      "structures",
+      "海康设备网络SDK"
+    ],
+    "summary": "门禁主机报警事件配置结构体。",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_ACS_EVENT_CFG.html",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_ACS_EVENT_CFG.md",
+    "section_anchor": null,
+    "project_usage": [
+      {
+        "path": "FaceEventService.cs",
+        "line": 33,
+        "snippet": "private static readonly int AcsEventCfgSize = Marshal.SizeOf(typeof(HCNetSDK.NET_DVR_ACS_EVENT_CFG));"
+      },
+      {
+        "path": "FaceEventService.cs",
+        "line": 395,
+        "snippet": "private void UpdateCompensationProgress(CompensationState state, HCNetSDK.NET_DVR_ACS_EVENT_CFG cfg)"
+      },
+      {
+        "path": "FaceEventService.cs",
+        "line": 1787,
+        "snippet": "var cfg = Marshal.PtrToStructure<HCNetSDK.NET_DVR_ACS_EVENT_CFG>(outPtr);"
+      },
+      {
+        "path": "FaceEventService.cs",
+        "line": 1959,
+        "snippet": "typeof(HCNetSDK.NET_DVR_ACS_EVENT_CFG),"
+      },
+      {
+        "path": "FaceEventService.cs",
+        "line": 1960,
+        "snippet": "\"NET_DVR_ACS_EVENT_CFG\","
+      }
+    ]
+  },
+  {
+    "doc_type": "sdk_html",
+    "category": "sdk",
+    "title": "NET_DVR_ACS_EVENT_COND",
+    "symbol_or_topic": "NET_DVR_ACS_EVENT_COND",
+    "keywords": [
+      "NET_DVR_ACS_EVENT_COND",
+      "structures",
+      "海康设备网络SDK"
+    ],
+    "summary": "门禁主机报警事件信息结构体。",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_ACS_EVENT_COND.html",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_ACS_EVENT_COND.md",
+    "section_anchor": null,
+    "project_usage": [
+      {
+        "path": "FaceEventService.cs",
+        "line": 32,
+        "snippet": "private static readonly int AcsEventCondSize = Marshal.SizeOf(typeof(HCNetSDK.NET_DVR_ACS_EVENT_COND));"
+      },
+      {
+        "path": "FaceEventService.cs",
+        "line": 1565,
+        "snippet": "HCNetSDK.NET_DVR_ACS_EVENT_COND cond = new HCNetSDK.NET_DVR_ACS_EVENT_COND();"
+      },
+      {
+        "path": "FaceEventService.cs",
+        "line": 1930,
+        "snippet": "typeof(HCNetSDK.NET_DVR_ACS_EVENT_COND),"
+      },
+      {
+        "path": "FaceEventService.cs",
+        "line": 1931,
+        "snippet": "\"NET_DVR_ACS_EVENT_COND\","
+      },
+      {
+        "path": "FaceEventService.cs",
+        "line": 2022,
+        "snippet": "private static string BuildAcsEventCondSummary(HCNetSDK.NET_DVR_ACS_EVENT_COND cond)"
+      }
+    ]
+  },
+  {
+    "doc_type": "sdk_html",
+    "category": "sdk",
+    "title": "NET_DVR_ACS_EVENT_DETAIL",
+    "symbol_or_topic": "NET_DVR_ACS_EVENT_DETAIL",
+    "keywords": [
+      "NET_DVR_ACS_EVENT_DETAIL",
+      "structures",
+      "海康设备网络SDK"
+    ],
+    "summary": "门禁主机报警事件细节结构体。",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_ACS_EVENT_DETAIL.html",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_ACS_EVENT_DETAIL.md",
+    "section_anchor": null,
+    "project_usage": [
+      {
+        "path": "FaceEventService.cs",
+        "line": 34,
+        "snippet": "private static readonly int AcsEventDetailSize = Marshal.SizeOf(typeof(HCNetSDK.NET_DVR_ACS_EVENT_DETAIL));"
+      },
+      {
+        "path": "FaceEventService.cs",
+        "line": 1946,
+        "snippet": "typeof(HCNetSDK.NET_DVR_ACS_EVENT_DETAIL),"
+      },
+      {
+        "path": "FaceEventService.cs",
+        "line": 1947,
+        "snippet": "\"NET_DVR_ACS_EVENT_DETAIL\","
+      },
+      {
+        "path": "HCNetSDK.cs",
+        "line": 3261,
+        "snippet": "public HCNetSDK.NET_DVR_ACS_EVENT_DETAIL struAcsEventInfo;"
+      },
+      {
+        "path": "HCNetSDK.cs",
+        "line": 3277,
+        "snippet": "public struct NET_DVR_ACS_EVENT_DETAIL"
+      }
+    ]
+  },
+  {
+    "doc_type": "sdk_html",
+    "category": "sdk",
+    "title": "NET_DVR_ACS_EVENT_INFO",
+    "symbol_or_topic": "NET_DVR_ACS_EVENT_INFO",
+    "keywords": [
+      "NET_DVR_ACS_EVENT_INFO",
+      "structures",
+      "海康设备网络SDK"
+    ],
+    "summary": "门禁主机事件信息。",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_ACS_EVENT_INFO.html",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_ACS_EVENT_INFO.md",
+    "section_anchor": null,
+    "project_usage": [
+      {
+        "path": "HCNetSDK.cs",
+        "line": 1005,
+        "snippet": "public struct NET_DVR_ACS_EVENT_INFO"
+      },
+      {
+        "path": "HCNetSDK.cs",
+        "line": 1076,
+        "snippet": "public NET_DVR_ACS_EVENT_INFO struAcsEventInfo;"
+      }
+    ]
+  },
+  {
+    "doc_type": "sdk_html",
+    "category": "sdk",
+    "title": "NET_DVR_ACS_PARAM_TYPE",
+    "symbol_or_topic": "NET_DVR_ACS_PARAM_TYPE",
+    "keywords": [
+      "NET_DVR_ACS_PARAM_TYPE",
+      "structures",
+      "海康设备网络SDK"
+    ],
+    "summary": "门禁主机参数结构体。",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_ACS_PARAM_TYPE.html",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_ACS_PARAM_TYPE.md",
+    "section_anchor": null,
+    "project_usage": [
+      {
+        "path": "HCNetSDK.cs",
+        "line": 1408,
+        "snippet": "public struct NET_DVR_ACS_PARAM_TYPE"
+      }
+    ]
+  },
+  {
+    "doc_type": "sdk_html",
+    "category": "sdk",
+    "title": "NET_DVR_ACS_WORK_STATUS_V50",
+    "symbol_or_topic": "NET_DVR_ACS_WORK_STATUS_V50",
+    "keywords": [
+      "NET_DVR_ACS_WORK_STATUS_V50",
+      "structures",
+      "海康设备网络SDK"
+    ],
+    "summary": "门禁主机工作状态结构体。",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_ACS_WORK_STATUS_V50.html",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_ACS_WORK_STATUS_V50.md",
+    "section_anchor": null,
+    "project_usage": [
+      {
+        "path": "DeviceStatusEngine.cs",
+        "line": 128,
+        "snippet": "HCNetSDK.NET_DVR_ACS_WORK_STATUS_V50 statusInfo = new HCNetSDK.NET_DVR_ACS_WORK_STATUS_V50();"
+      },
+      {
+        "path": "DeviceStatusEngine.cs",
+        "line": 152,
+        "snippet": "statusInfo = (HCNetSDK.NET_DVR_ACS_WORK_STATUS_V50)Marshal.PtrToStructure("
+      },
+      {
+        "path": "DeviceStatusEngine.cs",
+        "line": 153,
+        "snippet": "ptrStatusInfo, typeof(HCNetSDK.NET_DVR_ACS_WORK_STATUS_V50));"
+      },
+      {
+        "path": "DeviceStatusEngine.cs",
+        "line": 316,
+        "snippet": "private (DeviceStatus Status, string Message) ParseDeviceStatus(HCNetSDK.NET_DVR_ACS_WORK_STATUS_V50 statusInfo)"
+      },
+      {
+        "path": "HCNetSDK.cs",
+        "line": 3167,
+        "snippet": "public struct NET_DVR_ACS_WORK_STATUS_V50"
+      }
+    ]
+  },
+  {
+    "doc_type": "sdk_html",
+    "category": "sdk",
+    "title": "NET_DVR_ALARMER",
+    "symbol_or_topic": "NET_DVR_ALARMER",
+    "keywords": [
+      "NET_DVR_ALARMER",
+      "structures",
+      "海康设备网络SDK"
+    ],
+    "summary": "报警设备信息结构体。",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_ALARMER.html",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_ALARMER.md",
+    "section_anchor": null,
+    "project_usage": [
+      {
+        "path": "FaceEventService.cs",
+        "line": 691,
+        "snippet": "private void AlarmMessageCallback(int command, ref HCNetSDK.NET_DVR_ALARMER alarmer, IntPtr alarmInfo, uint bufferLength, IntPtr user)"
+      },
+      {
+        "path": "HCNetSDK.cs",
+        "line": 1160,
+        "snippet": "public struct NET_DVR_ALARMER"
+      },
+      {
+        "path": "HCNetSDK.cs",
+        "line": 3555,
+        "snippet": "public delegate void MSGCallBack(int lCommand, ref NET_DVR_ALARMER pAlarmer, IntPtr pAlarmInfo, uint dwBufLen, IntPtr pUser);"
+      },
+      {
+        "path": "HCNetSDK.cs",
+        "line": 3557,
+        "snippet": "public delegate bool MSGCallBack_V31(int lCommand, ref NET_DVR_ALARMER pAlarmer, IntPtr pAlarmInfo, uint dwBufLen, IntPtr pUser);"
+      }
+    ]
+  },
+  {
+    "doc_type": "sdk_html",
+    "category": "sdk",
+    "title": "NET_DVR_ALARM_DEVICE_USER",
+    "symbol_or_topic": "NET_DVR_ALARM_DEVICE_USER",
+    "keywords": [
+      "NET_DVR_ALARM_DEVICE_USER",
+      "structures",
+      "海康设备网络SDK"
+    ],
+    "summary": "报警主机设备用户配置结构体。",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_ALARM_DEVICE_USER.html",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_ALARM_DEVICE_USER.md",
+    "section_anchor": null,
+    "project_usage": [
+      {
+        "path": "HCNetSDK.cs",
+        "line": 1506,
+        "snippet": "public struct NET_DVR_ALARM_DEVICE_USER"
+      },
+      {
+        "path": "HCNetSDK.cs",
+        "line": 3407,
+        "snippet": "* [in] lpDeviceUser - lookup NET_DVR_ALARM_DEVICE_USER definition"
+      },
+      {
+        "path": "HCNetSDK.cs",
+        "line": 3410,
+        "snippet": "public static extern bool NET_DVR_SetAlarmDeviceUser(int lUserID, int lUserIndex, ref NET_DVR_ALARM_DEVICE_USER lpDeviceUser);"
+      },
+      {
+        "path": "HCNetSDK.cs",
+        "line": 3412,
+        "snippet": "public static extern bool NET_DVR_GetAlarmDeviceUser(int lUserID, int lUserIndex, ref NET_DVR_ALARM_DEVICE_USER lpDeviceUser);"
+      }
+    ]
+  },
+  {
+    "doc_type": "sdk_html",
+    "category": "sdk",
+    "title": "NET_DVR_CAPTURE_FACE_CFG",
+    "symbol_or_topic": "NET_DVR_CAPTURE_FACE_CFG",
+    "keywords": [
+      "NET_DVR_CAPTURE_FACE_CFG",
+      "structures",
+      "海康设备网络SDK"
+    ],
+    "summary": "人脸信息采集结果结构体。",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_CAPTURE_FACE_CFG.html",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_CAPTURE_FACE_CFG.md",
+    "section_anchor": null,
+    "project_usage": [
+      {
+        "path": "HCNetSDK.cs",
+        "line": 1387,
+        "snippet": "public struct NET_DVR_CAPTURE_FACE_CFG"
+      },
+      {
+        "path": "HCNetSDK_Facial.cs",
+        "line": 235,
+        "snippet": "public struct NET_DVR_CAPTURE_FACE_CFG"
+      },
+      {
+        "path": "HCNetSDK_Facial.cs",
+        "line": 333,
+        "snippet": "public static extern int NET_DVR_GetNextRemoteConfig(int lHandle, ref HCNetSDK_Facial.NET_DVR_CAPTURE_FACE_CFG lpOutBuff, int dwOutBuffSize);"
+      },
+      {
+        "path": "PermissionRefreshManager.cs",
+        "line": 1199,
+        "snippet": "HCNetSDK_Facial.NET_DVR_CAPTURE_FACE_CFG faceCfg = new HCNetSDK_Facial.NET_DVR_CAPTURE_FACE_CFG();"
+      }
+    ]
+  },
+  {
+    "doc_type": "sdk_html",
+    "category": "sdk",
+    "title": "NET_DVR_CAPTURE_FACE_COND",
+    "symbol_or_topic": "NET_DVR_CAPTURE_FACE_COND",
+    "keywords": [
+      "NET_DVR_CAPTURE_FACE_COND",
+      "structures",
+      "海康设备网络SDK"
+    ],
+    "summary": "采集人脸信息条件参数结构体。",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_CAPTURE_FACE_COND.html",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_CAPTURE_FACE_COND.md",
+    "section_anchor": null,
+    "project_usage": [
+      {
+        "path": "HCNetSDK.cs",
+        "line": 1377,
+        "snippet": "public struct NET_DVR_CAPTURE_FACE_COND"
+      },
+      {
+        "path": "HCNetSDK_Facial.cs",
+        "line": 222,
+        "snippet": "public struct NET_DVR_CAPTURE_FACE_COND"
+      },
+      {
+        "path": "PermissionRefreshManager.cs",
+        "line": 1174,
+        "snippet": "HCNetSDK_Facial.NET_DVR_CAPTURE_FACE_COND cond = new HCNetSDK_Facial.NET_DVR_CAPTURE_FACE_COND();"
+      }
+    ]
+  },
+  {
+    "doc_type": "sdk_html",
+    "category": "sdk",
+    "title": "NET_DVR_CARD_CFG_COND",
+    "symbol_or_topic": "NET_DVR_CARD_CFG_COND",
+    "keywords": [
+      "NET_DVR_CARD_CFG_COND",
+      "structures",
+      "海康设备网络SDK"
+    ],
+    "summary": "卡参数配置条件结构体。",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_CARD_CFG_COND.html",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_CARD_CFG_COND.md",
+    "section_anchor": null,
+    "project_usage": [
+      {
+        "path": "HCNetSDK.cs",
+        "line": 1289,
+        "snippet": "public struct NET_DVR_CARD_CFG_COND"
+      }
+    ]
+  },
+  {
+    "doc_type": "sdk_html",
+    "category": "sdk",
+    "title": "NET_DVR_CARD_CFG_SEND_DATA",
+    "symbol_or_topic": "NET_DVR_CARD_CFG_SEND_DATA",
+    "keywords": [
+      "NET_DVR_CARD_CFG_SEND_DATA",
+      "structures",
+      "海康设备网络SDK"
+    ],
+    "summary": "获取卡参数的发送数据。",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_CARD_CFG_SEND_DATA.html",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_CARD_CFG_SEND_DATA.md",
+    "section_anchor": null,
+    "project_usage": [
+      {
+        "path": "HCNetSDK.cs",
+        "line": 1305,
+        "snippet": "public struct NET_DVR_CARD_CFG_SEND_DATA"
+      }
+    ]
+  },
+  {
+    "doc_type": "sdk_html",
+    "category": "sdk",
+    "title": "NET_DVR_CARD_CFG_V50",
+    "symbol_or_topic": "NET_DVR_CARD_CFG_V50",
+    "keywords": [
+      "NET_DVR_CARD_CFG_V50",
+      "structures",
+      "海康设备网络SDK"
+    ],
+    "summary": "卡参数配置结构体。",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_CARD_CFG_V50.html",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_CARD_CFG_V50.md",
+    "section_anchor": null,
+    "project_usage": [
+      {
+        "path": "HCNetSDK.cs",
+        "line": 1206,
+        "snippet": "public struct NET_DVR_CARD_CFG_V50"
+      }
+    ]
+  },
+  {
+    "doc_type": "sdk_html",
+    "category": "sdk",
+    "title": "NET_DVR_CARD_READER_CFG_V50",
+    "symbol_or_topic": "NET_DVR_CARD_READER_CFG_V50",
+    "keywords": [
+      "NET_DVR_CARD_READER_CFG_V50",
+      "structures",
+      "海康设备网络SDK"
+    ],
+    "summary": "读卡器参数配置结构体。",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_CARD_READER_CFG_V50.html",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_CARD_READER_CFG_V50.md",
+    "section_anchor": null,
+    "project_usage": [
+      {
+        "path": "HCNetSDK.cs",
+        "line": 1552,
+        "snippet": "public struct NET_DVR_CARD_READER_CFG_V50"
+      }
+    ]
+  },
+  {
+    "doc_type": "sdk_html",
+    "category": "sdk",
+    "title": "NET_DVR_CARD_READER_PLAN",
+    "symbol_or_topic": "NET_DVR_CARD_READER_PLAN",
+    "keywords": [
+      "NET_DVR_CARD_READER_PLAN",
+      "structures",
+      "海康设备网络SDK"
+    ],
+    "summary": "读卡器验证计划配置结构体。",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_CARD_READER_PLAN.html",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_CARD_READER_PLAN.md",
+    "section_anchor": null,
+    "project_usage": [
+      {
+        "path": "HCNetSDK.cs",
+        "line": 2219,
+        "snippet": "public struct NET_DVR_CARD_READER_PLAN"
+      }
+    ]
+  },
+  {
+    "doc_type": "sdk_html",
+    "category": "sdk",
+    "title": "NET_DVR_CARD_USER_INFO_CFG",
+    "symbol_or_topic": "NET_DVR_CARD_USER_INFO_CFG",
+    "keywords": [
+      "NET_DVR_CARD_USER_INFO_CFG",
+      "structures",
+      "海康设备网络SDK"
+    ],
+    "summary": "卡号关联用户信息配置结构体。",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_CARD_USER_INFO_CFG.html",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_CARD_USER_INFO_CFG.md",
+    "section_anchor": null,
+    "project_usage": [
+      {
+        "path": "HCNetSDK.cs",
+        "line": 2237,
+        "snippet": "public struct NET_DVR_CARD_USER_INFO_CFG"
+      }
+    ]
+  },
+  {
+    "doc_type": "sdk_html",
+    "category": "sdk",
+    "title": "NET_DVR_CLIENTINFO",
+    "symbol_or_topic": "NET_DVR_CLIENTINFO",
+    "keywords": [
+      "NET_DVR_CLIENTINFO",
+      "structures",
+      "海康设备网络SDK"
+    ],
+    "summary": "预览参数结构体。",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_CLIENTINFO.html",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_CLIENTINFO.md",
+    "section_anchor": null,
+    "project_usage": [
+      {
+        "path": "HCNetSDK.cs",
+        "line": 3356,
+        "snippet": "public struct NET_DVR_CLIENTINFO"
+      },
+      {
+        "path": "HCNetSDK.cs",
+        "line": 3599,
+        "snippet": "public static extern int NET_DVR_RealPlay_V30(int iUserID, ref NET_DVR_CLIENTINFO lpClientInfo, REALDATACALLBACK fRealDataCallBack_V30, IntPtr pUser, UInt32 bBlocked);"
+      }
+    ]
+  },
+  {
+    "doc_type": "sdk_html",
+    "category": "sdk",
+    "title": "NET_DVR_DATE",
+    "symbol_or_topic": "NET_DVR_DATE",
+    "keywords": [
+      "NET_DVR_DATE",
+      "structures",
+      "海康设备网络SDK"
+    ],
+    "summary": "日期信息结构体。",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_DATE.html",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_DATE.md",
+    "section_anchor": null,
+    "project_usage": [
+      {
+        "path": "HCNetSDK.cs",
+        "line": 646,
+        "snippet": "public struct NET_DVR_DATE"
+      },
+      {
+        "path": "HCNetSDK.cs",
+        "line": 2075,
+        "snippet": "public NET_DVR_DATE struBeginDate;  //holiday begin date"
+      },
+      {
+        "path": "HCNetSDK.cs",
+        "line": 2076,
+        "snippet": "public NET_DVR_DATE struEndDate;  //holiday end date"
+      }
+    ]
+  },
+  {
+    "doc_type": "sdk_html",
+    "category": "sdk",
+    "title": "NET_DVR_DDNS_STREAM_CFG",
+    "symbol_or_topic": "NET_DVR_DDNS_STREAM_CFG",
+    "keywords": [
+      "NET_DVR_DDNS_STREAM_CFG",
+      "structures",
+      "海康设备网络SDK"
+    ],
+    "summary": "IP Server+流媒体模式配置结构体。",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_DDNS_STREAM_CFG.html",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_DDNS_STREAM_CFG.md",
+    "section_anchor": null,
+    "project_usage": [
+      {
+        "path": "HCNetSDK.cs",
+        "line": 2981,
+        "snippet": "public struct NET_DVR_DDNS_STREAM_CFG"
+      },
+      {
+        "path": "HCNetSDK.cs",
+        "line": 3103,
+        "snippet": "public NET_DVR_DDNS_STREAM_CFG struDDNSStream;     //Get stream by IPserver and stream server."
+      }
+    ]
+  },
+  {
+    "doc_type": "sdk_html",
+    "category": "sdk",
+    "title": "NET_DVR_DEVICECFG_V40",
+    "symbol_or_topic": "NET_DVR_DEVICECFG_V40",
+    "keywords": [
+      "NET_DVR_DEVICECFG_V40",
+      "structures",
+      "海康设备网络SDK"
+    ],
+    "summary": "设备参数结构体。",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_DEVICECFG_V40.html",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_DEVICECFG_V40.md",
+    "section_anchor": null,
+    "project_usage": [
+      {
+        "path": "HCNetSDK.cs",
+        "line": 2348,
+        "snippet": "public struct NET_DVR_DEVICECFG_V40"
+      }
+    ]
+  },
+  {
+    "doc_type": "sdk_html",
+    "category": "sdk",
+    "title": "NET_DVR_DEVICEINFO_V30",
+    "symbol_or_topic": "NET_DVR_DEVICEINFO_V30",
+    "keywords": [
+      "NET_DVR_DEVICEINFO_V30",
+      "structures",
+      "海康设备网络SDK"
+    ],
+    "summary": "设备参数结构体。",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_DEVICEINFO_V30.html",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_DEVICEINFO_V30.md",
+    "section_anchor": null,
+    "project_usage": [
+      {
+        "path": "HCNetSDK.cs",
+        "line": 2250,
+        "snippet": "public struct NET_DVR_DEVICEINFO_V30"
+      },
+      {
+        "path": "HCNetSDK.cs",
+        "line": 2327,
+        "snippet": "public NET_DVR_DEVICEINFO_V30 struDeviceV30;"
+      },
+      {
+        "path": "HCNetSDK.cs",
+        "line": 2420,
+        "snippet": "* [out] NET_DVR_DEVICEINFO_V30 - device informations"
+      },
+      {
+        "path": "HCNetSDK.cs",
+        "line": 2423,
+        "snippet": "public delegate void LoginResultCallBack(int lUserID, uint dwResult, ref NET_DVR_DEVICEINFO_V30 lpDeviceInfo, IntPtr pUser);"
+      },
+      {
+        "path": "HCNetSDK_Facial.cs",
+        "line": 44,
+        "snippet": "public struct NET_DVR_DEVICEINFO_V30"
+      }
+    ]
+  },
+  {
+    "doc_type": "sdk_html",
+    "category": "sdk",
+    "title": "NET_DVR_DEVICEINFO_V40",
+    "symbol_or_topic": "NET_DVR_DEVICEINFO_V40",
+    "keywords": [
+      "NET_DVR_DEVICEINFO_V40",
+      "structures",
+      "海康设备网络SDK"
+    ],
+    "summary": "设备参数结构体。",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_DEVICEINFO_V40.html",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_DEVICEINFO_V40.md",
+    "section_anchor": null,
+    "project_usage": [
+      {
+        "path": "Common.cs",
+        "line": 274,
+        "snippet": "HCNetSDK.NET_DVR_DEVICEINFO_V40 struDeviceInfoV40 = new HCNetSDK.NET_DVR_DEVICEINFO_V40();"
+      },
+      {
+        "path": "DeviceConnectionManager.cs",
+        "line": 1028,
+        "snippet": "HCNetSDK.NET_DVR_DEVICEINFO_V40 struDeviceInfoV40 = new HCNetSDK.NET_DVR_DEVICEINFO_V40();"
+      },
+      {
+        "path": "HCNetSDK.cs",
+        "line": 2325,
+        "snippet": "public struct NET_DVR_DEVICEINFO_V40"
+      },
+      {
+        "path": "HCNetSDK.cs",
+        "line": 3536,
+        "snippet": "public static extern int NET_DVR_Login_V40(ref NET_DVR_USER_LOGIN_INFO pLoginInfo, ref NET_DVR_DEVICEINFO_V40 lpDeviceInfo);"
+      },
+      {
+        "path": "HCNetSDK_Facial.cs",
+        "line": 155,
+        "snippet": "public struct NET_DVR_DEVICEINFO_V40"
+      }
+    ]
+  },
+  {
+    "doc_type": "sdk_html",
+    "category": "sdk",
+    "title": "NET_DVR_DEV_CHAN_INFO",
+    "symbol_or_topic": "NET_DVR_DEV_CHAN_INFO",
+    "keywords": [
+      "NET_DVR_DEV_CHAN_INFO",
+      "structures",
+      "海康设备网络SDK"
+    ],
+    "summary": "前端设备信息结构体。",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_DEV_CHAN_INFO.html",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_DEV_CHAN_INFO.md",
+    "section_anchor": null,
+    "project_usage": [
+      {
+        "path": "HCNetSDK.cs",
+        "line": 2943,
+        "snippet": "public struct NET_DVR_DEV_CHAN_INFO"
+      },
+      {
+        "path": "HCNetSDK.cs",
+        "line": 2977,
+        "snippet": "public NET_DVR_DEV_CHAN_INFO struDevChanInfo;"
+      }
+    ]
+  },
+  {
+    "doc_type": "sdk_html",
+    "category": "sdk",
+    "title": "NET_DVR_DOOR_CFG",
+    "symbol_or_topic": "NET_DVR_DOOR_CFG",
+    "keywords": [
+      "NET_DVR_DOOR_CFG",
+      "structures",
+      "海康设备网络SDK"
+    ],
+    "summary": "门参数（或者梯控的楼层参数）配置结构体。",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_DOOR_CFG.html",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_DOOR_CFG.md",
+    "section_anchor": null,
+    "project_usage": [
+      {
+        "path": "HCNetSDK.cs",
+        "line": 1440,
+        "snippet": "public struct NET_DVR_DOOR_CFG"
+      }
+    ]
+  },
+  {
+    "doc_type": "sdk_html",
+    "category": "sdk",
+    "title": "NET_DVR_DOOR_STATUS_PLAN",
+    "symbol_or_topic": "NET_DVR_DOOR_STATUS_PLAN",
+    "keywords": [
+      "NET_DVR_DOOR_STATUS_PLAN",
+      "structures",
+      "海康设备网络SDK"
+    ],
+    "summary": "门状态计划配置结构体。",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_DOOR_STATUS_PLAN.html",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_DOOR_STATUS_PLAN.md",
+    "section_anchor": null,
+    "project_usage": [
+      {
+        "path": "HCNetSDK.cs",
+        "line": 2205,
+        "snippet": "public struct NET_DVR_DOOR_STATUS_PLAN"
+      }
+    ]
+  },
+  {
+    "doc_type": "sdk_html",
+    "category": "sdk",
+    "title": "NET_DVR_ETHERNET_V30",
+    "symbol_or_topic": "NET_DVR_ETHERNET_V30",
+    "keywords": [
+      "NET_DVR_ETHERNET_V30",
+      "structures",
+      "海康设备网络SDK"
+    ],
+    "summary": "以太网配置结构体。",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_ETHERNET_V30.html",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_ETHERNET_V30.md",
+    "section_anchor": null,
+    "project_usage": [
+      {
+        "path": "HCNetSDK.cs",
+        "line": 2493,
+        "snippet": "public struct NET_DVR_ETHERNET_V30"
+      },
+      {
+        "path": "HCNetSDK.cs",
+        "line": 2523,
+        "snippet": "public NET_DVR_ETHERNET_V30[] struEtherNet;//Ethernet"
+      },
+      {
+        "path": "HCNetSDK.cs",
+        "line": 2549,
+        "snippet": "struEtherNet = new NET_DVR_ETHERNET_V30[MAX_ETHERNET];"
+      },
+      {
+        "path": "HCNetSDK.cs",
+        "line": 2567,
+        "snippet": "public NET_DVR_ETHERNET_V30[] struEtherNet;        //Network Port"
+      },
+      {
+        "path": "HCNetSDK.cs",
+        "line": 2594,
+        "snippet": "struEtherNet = new NET_DVR_ETHERNET_V30[MAX_ETHERNET];"
+      }
+    ]
+  },
+  {
+    "doc_type": "sdk_html",
+    "category": "sdk",
+    "title": "NET_DVR_EVENT_CARD_LINKAGE_CFG_V50",
+    "symbol_or_topic": "NET_DVR_EVENT_CARD_LINKAGE_CFG_V50",
+    "keywords": [
+      "NET_DVR_EVENT_CARD_LINKAGE_CFG_V50",
+      "structures",
+      "海康设备网络SDK"
+    ],
+    "summary": "事件/卡号联动配置结构体。",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_EVENT_CARD_LINKAGE_CFG_V50.html",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_EVENT_CARD_LINKAGE_CFG_V50.md",
+    "section_anchor": null,
+    "project_usage": [
+      {
+        "path": "HCNetSDK.cs",
+        "line": 2682,
+        "snippet": "public struct NET_DVR_EVENT_CARD_LINKAGE_CFG_V50"
+      }
+    ]
+  },
+  {
+    "doc_type": "sdk_html",
+    "category": "sdk",
+    "title": "NET_DVR_EVENT_CARD_LINKAGE_CFG_V51",
+    "symbol_or_topic": "NET_DVR_EVENT_CARD_LINKAGE_CFG_V51",
+    "keywords": [
+      "NET_DVR_EVENT_CARD_LINKAGE_CFG_V51",
+      "structures",
+      "海康设备网络SDK"
+    ],
+    "summary": "事件/卡号联动配置结构体。",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_EVENT_CARD_LINKAGE_CFG_V51.html",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_EVENT_CARD_LINKAGE_CFG_V51.md",
+    "section_anchor": null,
+    "project_usage": [
+      {
+        "path": "HCNetSDK.cs",
+        "line": 2736,
+        "snippet": "public struct NET_DVR_EVENT_CARD_LINKAGE_CFG_V51"
+      }
+    ]
+  },
+  {
+    "doc_type": "sdk_html",
+    "category": "sdk",
+    "title": "NET_DVR_EVENT_CARD_LINKAGE_COND",
+    "symbol_or_topic": "NET_DVR_EVENT_CARD_LINKAGE_COND",
+    "keywords": [
+      "NET_DVR_EVENT_CARD_LINKAGE_COND",
+      "structures",
+      "海康设备网络SDK"
+    ],
+    "summary": "事件/卡号联动配置条件结构体。",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_EVENT_CARD_LINKAGE_COND.html",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_EVENT_CARD_LINKAGE_COND.md",
+    "section_anchor": null,
+    "project_usage": [
+      {
+        "path": "HCNetSDK.cs",
+        "line": 2645,
+        "snippet": "public struct NET_DVR_EVENT_CARD_LINKAGE_COND"
+      }
+    ]
+  },
+  {
+    "doc_type": "sdk_html",
+    "category": "sdk",
+    "title": "NET_DVR_EVENT_LINKAGE_INFO",
+    "symbol_or_topic": "NET_DVR_EVENT_LINKAGE_INFO",
+    "keywords": [
+      "NET_DVR_EVENT_LINKAGE_INFO",
+      "structures",
+      "海康设备网络SDK"
+    ],
+    "summary": "事件联动参数结构体。",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_EVENT_LINKAGE_INFO.html",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_EVENT_LINKAGE_INFO.md",
+    "section_anchor": null,
+    "project_usage": [
+      {
+        "path": "HCNetSDK.cs",
+        "line": 2655,
+        "snippet": "public struct NET_DVR_EVENT_LINKAGE_INFO"
+      },
+      {
+        "path": "HCNetSDK.cs",
+        "line": 2671,
+        "snippet": "public NET_DVR_EVENT_LINKAGE_INFO struEventLinkage;"
+      }
+    ]
+  },
+  {
+    "doc_type": "sdk_html",
+    "category": "sdk",
+    "title": "NET_DVR_EVETN_CARD_LINKAGE_UNION",
+    "symbol_or_topic": "NET_DVR_EVETN_CARD_LINKAGE_UNION",
+    "keywords": [
+      "NET_DVR_EVETN_CARD_LINKAGE_UNION",
+      "structures",
+      "海康设备网络SDK"
+    ],
+    "summary": "事件/卡号联动方式联合体。",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_EVETN_CARD_LINKAGE_UNION.html",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_EVETN_CARD_LINKAGE_UNION.md",
+    "section_anchor": null,
+    "project_usage": [
+      {
+        "path": "HCNetSDK.cs",
+        "line": 2665,
+        "snippet": "public struct NET_DVR_EVETN_CARD_LINKAGE_UNION"
+      },
+      {
+        "path": "HCNetSDK.cs",
+        "line": 2689,
+        "snippet": "public NET_DVR_EVETN_CARD_LINKAGE_UNION uLinkageInfo;  //Linkage mode parameters"
+      },
+      {
+        "path": "HCNetSDK.cs",
+        "line": 2743,
+        "snippet": "public NET_DVR_EVETN_CARD_LINKAGE_UNION uLinkageInfo;  //Linkage mode parameters"
+      }
+    ]
+  },
+  {
+    "doc_type": "sdk_html",
+    "category": "sdk",
+    "title": "NET_DVR_FACE_PARAM_BYCARD",
+    "symbol_or_topic": "NET_DVR_FACE_PARAM_BYCARD",
+    "keywords": [
+      "NET_DVR_FACE_PARAM_BYCARD",
+      "structures",
+      "海康设备网络SDK"
+    ],
+    "summary": "按卡号删除人脸参数条件结构体。",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_FACE_PARAM_BYCARD.html",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_FACE_PARAM_BYCARD.md",
+    "section_anchor": null,
+    "project_usage": [
+      {
+        "path": "HCNetSDK.cs",
+        "line": 1940,
+        "snippet": "public NET_DVR_FACE_PARAM_BYCARD struProcessMode;"
+      },
+      {
+        "path": "HCNetSDK.cs",
+        "line": 1948,
+        "snippet": "struProcessMode = new NET_DVR_FACE_PARAM_BYCARD();"
+      },
+      {
+        "path": "HCNetSDK.cs",
+        "line": 1974,
+        "snippet": "public struct NET_DVR_FACE_PARAM_BYCARD"
+      },
+      {
+        "path": "HCNetSDK_Facial.cs",
+        "line": 266,
+        "snippet": "public HCNetSDK_Facial.NET_DVR_FACE_PARAM_BYCARD struByCard;//按卡号的方式删除,读卡器暂时不写"
+      },
+      {
+        "path": "HCNetSDK_Facial.cs",
+        "line": 278,
+        "snippet": "public struct NET_DVR_FACE_PARAM_BYCARD"
+      }
+    ]
+  },
+  {
+    "doc_type": "sdk_html",
+    "category": "sdk",
+    "title": "NET_DVR_FACE_PARAM_BYREADER",
+    "symbol_or_topic": "NET_DVR_FACE_PARAM_BYREADER",
+    "keywords": [
+      "NET_DVR_FACE_PARAM_BYREADER",
+      "structures",
+      "海康设备网络SDK"
+    ],
+    "summary": "按读卡器删除人脸参数条件结构体。",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_FACE_PARAM_BYREADER.html",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_FACE_PARAM_BYREADER.md",
+    "section_anchor": null,
+    "project_usage": [
+      {
+        "path": "HCNetSDK.cs",
+        "line": 1960,
+        "snippet": "public NET_DVR_FACE_PARAM_BYREADER struProcessMode;"
+      },
+      {
+        "path": "HCNetSDK.cs",
+        "line": 1968,
+        "snippet": "struProcessMode = new NET_DVR_FACE_PARAM_BYREADER();"
+      },
+      {
+        "path": "HCNetSDK.cs",
+        "line": 1995,
+        "snippet": "public struct NET_DVR_FACE_PARAM_BYREADER"
+      }
+    ]
+  },
+  {
+    "doc_type": "sdk_html",
+    "category": "sdk",
+    "title": "NET_DVR_FACE_PARAM_CFG",
+    "symbol_or_topic": "NET_DVR_FACE_PARAM_CFG",
+    "keywords": [
+      "NET_DVR_FACE_PARAM_CFG",
+      "structures",
+      "海康设备网络SDK"
+    ],
+    "summary": "人脸参数配置结构体。",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_FACE_PARAM_CFG.html",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_FACE_PARAM_CFG.md",
+    "section_anchor": null,
+    "project_usage": [
+      {
+        "path": "HCNetSDK.cs",
+        "line": 1337,
+        "snippet": "public struct NET_DVR_FACE_PARAM_CFG"
+      }
+    ]
+  },
+  {
+    "doc_type": "sdk_html",
+    "category": "sdk",
+    "title": "NET_DVR_FACE_PARAM_COND",
+    "symbol_or_topic": "NET_DVR_FACE_PARAM_COND",
+    "keywords": [
+      "NET_DVR_FACE_PARAM_COND",
+      "structures",
+      "海康设备网络SDK"
+    ],
+    "summary": "人脸参数配置条件结构体。",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_FACE_PARAM_COND.html",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_FACE_PARAM_COND.md",
+    "section_anchor": null,
+    "project_usage": [
+      {
+        "path": "HCNetSDK.cs",
+        "line": 1316,
+        "snippet": "public struct NET_DVR_FACE_PARAM_COND"
+      }
+    ]
+  },
+  {
+    "doc_type": "sdk_html",
+    "category": "sdk",
+    "title": "NET_DVR_FACE_PARAM_STATUS",
+    "symbol_or_topic": "NET_DVR_FACE_PARAM_STATUS",
+    "keywords": [
+      "NET_DVR_FACE_PARAM_STATUS",
+      "structures",
+      "海康设备网络SDK"
+    ],
+    "summary": "人脸参数下发状态信息结构体。",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_FACE_PARAM_STATUS.html",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_FACE_PARAM_STATUS.md",
+    "section_anchor": null,
+    "project_usage": [
+      {
+        "path": "HCNetSDK.cs",
+        "line": 1360,
+        "snippet": "public struct NET_DVR_FACE_PARAM_STATUS"
+      }
+    ]
+  },
+  {
+    "doc_type": "sdk_html",
+    "category": "sdk",
+    "title": "NET_DVR_FAILED_FACE_INFO",
+    "symbol_or_topic": "NET_DVR_FAILED_FACE_INFO",
+    "keywords": [
+      "NET_DVR_FAILED_FACE_INFO",
+      "structures",
+      "海康设备网络SDK"
+    ],
+    "summary": "建模失败人脸信息结构体。",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_FAILED_FACE_INFO.html",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_FAILED_FACE_INFO.md",
+    "section_anchor": null,
+    "project_usage": [
+      {
+        "path": "HCNetSDK.cs",
+        "line": 1922,
+        "snippet": "public struct NET_DVR_FAILED_FACE_INFO"
+      }
+    ]
+  },
+  {
+    "doc_type": "sdk_html",
+    "category": "sdk",
+    "title": "NET_DVR_FINGER_PRINT_BYCARD",
+    "symbol_or_topic": "NET_DVR_FINGER_PRINT_BYCARD",
+    "keywords": [
+      "NET_DVR_FINGER_PRINT_BYCARD",
+      "structures",
+      "海康设备网络SDK"
+    ],
+    "summary": "按卡号方式删除指纹的处理方式结构体。",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_FINGER_PRINT_BYCARD.html",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_FINGER_PRINT_BYCARD.md",
+    "section_anchor": null,
+    "project_usage": [
+      {
+        "path": "HCNetSDK.cs",
+        "line": 1779,
+        "snippet": "public struct NET_DVR_FINGER_PRINT_BYCARD"
+      },
+      {
+        "path": "HCNetSDK.cs",
+        "line": 1812,
+        "snippet": "public NET_DVR_FINGER_PRINT_BYCARD struByCard;   //delete by card"
+      },
+      {
+        "path": "HCNetSDK.cs",
+        "line": 1902,
+        "snippet": "//    public NET_DVR_FINGER_PRINT_BYCARD struByCard;     //delete by card"
+      }
+    ]
+  },
+  {
+    "doc_type": "sdk_html",
+    "category": "sdk",
+    "title": "NET_DVR_FINGER_PRINT_BYCARD_V50",
+    "symbol_or_topic": "NET_DVR_FINGER_PRINT_BYCARD_V50",
+    "keywords": [
+      "NET_DVR_FINGER_PRINT_BYCARD_V50",
+      "structures",
+      "海康设备网络SDK"
+    ],
+    "summary": "指纹关联卡号参数信息结构体。",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_FINGER_PRINT_BYCARD_V50.html",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_FINGER_PRINT_BYCARD_V50.md",
+    "section_anchor": null,
+    "project_usage": [
+      {
+        "path": "HCNetSDK.cs",
+        "line": 1833,
+        "snippet": "public struct NET_DVR_FINGER_PRINT_BYCARD_V50"
+      },
+      {
+        "path": "HCNetSDK.cs",
+        "line": 1869,
+        "snippet": "public NET_DVR_FINGER_PRINT_BYCARD_V50 struByCard;   //delete by card"
+      }
+    ]
+  },
+  {
+    "doc_type": "sdk_html",
+    "category": "sdk",
+    "title": "NET_DVR_FINGER_PRINT_BYREADER",
+    "symbol_or_topic": "NET_DVR_FINGER_PRINT_BYREADER",
+    "keywords": [
+      "NET_DVR_FINGER_PRINT_BYREADER",
+      "structures",
+      "海康设备网络SDK"
+    ],
+    "summary": "按按读卡器方式删除指纹的处理方式结构体。",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_FINGER_PRINT_BYREADER.html",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_FINGER_PRINT_BYREADER.md",
+    "section_anchor": null,
+    "project_usage": [
+      {
+        "path": "HCNetSDK.cs",
+        "line": 1792,
+        "snippet": "public struct NET_DVR_FINGER_PRINT_BYREADER"
+      },
+      {
+        "path": "HCNetSDK.cs",
+        "line": 1826,
+        "snippet": "public NET_DVR_FINGER_PRINT_BYREADER struByReader;  //delete by reader"
+      },
+      {
+        "path": "HCNetSDK.cs",
+        "line": 1903,
+        "snippet": "//    public NET_DVR_FINGER_PRINT_BYREADER struByReader;   //delete by reader"
+      }
+    ]
+  },
+  {
+    "doc_type": "sdk_html",
+    "category": "sdk",
+    "title": "NET_DVR_FINGER_PRINT_BYREADER_V50",
+    "symbol_or_topic": "NET_DVR_FINGER_PRINT_BYREADER_V50",
+    "keywords": [
+      "NET_DVR_FINGER_PRINT_BYREADER_V50",
+      "structures",
+      "海康设备网络SDK"
+    ],
+    "summary": "指纹读卡器参数信息结构体。",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_FINGER_PRINT_BYREADER_V50.html",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_FINGER_PRINT_BYREADER_V50.md",
+    "section_anchor": null,
+    "project_usage": [
+      {
+        "path": "HCNetSDK.cs",
+        "line": 1848,
+        "snippet": "public struct NET_DVR_FINGER_PRINT_BYREADER_V50"
+      },
+      {
+        "path": "HCNetSDK.cs",
+        "line": 1881,
+        "snippet": "public NET_DVR_FINGER_PRINT_BYREADER_V50 struByReader;  //delete by reader"
+      }
+    ]
+  },
+  {
+    "doc_type": "sdk_html",
+    "category": "sdk",
+    "title": "NET_DVR_FINGER_PRINT_CFG",
+    "symbol_or_topic": "NET_DVR_FINGER_PRINT_CFG",
+    "keywords": [
+      "NET_DVR_FINGER_PRINT_CFG",
+      "structures",
+      "海康设备网络SDK"
+    ],
+    "summary": "指纹参数配置结构体。",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_FINGER_PRINT_CFG.html",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_FINGER_PRINT_CFG.md",
+    "section_anchor": null,
+    "project_usage": [
+      {
+        "path": "HCNetSDK.cs",
+        "line": 1607,
+        "snippet": "public struct NET_DVR_FINGER_PRINT_CFG"
+      }
+    ]
+  },
+  {
+    "doc_type": "sdk_html",
+    "category": "sdk",
+    "title": "NET_DVR_FINGER_PRINT_INFO_COND",
+    "symbol_or_topic": "NET_DVR_FINGER_PRINT_INFO_COND",
+    "keywords": [
+      "NET_DVR_FINGER_PRINT_INFO_COND",
+      "structures",
+      "海康设备网络SDK"
+    ],
+    "summary": "指纹参数配置条件结构体。",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_FINGER_PRINT_INFO_COND.html",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_FINGER_PRINT_INFO_COND.md",
+    "section_anchor": null,
+    "project_usage": [
+      {
+        "path": "HCNetSDK.cs",
+        "line": 1662,
+        "snippet": "public struct NET_DVR_FINGER_PRINT_INFO_COND"
+      }
+    ]
+  },
+  {
+    "doc_type": "sdk_html",
+    "category": "sdk",
+    "title": "NET_DVR_FINGER_PRINT_INFO_CTRL",
+    "symbol_or_topic": "NET_DVR_FINGER_PRINT_INFO_CTRL",
+    "keywords": [
+      "NET_DVR_FINGER_PRINT_INFO_CTRL",
+      "structures",
+      "海康设备网络SDK"
+    ],
+    "summary": "指纹删除控制参数结构体。",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_FINGER_PRINT_INFO_CTRL.html",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_FINGER_PRINT_INFO_CTRL.md",
+    "section_anchor": null,
+    "project_usage": [
+      {
+        "path": "HCNetSDK.cs",
+        "line": 1907,
+        "snippet": "//public struct NET_DVR_FINGER_PRINT_INFO_CTRL"
+      }
+    ]
+  },
+  {
+    "doc_type": "sdk_html",
+    "category": "sdk",
+    "title": "NET_DVR_FINGER_PRINT_INFO_STATUS_V50",
+    "symbol_or_topic": "NET_DVR_FINGER_PRINT_INFO_STATUS_V50",
+    "keywords": [
+      "NET_DVR_FINGER_PRINT_INFO_STATUS_V50",
+      "structures",
+      "海康设备网络SDK"
+    ],
+    "summary": "指纹信息状态结构体。",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_FINGER_PRINT_INFO_STATUS_V50.html",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_FINGER_PRINT_INFO_STATUS_V50.md",
+    "section_anchor": null,
+    "project_usage": [
+      {
+        "path": "HCNetSDK.cs",
+        "line": 1887,
+        "snippet": "public struct NET_DVR_FINGER_PRINT_INFO_STATUS_V50"
+      }
+    ]
+  },
+  {
+    "doc_type": "sdk_html",
+    "category": "sdk",
+    "title": "NET_DVR_FINGER_PRINT_STATUS",
+    "symbol_or_topic": "NET_DVR_FINGER_PRINT_STATUS",
+    "keywords": [
+      "NET_DVR_FINGER_PRINT_STATUS",
+      "structures",
+      "海康设备网络SDK"
+    ],
+    "summary": "指纹状态参数结构体。",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_FINGER_PRINT_STATUS.html",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_FINGER_PRINT_STATUS.md",
+    "section_anchor": null,
+    "project_usage": [
+      {
+        "path": "HCNetSDK.cs",
+        "line": 1635,
+        "snippet": "public struct NET_DVR_FINGER_PRINT_STATUS"
+      }
+    ]
+  },
+  {
+    "doc_type": "sdk_html",
+    "category": "sdk",
+    "title": "NET_DVR_GET_STREAM_UNION",
+    "symbol_or_topic": "NET_DVR_GET_STREAM_UNION",
+    "keywords": [
+      "NET_DVR_GET_STREAM_UNION",
+      "structures",
+      "海康设备网络SDK"
+    ],
+    "summary": "取流方式联合体。",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_GET_STREAM_UNION.html",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_GET_STREAM_UNION.md",
+    "section_anchor": null,
+    "project_usage": [
+      {
+        "path": "HCNetSDK.cs",
+        "line": 3098,
+        "snippet": "public struct NET_DVR_GET_STREAM_UNION"
+      },
+      {
+        "path": "HCNetSDK.cs",
+        "line": 3117,
+        "snippet": "public NET_DVR_GET_STREAM_UNION uGetStream;    //the union of different getting stream type."
+      }
+    ]
+  },
+  {
+    "doc_type": "sdk_html",
+    "category": "sdk",
+    "title": "NET_DVR_GROUP_CFG",
+    "symbol_or_topic": "NET_DVR_GROUP_CFG",
+    "keywords": [
+      "NET_DVR_GROUP_CFG",
+      "structures",
+      "海康设备网络SDK"
+    ],
+    "summary": "群组参数配置结构体。",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_GROUP_CFG.html",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_GROUP_CFG.md",
+    "section_anchor": null,
+    "project_usage": [
+      {
+        "path": "HCNetSDK.cs",
+        "line": 1487,
+        "snippet": "public struct NET_DVR_GROUP_CFG"
+      }
+    ]
+  },
+  {
+    "doc_type": "sdk_html",
+    "category": "sdk",
+    "title": "NET_DVR_HKDDNS_STREAM",
+    "symbol_or_topic": "NET_DVR_HKDDNS_STREAM",
+    "keywords": [
+      "NET_DVR_HKDDNS_STREAM",
+      "structures",
+      "海康设备网络SDK"
+    ],
+    "summary": "hiDDNS取流配置结构体。",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_HKDDNS_STREAM.html",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_HKDDNS_STREAM.md",
+    "section_anchor": null,
+    "project_usage": [
+      {
+        "path": "HCNetSDK.cs",
+        "line": 3041,
+        "snippet": "public struct NET_DVR_HKDDNS_STREAM"
+      },
+      {
+        "path": "HCNetSDK.cs",
+        "line": 3105,
+        "snippet": "public NET_DVR_HKDDNS_STREAM struHkDDNSStream;   //get stream through hiDDNS"
+      }
+    ]
+  },
+  {
+    "doc_type": "sdk_html",
+    "category": "sdk",
+    "title": "NET_DVR_HOLIDAY_GROUP_CFG",
+    "symbol_or_topic": "NET_DVR_HOLIDAY_GROUP_CFG",
+    "keywords": [
+      "NET_DVR_HOLIDAY_GROUP_CFG",
+      "structures",
+      "海康设备网络SDK"
+    ],
+    "summary": "假日组配置结构体。",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_HOLIDAY_GROUP_CFG.html",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_HOLIDAY_GROUP_CFG.md",
+    "section_anchor": null,
+    "project_usage": [
+      {
+        "path": "HCNetSDK.cs",
+        "line": 2095,
+        "snippet": "public struct NET_DVR_HOLIDAY_GROUP_CFG"
+      }
+    ]
+  },
+  {
+    "doc_type": "sdk_html",
+    "category": "sdk",
+    "title": "NET_DVR_HOLIDAY_GROUP_COND",
+    "symbol_or_topic": "NET_DVR_HOLIDAY_GROUP_COND",
+    "keywords": [
+      "NET_DVR_HOLIDAY_GROUP_COND",
+      "structures",
+      "海康设备网络SDK"
+    ],
+    "summary": "卡权限假日组配置条件结构体。",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_HOLIDAY_GROUP_COND.html",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_HOLIDAY_GROUP_COND.md",
+    "section_anchor": null,
+    "project_usage": [
+      {
+        "path": "HCNetSDK.cs",
+        "line": 2171,
+        "snippet": "public struct NET_DVR_HOLIDAY_GROUP_COND"
+      }
+    ]
+  },
+  {
+    "doc_type": "sdk_html",
+    "category": "sdk",
+    "title": "NET_DVR_HOLIDAY_PLAN_CFG",
+    "symbol_or_topic": "NET_DVR_HOLIDAY_PLAN_CFG",
+    "keywords": [
+      "NET_DVR_HOLIDAY_PLAN_CFG",
+      "structures",
+      "海康设备网络SDK"
+    ],
+    "summary": "假日计划配置结构体。",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_HOLIDAY_PLAN_CFG.html",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_HOLIDAY_PLAN_CFG.md",
+    "section_anchor": null,
+    "project_usage": [
+      {
+        "path": "HCNetSDK.cs",
+        "line": 2069,
+        "snippet": "public struct NET_DVR_HOLIDAY_PLAN_CFG"
+      }
+    ]
+  },
+  {
+    "doc_type": "sdk_html",
+    "category": "sdk",
+    "title": "NET_DVR_HOLIDAY_PLAN_COND",
+    "symbol_or_topic": "NET_DVR_HOLIDAY_PLAN_COND",
+    "keywords": [
+      "NET_DVR_HOLIDAY_PLAN_COND",
+      "structures",
+      "海康设备网络SDK"
+    ],
+    "summary": "卡权限假日计划配置条件结构体。",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_HOLIDAY_PLAN_COND.html",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_HOLIDAY_PLAN_COND.md",
+    "section_anchor": null,
+    "project_usage": [
+      {
+        "path": "HCNetSDK.cs",
+        "line": 2142,
+        "snippet": "public struct NET_DVR_HOLIDAY_PLAN_COND"
+      }
+    ]
+  },
+  {
+    "doc_type": "sdk_html",
+    "category": "sdk",
+    "title": "NET_DVR_IPADDR",
+    "symbol_or_topic": "NET_DVR_IPADDR",
+    "keywords": [
+      "NET_DVR_IPADDR",
+      "structures",
+      "海康设备网络SDK"
+    ],
+    "summary": "IP地址结构体。",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_IPADDR.html",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_IPADDR.md",
+    "section_anchor": null,
+    "project_usage": [
+      {
+        "path": "HCNetSDK.cs",
+        "line": 958,
+        "snippet": "public NET_DVR_IPADDR struRemoteHostAddr;//remote host IP"
+      },
+      {
+        "path": "HCNetSDK.cs",
+        "line": 1052,
+        "snippet": "public NET_DVR_IPADDR struRemoteHostAddr;"
+      },
+      {
+        "path": "HCNetSDK.cs",
+        "line": 1075,
+        "snippet": "public NET_DVR_IPADDR struRemoteHostAddr; // remote host address"
+      },
+      {
+        "path": "HCNetSDK.cs",
+        "line": 1513,
+        "snippet": "public NET_DVR_IPADDR struUserIP;//User IP (0 stands for no IP restriction)"
+      },
+      {
+        "path": "HCNetSDK.cs",
+        "line": 2474,
+        "snippet": "public struct NET_DVR_IPADDR"
+      }
+    ]
+  },
+  {
+    "doc_type": "sdk_html",
+    "category": "sdk",
+    "title": "NET_DVR_IPALARMINCFG",
+    "symbol_or_topic": "NET_DVR_IPALARMINCFG",
+    "keywords": [
+      "NET_DVR_IPALARMINCFG",
+      "structures",
+      "海康设备网络SDK"
+    ],
+    "summary": "IP报警输入配置结构体。",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_IPALARMINCFG.html",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_IPALARMINCFG.md",
+    "section_anchor": null,
+    "project_usage": [
+      {
+        "path": "HCNetSDK.cs",
+        "line": 2849,
+        "snippet": "public struct NET_DVR_IPALARMINCFG"
+      }
+    ]
+  },
+  {
+    "doc_type": "sdk_html",
+    "category": "sdk",
+    "title": "NET_DVR_IPALARMINCFG_V40",
+    "symbol_or_topic": "NET_DVR_IPALARMINCFG_V40",
+    "keywords": [
+      "NET_DVR_IPALARMINCFG_V40",
+      "structures",
+      "海康设备网络SDK"
+    ],
+    "summary": "IP报警输入配置（扩展）结构体。",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_IPALARMINCFG_V40.html",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_IPALARMINCFG_V40.md",
+    "section_anchor": null,
+    "project_usage": [
+      {
+        "path": "HCNetSDK.cs",
+        "line": 2865,
+        "snippet": "public struct NET_DVR_IPALARMINCFG_V40"
+      }
+    ]
+  },
+  {
+    "doc_type": "sdk_html",
+    "category": "sdk",
+    "title": "NET_DVR_IPALARMININFO",
+    "symbol_or_topic": "NET_DVR_IPALARMININFO",
+    "keywords": [
+      "NET_DVR_IPALARMININFO",
+      "structures",
+      "海康设备网络SDK"
+    ],
+    "summary": "IP报警输入信息结构体。",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_IPALARMININFO.html",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_IPALARMININFO.md",
+    "section_anchor": null,
+    "project_usage": [
+      {
+        "path": "HCNetSDK.cs",
+        "line": 2841,
+        "snippet": "public struct NET_DVR_IPALARMININFO"
+      },
+      {
+        "path": "HCNetSDK.cs",
+        "line": 2853,
+        "snippet": "public NET_DVR_IPALARMININFO[] struIPAlarmInInfo;  /* IP alarm input */"
+      }
+    ]
+  },
+  {
+    "doc_type": "sdk_html",
+    "category": "sdk",
+    "title": "NET_DVR_IPALARMININFO_V40",
+    "symbol_or_topic": "NET_DVR_IPALARMININFO_V40",
+    "keywords": [
+      "NET_DVR_IPALARMININFO_V40",
+      "structures",
+      "海康设备网络SDK"
+    ],
+    "summary": "IP报警输入信息结构体。",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_IPALARMININFO_V40.html",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_IPALARMININFO_V40.md",
+    "section_anchor": null,
+    "project_usage": [
+      {
+        "path": "HCNetSDK.cs",
+        "line": 2856,
+        "snippet": "public struct NET_DVR_IPALARMININFO_V40"
+      },
+      {
+        "path": "HCNetSDK.cs",
+        "line": 2869,
+        "snippet": "public NET_DVR_IPALARMININFO_V40[] struIPAlarmInInfo;/* IP alarmin */"
+      }
+    ]
+  },
+  {
+    "doc_type": "sdk_html",
+    "category": "sdk",
+    "title": "NET_DVR_IPALARMOUTCFG",
+    "symbol_or_topic": "NET_DVR_IPALARMOUTCFG",
+    "keywords": [
+      "NET_DVR_IPALARMOUTCFG",
+      "structures",
+      "海康设备网络SDK"
+    ],
+    "summary": "IP报警输出配置结构体。",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_IPALARMOUTCFG.html",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_IPALARMOUTCFG.md",
+    "section_anchor": null,
+    "project_usage": [
+      {
+        "path": "HCNetSDK.cs",
+        "line": 2813,
+        "snippet": "public struct NET_DVR_IPALARMOUTCFG"
+      }
+    ]
+  },
+  {
+    "doc_type": "sdk_html",
+    "category": "sdk",
+    "title": "NET_DVR_IPALARMOUTCFG_V40",
+    "symbol_or_topic": "NET_DVR_IPALARMOUTCFG_V40",
+    "keywords": [
+      "NET_DVR_IPALARMOUTCFG_V40",
+      "structures",
+      "海康设备网络SDK"
+    ],
+    "summary": "报警输入参数（扩展）结构体。",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_IPALARMOUTCFG_V40.html",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_IPALARMOUTCFG_V40.md",
+    "section_anchor": null,
+    "project_usage": [
+      {
+        "path": "HCNetSDK.cs",
+        "line": 2829,
+        "snippet": "public struct NET_DVR_IPALARMOUTCFG_V40"
+      }
+    ]
+  },
+  {
+    "doc_type": "sdk_html",
+    "category": "sdk",
+    "title": "NET_DVR_IPALARMOUTINFO",
+    "symbol_or_topic": "NET_DVR_IPALARMOUTINFO",
+    "keywords": [
+      "NET_DVR_IPALARMOUTINFO",
+      "structures",
+      "海康设备网络SDK"
+    ],
+    "summary": "IP报警输出信息结构体。",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_IPALARMOUTINFO.html",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_IPALARMOUTINFO.md",
+    "section_anchor": null,
+    "project_usage": [
+      {
+        "path": "HCNetSDK.cs",
+        "line": 2803,
+        "snippet": "public struct NET_DVR_IPALARMOUTINFO"
+      },
+      {
+        "path": "HCNetSDK.cs",
+        "line": 2817,
+        "snippet": "public NET_DVR_IPALARMOUTINFO[] struIPAlarmOutInfo; /* IP alarm output */"
+      }
+    ]
+  },
+  {
+    "doc_type": "sdk_html",
+    "category": "sdk",
+    "title": "NET_DVR_IPALARMOUTINFO_V40",
+    "symbol_or_topic": "NET_DVR_IPALARMOUTINFO_V40",
+    "keywords": [
+      "NET_DVR_IPALARMOUTINFO_V40",
+      "structures",
+      "海康设备网络SDK"
+    ],
+    "summary": "IP报警输出口信息结构体。",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_IPALARMOUTINFO_V40.html",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_IPALARMOUTINFO_V40.md",
+    "section_anchor": null,
+    "project_usage": [
+      {
+        "path": "HCNetSDK.cs",
+        "line": 2820,
+        "snippet": "public struct NET_DVR_IPALARMOUTINFO_V40"
+      },
+      {
+        "path": "HCNetSDK.cs",
+        "line": 2834,
+        "snippet": "public NET_DVR_IPALARMOUTINFO_V40[] struIPAlarmOutInfo;"
+      }
+    ]
+  },
+  {
+    "doc_type": "sdk_html",
+    "category": "sdk",
+    "title": "NET_DVR_IPCHANINFO",
+    "symbol_or_topic": "NET_DVR_IPCHANINFO",
+    "keywords": [
+      "NET_DVR_IPCHANINFO",
+      "structures",
+      "海康设备网络SDK"
+    ],
+    "summary": "IP通道信息结构体。",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_IPCHANINFO.html",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_IPCHANINFO.md",
+    "section_anchor": null,
+    "project_usage": [
+      {
+        "path": "HCNetSDK.cs",
+        "line": 2876,
+        "snippet": "public struct NET_DVR_IPCHANINFO"
+      },
+      {
+        "path": "HCNetSDK.cs",
+        "line": 3100,
+        "snippet": "public NET_DVR_IPCHANINFO struChanInfo; //Get stream from Device."
+      }
+    ]
+  },
+  {
+    "doc_type": "sdk_html",
+    "category": "sdk",
+    "title": "NET_DVR_IPCHANINFO_V40",
+    "symbol_or_topic": "NET_DVR_IPCHANINFO_V40",
+    "keywords": [
+      "NET_DVR_IPCHANINFO_V40",
+      "structures",
+      "海康设备网络SDK"
+    ],
+    "summary": "IP通道信息（扩展）结构体。",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_IPCHANINFO_V40.html",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_IPCHANINFO_V40.md",
+    "section_anchor": null,
+    "project_usage": [
+      {
+        "path": "HCNetSDK.cs",
+        "line": 3080,
+        "snippet": "public struct NET_DVR_IPCHANINFO_V40"
+      },
+      {
+        "path": "HCNetSDK.cs",
+        "line": 3106,
+        "snippet": "public NET_DVR_IPCHANINFO_V40 struIPChan; //Get stream from device(Extend)"
+      },
+      {
+        "path": "HCNetSDK.cs",
+        "line": 3114,
+        "snippet": "//4-get stream by url,5-hkDDNS,6-Get stream from Device,NET_DVR_IPCHANINFO_V40,7- Get Stream by Rtsp Protocal"
+      }
+    ]
+  },
+  {
+    "doc_type": "sdk_html",
+    "category": "sdk",
+    "title": "NET_DVR_IPDEVINFO_V31",
+    "symbol_or_topic": "NET_DVR_IPDEVINFO_V31",
+    "keywords": [
+      "NET_DVR_IPDEVINFO_V31",
+      "structures",
+      "海康设备网络SDK"
+    ],
+    "summary": "IP设备信息结构体。",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_IPDEVINFO_V31.html",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_IPDEVINFO_V31.md",
+    "section_anchor": null,
+    "project_usage": [
+      {
+        "path": "HCNetSDK.cs",
+        "line": 2609,
+        "snippet": "public struct NET_DVR_IPDEVINFO_V31"
+      },
+      {
+        "path": "HCNetSDK.cs",
+        "line": 3130,
+        "snippet": "public NET_DVR_IPDEVINFO_V31[] struIPDevInfo;"
+      }
+    ]
+  },
+  {
+    "doc_type": "sdk_html",
+    "category": "sdk",
+    "title": "NET_DVR_IPPARACFG_V40",
+    "symbol_or_topic": "NET_DVR_IPPARACFG_V40",
+    "keywords": [
+      "NET_DVR_IPPARACFG_V40",
+      "structures",
+      "海康设备网络SDK"
+    ],
+    "summary": "IP设备资源及IP通道资源配置结构体。",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_IPPARACFG_V40.html",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_IPPARACFG_V40.md",
+    "section_anchor": null,
+    "project_usage": [
+      {
+        "path": "HCNetSDK.cs",
+        "line": 2281,
+        "snippet": "//bySuppory1 & 0x80 support NET_DVR_IPPARACFG_V40, in addition  support  License plate of the new alarm information"
+      },
+      {
+        "path": "HCNetSDK.cs",
+        "line": 3120,
+        "snippet": "public struct NET_DVR_IPPARACFG_V40"
+      },
+      {
+        "path": "HCNetSDK_Facial.cs",
+        "line": 75,
+        "snippet": "//bySuppory1 & 0x80 support NET_DVR_IPPARACFG_V40, in addition  support  License plate of the new alarm information"
+      }
+    ]
+  },
+  {
+    "doc_type": "sdk_html",
+    "category": "sdk",
+    "title": "NET_DVR_IPSERVER_STREAM",
+    "symbol_or_topic": "NET_DVR_IPSERVER_STREAM",
+    "keywords": [
+      "NET_DVR_IPSERVER_STREAM",
+      "structures",
+      "海康设备网络SDK"
+    ],
+    "summary": "IP Server模式配置结构体。",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_IPSERVER_STREAM.html",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_IPSERVER_STREAM.md",
+    "section_anchor": null,
+    "project_usage": [
+      {
+        "path": "HCNetSDK.cs",
+        "line": 2888,
+        "snippet": "public struct NET_DVR_IPSERVER_STREAM"
+      },
+      {
+        "path": "HCNetSDK.cs",
+        "line": 3101,
+        "snippet": "public NET_DVR_IPSERVER_STREAM struIPServerStream;  // //Get stream from Device which register the IPServer"
+      }
+    ]
+  },
+  {
+    "doc_type": "sdk_html",
+    "category": "sdk",
+    "title": "NET_DVR_JPEGPARA",
+    "symbol_or_topic": "NET_DVR_JPEGPARA",
+    "keywords": [
+      "NET_DVR_JPEGPARA",
+      "structures",
+      "海康设备网络SDK"
+    ],
+    "summary": "JPEG图像信息结构体。",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_JPEGPARA.html",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_JPEGPARA.md",
+    "section_anchor": null,
+    "project_usage": [
+      {
+        "path": "HCNetSDK.cs",
+        "line": 3141,
+        "snippet": "public struct NET_DVR_JPEGPARA"
+      },
+      {
+        "path": "HCNetSDK.cs",
+        "line": 3618,
+        "snippet": "public static extern bool NET_DVR_CaptureJPEGPicture(int lUserID, int lChannel, ref HCNetSDK.NET_DVR_JPEGPARA lpJpegPara, IntPtr sPicFileName);"
+      }
+    ]
+  },
+  {
+    "doc_type": "sdk_html",
+    "category": "sdk",
+    "title": "NET_DVR_LOG_V30",
+    "symbol_or_topic": "NET_DVR_LOG_V30",
+    "keywords": [
+      "NET_DVR_LOG_V30",
+      "structures",
+      "海康设备网络SDK"
+    ],
+    "summary": "日志信息结构体。",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_LOG_V30.html",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_LOG_V30.md",
+    "section_anchor": null,
+    "project_usage": [
+      {
+        "path": "HCNetSDK.cs",
+        "line": 949,
+        "snippet": "public struct NET_DVR_LOG_V30"
+      }
+    ]
+  },
+  {
+    "doc_type": "sdk_html",
+    "category": "sdk",
+    "title": "NET_DVR_NETCFG_V30",
+    "symbol_or_topic": "NET_DVR_NETCFG_V30",
+    "keywords": [
+      "NET_DVR_NETCFG_V30",
+      "structures",
+      "海康设备网络SDK"
+    ],
+    "summary": "网络配置结构体。",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_NETCFG_V30.html",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_NETCFG_V30.md",
+    "section_anchor": null,
+    "project_usage": [
+      {
+        "path": "HCNetSDK.cs",
+        "line": 2519,
+        "snippet": "public struct NET_DVR_NETCFG_V30"
+      }
+    ]
+  },
+  {
+    "doc_type": "sdk_html",
+    "category": "sdk",
+    "title": "NET_DVR_NETCFG_V50",
+    "symbol_or_topic": "NET_DVR_NETCFG_V50",
+    "keywords": [
+      "NET_DVR_NETCFG_V50",
+      "structures",
+      "海康设备网络SDK"
+    ],
+    "summary": "网络配置结构体。",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_NETCFG_V50.html",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_NETCFG_V50.md",
+    "section_anchor": null,
+    "project_usage": [
+      {
+        "path": "HCNetSDK.cs",
+        "line": 2563,
+        "snippet": "public struct NET_DVR_NETCFG_V50"
+      }
+    ]
+  },
+  {
+    "doc_type": "sdk_html",
+    "category": "sdk",
+    "title": "NET_DVR_PLAN_TEMPLATE",
+    "symbol_or_topic": "NET_DVR_PLAN_TEMPLATE",
+    "keywords": [
+      "NET_DVR_PLAN_TEMPLATE",
+      "structures",
+      "海康设备网络SDK"
+    ],
+    "summary": "计划模板配置结构体。",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_PLAN_TEMPLATE.html",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_PLAN_TEMPLATE.md",
+    "section_anchor": null,
+    "project_usage": [
+      {
+        "path": "HCNetSDK.cs",
+        "line": 2118,
+        "snippet": "public struct NET_DVR_PLAN_TEMPLATE"
+      }
+    ]
+  },
+  {
+    "doc_type": "sdk_html",
+    "category": "sdk",
+    "title": "NET_DVR_PLAN_TEMPLATE_COND",
+    "symbol_or_topic": "NET_DVR_PLAN_TEMPLATE_COND",
+    "keywords": [
+      "NET_DVR_PLAN_TEMPLATE_COND",
+      "structures",
+      "海康设备网络SDK"
+    ],
+    "summary": "卡权限计划模板配置条件结构体。",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_PLAN_TEMPLATE_COND.html",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_PLAN_TEMPLATE_COND.md",
+    "section_anchor": null,
+    "project_usage": [
+      {
+        "path": "HCNetSDK.cs",
+        "line": 2186,
+        "snippet": "public struct NET_DVR_PLAN_TEMPLATE_COND"
+      }
+    ]
+  },
+  {
+    "doc_type": "sdk_html",
+    "category": "sdk",
+    "title": "NET_DVR_PPPOECFG",
+    "symbol_or_topic": "NET_DVR_PPPOECFG",
+    "keywords": [
+      "NET_DVR_PPPOECFG",
+      "structures",
+      "海康设备网络SDK"
+    ],
+    "summary": "PPPoE配置结构体。",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_PPPOECFG.html",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_PPPOECFG.md",
+    "section_anchor": null,
+    "project_usage": [
+      {
+        "path": "HCNetSDK.cs",
+        "line": 2507,
+        "snippet": "public struct NET_DVR_PPPOECFG"
+      },
+      {
+        "path": "HCNetSDK.cs",
+        "line": 2540,
+        "snippet": "public NET_DVR_PPPOECFG struPPPoE;"
+      },
+      {
+        "path": "HCNetSDK.cs",
+        "line": 2556,
+        "snippet": "struPPPoE = new NET_DVR_PPPOECFG();"
+      },
+      {
+        "path": "HCNetSDK.cs",
+        "line": 2584,
+        "snippet": "public NET_DVR_PPPOECFG struPPPoE;"
+      },
+      {
+        "path": "HCNetSDK.cs",
+        "line": 2603,
+        "snippet": "struPPPoE = new NET_DVR_PPPOECFG();"
+      }
+    ]
+  },
+  {
+    "doc_type": "sdk_html",
+    "category": "sdk",
+    "title": "NET_DVR_PREVIEWINFO",
+    "symbol_or_topic": "NET_DVR_PREVIEWINFO",
+    "keywords": [
+      "NET_DVR_PREVIEWINFO",
+      "structures",
+      "海康设备网络SDK"
+    ],
+    "summary": "预览参数结构体。",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_PREVIEWINFO.html",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_PREVIEWINFO.md",
+    "section_anchor": null,
+    "project_usage": [
+      {
+        "path": "HCNetSDK.cs",
+        "line": 2449,
+        "snippet": "public struct NET_DVR_PREVIEWINFO"
+      },
+      {
+        "path": "HCNetSDK.cs",
+        "line": 3544,
+        "snippet": "public static extern int NET_DVR_RealPlay_V40(int lUserID, ref NET_DVR_PREVIEWINFO lpPreviewInfo, RealDataCallBack fRealDataCallBack_V30, IntPtr pUser);"
+      }
+    ]
+  },
+  {
+    "doc_type": "sdk_html",
+    "category": "sdk",
+    "title": "NET_DVR_PU_STREAM_CFG",
+    "symbol_or_topic": "NET_DVR_PU_STREAM_CFG",
+    "keywords": [
+      "NET_DVR_PU_STREAM_CFG",
+      "structures",
+      "海康设备网络SDK"
+    ],
+    "summary": "动态解码参数结构体。",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_PU_STREAM_CFG.html",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_PU_STREAM_CFG.md",
+    "section_anchor": null,
+    "project_usage": [
+      {
+        "path": "HCNetSDK.cs",
+        "line": 2973,
+        "snippet": "public struct NET_DVR_PU_STREAM_CFG"
+      },
+      {
+        "path": "HCNetSDK.cs",
+        "line": 3102,
+        "snippet": "public NET_DVR_PU_STREAM_CFG struPUStream;     //Get stream from stream server."
+      }
+    ]
+  },
+  {
+    "doc_type": "sdk_html",
+    "category": "sdk",
+    "title": "NET_DVR_PU_STREAM_URL",
+    "symbol_or_topic": "NET_DVR_PU_STREAM_URL",
+    "keywords": [
+      "NET_DVR_PU_STREAM_URL",
+      "structures",
+      "海康设备网络SDK"
+    ],
+    "summary": "URL取流配置结构体。",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_PU_STREAM_URL.html",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_PU_STREAM_URL.md",
+    "section_anchor": null,
+    "project_usage": [
+      {
+        "path": "HCNetSDK.cs",
+        "line": 3023,
+        "snippet": "public struct NET_DVR_PU_STREAM_URL"
+      },
+      {
+        "path": "HCNetSDK.cs",
+        "line": 3104,
+        "snippet": "public NET_DVR_PU_STREAM_URL struStreamUrl;        //get stream through stream server by url."
+      }
+    ]
+  },
+  {
+    "doc_type": "sdk_html",
+    "category": "sdk",
+    "title": "NET_DVR_SETUPALARM_PARAM",
+    "symbol_or_topic": "NET_DVR_SETUPALARM_PARAM",
+    "keywords": [
+      "NET_DVR_SETUPALARM_PARAM",
+      "structures",
+      "海康设备网络SDK"
+    ],
+    "summary": "报警布防参数结构体。",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_SETUPALARM_PARAM.html",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_SETUPALARM_PARAM.md",
+    "section_anchor": null,
+    "project_usage": [
+      {
+        "path": "FaceEventService.cs",
+        "line": 981,
+        "snippet": "HCNetSDK.NET_DVR_SETUPALARM_PARAM param = new HCNetSDK.NET_DVR_SETUPALARM_PARAM();"
+      },
+      {
+        "path": "HCNetSDK.cs",
+        "line": 1108,
+        "snippet": "public struct NET_DVR_SETUPALARM_PARAM"
+      },
+      {
+        "path": "HCNetSDK.cs",
+        "line": 1123,
+        "snippet": "dwSize = (uint)Marshal.SizeOf(typeof(NET_DVR_SETUPALARM_PARAM));"
+      },
+      {
+        "path": "HCNetSDK.cs",
+        "line": 1132,
+        "snippet": "/// 说明：厂商《技术规范.md》给出的 NET_DVR_SETUPALARM_PARAM 字段与本项目当前结构体字段存在差异。"
+      },
+      {
+        "path": "HCNetSDK.cs",
+        "line": 3568,
+        "snippet": "public static extern int NET_DVR_SetupAlarmChan_V41(int lUserID, ref NET_DVR_SETUPALARM_PARAM lpSetupParam);"
+      }
+    ]
+  },
+  {
+    "doc_type": "sdk_html",
+    "category": "sdk",
+    "title": "NET_DVR_SIMPLE_DAYTIME",
+    "symbol_or_topic": "NET_DVR_SIMPLE_DAYTIME",
+    "keywords": [
+      "NET_DVR_SIMPLE_DAYTIME",
+      "structures",
+      "海康设备网络SDK"
+    ],
+    "summary": "时间点信息结构体。",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_SIMPLE_DAYTIME.html",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_SIMPLE_DAYTIME.md",
+    "section_anchor": null,
+    "project_usage": [
+      {
+        "path": "HCNetSDK.cs",
+        "line": 655,
+        "snippet": "public struct NET_DVR_SIMPLE_DAYTIME"
+      },
+      {
+        "path": "HCNetSDK.cs",
+        "line": 2020,
+        "snippet": "public NET_DVR_SIMPLE_DAYTIME struBeginTime;  //begin time"
+      },
+      {
+        "path": "HCNetSDK.cs",
+        "line": 2021,
+        "snippet": "public NET_DVR_SIMPLE_DAYTIME struEndTime;    //end time"
+      }
+    ]
+  },
+  {
+    "doc_type": "sdk_html",
+    "category": "sdk",
+    "title": "NET_DVR_SINGLE_PLAN_SEGMENT",
+    "symbol_or_topic": "NET_DVR_SINGLE_PLAN_SEGMENT",
+    "keywords": [
+      "NET_DVR_SINGLE_PLAN_SEGMENT",
+      "structures",
+      "海康设备网络SDK"
+    ],
+    "summary": "计划参数结构体。",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_SINGLE_PLAN_SEGMENT.html",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_SINGLE_PLAN_SEGMENT.md",
+    "section_anchor": null,
+    "project_usage": [
+      {
+        "path": "HCNetSDK.cs",
+        "line": 2025,
+        "snippet": "public struct NET_DVR_SINGLE_PLAN_SEGMENT"
+      },
+      {
+        "path": "HCNetSDK.cs",
+        "line": 2052,
+        "snippet": "public NET_DVR_SINGLE_PLAN_SEGMENT[] struPlanCfg; //week plan parameter"
+      },
+      {
+        "path": "HCNetSDK.cs",
+        "line": 2058,
+        "snippet": "struPlanCfg = new NET_DVR_SINGLE_PLAN_SEGMENT[MAX_DAYS * MAX_TIMESEGMENT_V30];"
+      },
+      {
+        "path": "HCNetSDK.cs",
+        "line": 2059,
+        "snippet": "foreach (NET_DVR_SINGLE_PLAN_SEGMENT singlStruPlanCfg in struPlanCfg)"
+      },
+      {
+        "path": "HCNetSDK.cs",
+        "line": 2078,
+        "snippet": "public NET_DVR_SINGLE_PLAN_SEGMENT[] struPlanCfg;  //time segment parameter"
+      }
+    ]
+  },
+  {
+    "doc_type": "sdk_html",
+    "category": "sdk",
+    "title": "NET_DVR_STREAM_MEDIA_SERVER_CFG",
+    "symbol_or_topic": "NET_DVR_STREAM_MEDIA_SERVER_CFG",
+    "keywords": [
+      "NET_DVR_STREAM_MEDIA_SERVER_CFG",
+      "structures",
+      "海康设备网络SDK"
+    ],
+    "summary": "流媒体服务器参数结构体。",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_STREAM_MEDIA_SERVER_CFG.html",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_STREAM_MEDIA_SERVER_CFG.md",
+    "section_anchor": null,
+    "project_usage": [
+      {
+        "path": "HCNetSDK.cs",
+        "line": 2924,
+        "snippet": "public struct NET_DVR_STREAM_MEDIA_SERVER_CFG"
+      },
+      {
+        "path": "HCNetSDK.cs",
+        "line": 2976,
+        "snippet": "public NET_DVR_STREAM_MEDIA_SERVER_CFG struStreamMediaSvrCfg;"
+      }
+    ]
+  },
+  {
+    "doc_type": "sdk_html",
+    "category": "sdk",
+    "title": "NET_DVR_STREAM_MODE",
+    "symbol_or_topic": "NET_DVR_STREAM_MODE",
+    "keywords": [
+      "NET_DVR_STREAM_MODE",
+      "structures",
+      "海康设备网络SDK"
+    ],
+    "summary": "取流方式配置结构体。",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_STREAM_MODE.html",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_STREAM_MODE.md",
+    "section_anchor": null,
+    "project_usage": [
+      {
+        "path": "HCNetSDK.cs",
+        "line": 3110,
+        "snippet": "public struct NET_DVR_STREAM_MODE"
+      },
+      {
+        "path": "HCNetSDK.cs",
+        "line": 3132,
+        "snippet": "public NET_DVR_STREAM_MODE[] struStreamMode;"
+      }
+    ]
+  },
+  {
+    "doc_type": "sdk_html",
+    "category": "sdk",
+    "title": "NET_DVR_TIME",
+    "symbol_or_topic": "NET_DVR_TIME",
+    "keywords": [
+      "NET_DVR_TIME",
+      "structures",
+      "海康设备网络SDK"
+    ],
+    "summary": "时间参数结构体。",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_TIME.html",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_TIME.md",
+    "section_anchor": null,
+    "project_usage": [
+      {
+        "path": "DeviceStatusEngine.cs",
+        "line": 273,
+        "snippet": "HCNetSDK.NET_DVR_TIME timeInfo = new HCNetSDK.NET_DVR_TIME();"
+      },
+      {
+        "path": "DeviceStatusEngine.cs",
+        "line": 290,
+        "snippet": "timeInfo = (HCNetSDK.NET_DVR_TIME)Marshal.PtrToStructure(ptrTimeInfo, typeof(HCNetSDK.NET_DVR_TIME));"
+      },
+      {
+        "path": "FaceEventService.cs",
+        "line": 2240,
+        "snippet": "private static DateTime ConvertToDateTime(HCNetSDK.NET_DVR_TIME time)"
+      },
+      {
+        "path": "FaceEventService.cs",
+        "line": 2252,
+        "snippet": "private static HCNetSDK.NET_DVR_TIME ToDvrTime(DateTime time)"
+      },
+      {
+        "path": "FaceEventService.cs",
+        "line": 2254,
+        "snippet": "return new HCNetSDK.NET_DVR_TIME"
+      }
+    ]
+  },
+  {
+    "doc_type": "sdk_html",
+    "category": "sdk",
+    "title": "NET_DVR_TIME_EX",
+    "symbol_or_topic": "NET_DVR_TIME_EX",
+    "keywords": [
+      "NET_DVR_TIME_EX",
+      "structures",
+      "海康设备网络SDK"
+    ],
+    "summary": "时间参数结构体。",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_TIME_EX.html",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_TIME_EX.md",
+    "section_anchor": null,
+    "project_usage": [
+      {
+        "path": "HCNetSDK.cs",
+        "line": 676,
+        "snippet": "public struct NET_DVR_TIME_EX"
+      },
+      {
+        "path": "HCNetSDK.cs",
+        "line": 1199,
+        "snippet": "public NET_DVR_TIME_EX struBeginTime; //valid begin time"
+      },
+      {
+        "path": "HCNetSDK.cs",
+        "line": 1200,
+        "snippet": "public NET_DVR_TIME_EX struEndTime; //valid end time"
+      }
+    ]
+  },
+  {
+    "doc_type": "sdk_html",
+    "category": "sdk",
+    "title": "NET_DVR_TIME_SEGMENT",
+    "symbol_or_topic": "NET_DVR_TIME_SEGMENT",
+    "keywords": [
+      "NET_DVR_TIME_SEGMENT",
+      "structures",
+      "海康设备网络SDK"
+    ],
+    "summary": "时间段参数结构体。",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_TIME_SEGMENT.html",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_TIME_SEGMENT.md",
+    "section_anchor": null,
+    "project_usage": [
+      {
+        "path": "HCNetSDK.cs",
+        "line": 2018,
+        "snippet": "public struct NET_DVR_TIME_SEGMENT"
+      },
+      {
+        "path": "HCNetSDK.cs",
+        "line": 2036,
+        "snippet": "public NET_DVR_TIME_SEGMENT struTimeSegment;  //time segment parameter"
+      }
+    ]
+  },
+  {
+    "doc_type": "sdk_html",
+    "category": "sdk",
+    "title": "NET_DVR_USER_LOGIN_INFO",
+    "symbol_or_topic": "NET_DVR_USER_LOGIN_INFO",
+    "keywords": [
+      "NET_DVR_USER_LOGIN_INFO",
+      "structures",
+      "海康设备网络SDK"
+    ],
+    "summary": "用户登录参数结构体。",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_USER_LOGIN_INFO.html",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_USER_LOGIN_INFO.md",
+    "section_anchor": null,
+    "project_usage": [
+      {
+        "path": "Common.cs",
+        "line": 273,
+        "snippet": "HCNetSDK.NET_DVR_USER_LOGIN_INFO struLoginInfo = new HCNetSDK.NET_DVR_USER_LOGIN_INFO();"
+      },
+      {
+        "path": "DeviceConnectionManager.cs",
+        "line": 1027,
+        "snippet": "HCNetSDK.NET_DVR_USER_LOGIN_INFO struLoginInfo = new HCNetSDK.NET_DVR_USER_LOGIN_INFO();"
+      },
+      {
+        "path": "HCNetSDK.cs",
+        "line": 2426,
+        "snippet": "public struct NET_DVR_USER_LOGIN_INFO"
+      },
+      {
+        "path": "HCNetSDK.cs",
+        "line": 3536,
+        "snippet": "public static extern int NET_DVR_Login_V40(ref NET_DVR_USER_LOGIN_INFO pLoginInfo, ref NET_DVR_DEVICEINFO_V40 lpDeviceInfo);"
+      },
+      {
+        "path": "HCNetSDK_Facial.cs",
+        "line": 178,
+        "snippet": "public struct NET_DVR_USER_LOGIN_INFO"
+      }
+    ]
+  },
+  {
+    "doc_type": "sdk_html",
+    "category": "sdk",
+    "title": "NET_DVR_VALID_PERIOD_CFG",
+    "symbol_or_topic": "NET_DVR_VALID_PERIOD_CFG",
+    "keywords": [
+      "NET_DVR_VALID_PERIOD_CFG",
+      "structures",
+      "海康设备网络SDK"
+    ],
+    "summary": "有效期参数结构体。",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_VALID_PERIOD_CFG.html",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_VALID_PERIOD_CFG.md",
+    "section_anchor": null,
+    "project_usage": [
+      {
+        "path": "HCNetSDK.cs",
+        "line": 1194,
+        "snippet": "public struct NET_DVR_VALID_PERIOD_CFG"
+      },
+      {
+        "path": "HCNetSDK.cs",
+        "line": 1234,
+        "snippet": "public NET_DVR_VALID_PERIOD_CFG struValid; //valid period parameter"
+      },
+      {
+        "path": "HCNetSDK.cs",
+        "line": 1493,
+        "snippet": "public NET_DVR_VALID_PERIOD_CFG struValidPeriodCfg;"
+      },
+      {
+        "path": "HCNetSDK.cs",
+        "line": 3657,
+        "snippet": "public NET_DVR_VALID_PERIOD_CFG struValid;"
+      }
+    ]
+  },
+  {
+    "doc_type": "sdk_html",
+    "category": "sdk",
+    "title": "NET_DVR_VIDEO_CALL_COND",
+    "symbol_or_topic": "NET_DVR_VIDEO_CALL_COND",
+    "keywords": [
+      "NET_DVR_VIDEO_CALL_COND",
+      "structures",
+      "海康设备网络SDK"
+    ],
+    "summary": "可视对讲信令处理条件参数结构体。",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_VIDEO_CALL_COND.html",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_VIDEO_CALL_COND.md",
+    "section_anchor": null,
+    "project_usage": [
+      {
+        "path": "HCNetSDK.cs",
+        "line": 3325,
+        "snippet": "public struct NET_DVR_VIDEO_CALL_COND"
+      }
+    ]
+  },
+  {
+    "doc_type": "sdk_html",
+    "category": "sdk",
+    "title": "NET_DVR_VIDEO_CALL_PARAM",
+    "symbol_or_topic": "NET_DVR_VIDEO_CALL_PARAM",
+    "keywords": [
+      "NET_DVR_VIDEO_CALL_PARAM",
+      "structures",
+      "海康设备网络SDK"
+    ],
+    "summary": "可视对讲信令处理参数结构体。",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_VIDEO_CALL_PARAM.html",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_VIDEO_CALL_PARAM.md",
+    "section_anchor": null,
+    "project_usage": [
+      {
+        "path": "HCNetSDK.cs",
+        "line": 3338,
+        "snippet": "public struct NET_DVR_VIDEO_CALL_PARAM"
+      }
+    ]
+  },
+  {
+    "doc_type": "sdk_html",
+    "category": "sdk",
+    "title": "NET_DVR_VOLUME_CFG",
+    "symbol_or_topic": "NET_DVR_VOLUME_CFG",
+    "keywords": [
+      "NET_DVR_VOLUME_CFG",
+      "structures",
+      "海康设备网络SDK"
+    ],
+    "summary": "音量调节参数配置结构体。",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_VOLUME_CFG.html",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_VOLUME_CFG.md",
+    "section_anchor": null,
+    "project_usage": [
+      {
+        "path": "HCNetSDK.cs",
+        "line": 3365,
+        "snippet": "public struct NET_DVR_VOLUME_CFG"
+      }
+    ]
+  },
+  {
+    "doc_type": "sdk_html",
+    "category": "sdk",
+    "title": "NET_DVR_WEEK_PLAN_CFG",
+    "symbol_or_topic": "NET_DVR_WEEK_PLAN_CFG",
+    "keywords": [
+      "NET_DVR_WEEK_PLAN_CFG",
+      "structures",
+      "海康设备网络SDK"
+    ],
+    "summary": "周计划配置结构体。",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_WEEK_PLAN_CFG.html",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_WEEK_PLAN_CFG.md",
+    "section_anchor": null,
+    "project_usage": [
+      {
+        "path": "HCNetSDK.cs",
+        "line": 2045,
+        "snippet": "public struct NET_DVR_WEEK_PLAN_CFG"
+      }
+    ]
+  },
+  {
+    "doc_type": "sdk_html",
+    "category": "sdk",
+    "title": "NET_DVR_WEEK_PLAN_COND",
+    "symbol_or_topic": "NET_DVR_WEEK_PLAN_COND",
+    "keywords": [
+      "NET_DVR_WEEK_PLAN_COND",
+      "structures",
+      "海康设备网络SDK"
+    ],
+    "summary": "卡权限周计划配置条件结构体。",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_WEEK_PLAN_COND.html",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_WEEK_PLAN_COND.md",
+    "section_anchor": null,
+    "project_usage": [
+      {
+        "path": "HCNetSDK.cs",
+        "line": 2156,
+        "snippet": "public struct NET_DVR_WEEK_PLAN_COND"
+      }
+    ]
+  },
+  {
+    "doc_type": "sdk_html",
+    "category": "sdk",
+    "title": "NET_DVR_XML_CONFIG_INPUT",
+    "symbol_or_topic": "NET_DVR_XML_CONFIG_INPUT",
+    "keywords": [
+      "NET_DVR_XML_CONFIG_INPUT",
+      "structures",
+      "海康设备网络SDK"
+    ],
+    "summary": "透传接口输入参数结构体。",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_XML_CONFIG_INPUT.html",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_XML_CONFIG_INPUT.md",
+    "section_anchor": null,
+    "project_usage": [
+      {
+        "path": "Common.cs",
+        "line": 86,
+        "snippet": "HCNetSDK.NET_DVR_XML_CONFIG_INPUT inputStruct = new HCNetSDK.NET_DVR_XML_CONFIG_INPUT"
+      },
+      {
+        "path": "Common.cs",
+        "line": 89,
+        "snippet": "dwSize = (uint)Marshal.SizeOf(typeof(HCNetSDK.NET_DVR_XML_CONFIG_INPUT))"
+      },
+      {
+        "path": "HCNetSDK.cs",
+        "line": 907,
+        "snippet": "public struct NET_DVR_XML_CONFIG_INPUT"
+      },
+      {
+        "path": "HCNetSDK.cs",
+        "line": 909,
+        "snippet": "public uint dwSize;                    //size of NET_DVR_XML_CONFIG_INPUT"
+      },
+      {
+        "path": "HCNetSDK.cs",
+        "line": 3594,
+        "snippet": "public static extern bool NET_DVR_STDXMLConfig(int iUserID, ref NET_DVR_XML_CONFIG_INPUT lpInputParam, ref NET_DVR_XML_CONFIG_OUTPUT lpOutputParam);"
+      }
+    ]
+  },
+  {
+    "doc_type": "sdk_html",
+    "category": "sdk",
+    "title": "NET_DVR_XML_CONFIG_OUTPUT",
+    "symbol_or_topic": "NET_DVR_XML_CONFIG_OUTPUT",
+    "keywords": [
+      "NET_DVR_XML_CONFIG_OUTPUT",
+      "structures",
+      "海康设备网络SDK"
+    ],
+    "summary": "透传接口输出参数结构体。",
+    "source_url": "https://open.hikvision.com/hardware/structures/NET_DVR_XML_CONFIG_OUTPUT.html",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/sdk/structures/NET_DVR_XML_CONFIG_OUTPUT.md",
+    "section_anchor": null,
+    "project_usage": [
+      {
+        "path": "Common.cs",
+        "line": 92,
+        "snippet": "HCNetSDK.NET_DVR_XML_CONFIG_OUTPUT outputStruct = new HCNetSDK.NET_DVR_XML_CONFIG_OUTPUT"
+      },
+      {
+        "path": "Common.cs",
+        "line": 95,
+        "snippet": "dwSize = (uint)Marshal.SizeOf(typeof(HCNetSDK.NET_DVR_XML_CONFIG_OUTPUT))"
+      },
+      {
+        "path": "HCNetSDK.cs",
+        "line": 920,
+        "snippet": "public struct NET_DVR_XML_CONFIG_OUTPUT"
+      },
+      {
+        "path": "HCNetSDK.cs",
+        "line": 922,
+        "snippet": "public uint dwSize;                    //size of NET_DVR_XML_CONFIG_OUTPUT"
+      },
+      {
+        "path": "HCNetSDK.cs",
+        "line": 3594,
+        "snippet": "public static extern bool NET_DVR_STDXMLConfig(int iUserID, ref NET_DVR_XML_CONFIG_INPUT lpInputParam, ref NET_DVR_XML_CONFIG_OUTPUT lpOutputParam);"
+      }
+    ]
+  },
+  {
+    "doc_type": "html_product_page",
+    "category": "superbrain",
+    "title": "泛智能超脑 iDS-9600NX-I8R/X(V40) - 海康威视Hikvision",
+    "symbol_or_topic": "superbrain-product-page",
+    "keywords": [
+      "超脑",
+      "iDS",
+      "NVR",
+      "下载中心",
+      "用户手册"
+    ],
+    "summary": "政务民生",
+    "source_url": "https://www.hikvision.com/cn/products/pdplist/65730/",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/superbrain/pages/superbrain-product-page.md",
+    "section_anchor": null,
+    "project_usage": []
+  },
+  {
+    "doc_type": "html_partner_detail",
+    "category": "superbrain",
+    "title": "UD41964B-A_iDS智能网络硬盘录像机（67 76 77 86 96系列）_用户手册_V5.05.000_20250407",
+    "symbol_or_topic": "superbrain-user-manual-detail",
+    "keywords": [
+      "超脑",
+      "用户手册",
+      "iDS",
+      "NVR"
+    ],
+    "summary": "智能目标识别超脑、通用智能3+X超脑、性能型NVR(高密度)、通用型NVR、算力开放超脑、金融行业主机、场景智能超脑、智能周界防范超脑、专用型NVR、容量型NVR(高密度)、AI融合巡检超脑、文搜型NVR、经销型NVR、文教卫行业主机相关产品资料页面，为您提供包括智能目标识别超脑、通用智能3+X超脑、性能型NVR(高密度)、通用型NVR、算力开放超脑、金融行业主机、场景智能超脑、智能周界防范超脑、专用型NVR、容量型NVR(高密度)、AI融合巡检超脑、文搜型NVR、经销型NVR、文教卫行业主机的安装使用，智能目标识别超脑、通用智能3+X超脑、性能型NVR(高密度)、通用型NVR、算力开放超脑、金融行业主机、场景智能超脑、智能周界防范超脑、专用型NVR、容量型NVR(高密度)、AI融合巡检超脑、文搜型NVR、经销型NVR、文教卫行业主机的功能特性，智能目标识别超脑、通用智能3+X超脑、性能型NVR(高密度)、通用型NVR、算力开放超脑、金融行业主机、场景智能超脑、智能周界防范超脑、专用型NVR、容量型NVR(高密度)、AI融合巡检超脑、文搜型NVR、经销型NVR、文教卫行业主机的规格参数等资料，想要了解更多关于智能目标识别超脑、通用智能3+X超脑、性能型NVR(高密度)、通用型NVR、算力开放超脑、金融行业主机、场景智能超脑、智能周界防范超脑、专用型NVR、容量型NVR(高密度)、AI融合巡检超脑、文搜型NVR、经销型NVR、文教卫行业主机的内容,就上海康威视合作伙伴网站。",
+    "source_url": "https://partners.hikvision.com/material-product/detail/579534258720653312?type=pdf&source=gw",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/superbrain/pages/superbrain-user-manual-detail.md",
+    "section_anchor": null,
+    "project_usage": []
+  },
+  {
+    "doc_type": "html_partner_detail",
+    "category": "superbrain",
+    "title": "UD36487N_NVR Web用户手册 5.02.000_20240227",
+    "symbol_or_topic": "superbrain-web-manual-detail",
+    "keywords": [
+      "超脑",
+      "NVR Web",
+      "用户手册",
+      "Web"
+    ],
+    "summary": "通用型NVR、性能型NVR(高密度)、智能目标识别超脑、通用智能3+X超脑、经销型NVR、智能周界防范超脑相关产品资料页面，为您提供包括通用型NVR、性能型NVR(高密度)、智能目标识别超脑、通用智能3+X超脑、经销型NVR、智能周界防范超脑的安装使用，通用型NVR、性能型NVR(高密度)、智能目标识别超脑、通用智能3+X超脑、经销型NVR、智能周界防范超脑的功能特性，通用型NVR、性能型NVR(高密度)、智能目标识别超脑、通用智能3+X超脑、经销型NVR、智能周界防范超脑的规格参数等资料，想要了解更多关于通用型NVR、性能型NVR(高密度)、智能目标识别超脑、通用智能3+X超脑、经销型NVR、智能周界防范超脑的内容,就上海康威视合作伙伴网站。",
+    "source_url": "https://partners.hikvision.com/material-product/detail/579534259735674880?type=pdf&source=gw",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/superbrain/pages/superbrain-web-manual-detail.md",
+    "section_anchor": null,
+    "project_usage": []
+  },
+  {
+    "doc_type": "html_product_page",
+    "category": "network-camera",
+    "title": "4MP WiFi款PT海螺型网络摄像机 DS-IPC-K44H-LWPT - 海康威视Hikvision",
+    "symbol_or_topic": "network-camera-product-page",
+    "keywords": [
+      "网络摄像机",
+      "WiFi",
+      "下载中心",
+      "用户手册"
+    ],
+    "summary": "政务民生",
+    "source_url": "https://www.hikvision.com/cn/products/pdplist/100381/",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/network-camera/pages/network-camera-product-page.md",
+    "section_anchor": null,
+    "project_usage": []
+  },
+  {
+    "doc_type": "html_partner_detail",
+    "category": "network-camera",
+    "title": "UD22808B_海康威视网络摄像机用户手册(H8)_V5.7.0_20240104",
+    "symbol_or_topic": "network-camera-user-manual-detail",
+    "keywords": [
+      "网络摄像机",
+      "用户手册",
+      "H8"
+    ],
+    "summary": "2系列通用网络摄像机、经销系列、2系列智能网络摄像机、经销球机、DE球机、L系列、太阳能系列、太阳能通用筒机相关产品资料页面，为您提供包括2系列通用网络摄像机、经销系列、2系列智能网络摄像机、经销球机、DE球机、L系列、太阳能系列、太阳能通用筒机的安装使用，2系列通用网络摄像机、经销系列、2系列智能网络摄像机、经销球机、DE球机、L系列、太阳能系列、太阳能通用筒机的功能特性，2系列通用网络摄像机、经销系列、2系列智能网络摄像机、经销球机、DE球机、L系列、太阳能系列、太阳能通用筒机的规格参数等资料，想要了解更多关于2系列通用网络摄像机、经销系列、2系列智能网络摄像机、经销球机、DE球机、L系列、太阳能系列、太阳能通用筒机的内容,就上海康威视合作伙伴网站。",
+    "source_url": "https://partners.hikvision.com/material-product/detail/640614855664640000?type=pdf&source=gw",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/network-camera/pages/network-camera-user-manual-detail.md",
+    "section_anchor": null,
+    "project_usage": []
+  },
+  {
+    "doc_type": "pdf_unavailable",
+    "category": "superbrain",
+    "title": "iDS 智脑网络硬盘录像机（79 S 系列）操作手册",
+    "symbol_or_topic": "superbrain-ids-manual",
+    "keywords": [
+      "超脑",
+      "iDS",
+      "智脑",
+      "NVR",
+      "操作手册"
+    ],
+    "summary": "iDS 智脑网络硬盘录像机（79 S 系列）操作手册 的官方 PDF 地址已记录，但当前抓取受限。",
+    "source_url": "https://www.hikvision.com/content/dam/hikvision/products/S000000365/S000000641/S000001011/S000000652/OFR001036/M000032007/SM000022028/%E6%93%8D%E4%BD%9C%E6%89%8B%E5%86%8C/UD18776B_%E6%B5%B7%E5%BA%B7%E5%A8%81%E8%A7%86iDS%E6%99%BA%E8%84%91%E7%BD%91%E7%BB%9C%E7%A1%AC%E7%9B%98%E5%BD%95%E5%83%8F%E6%9C%BA%EF%BC%8879-S%E7%B3%BB%E5%88%97%EF%BC%89_%E6%93%8D%E4%BD%9C%E6%89%8B%E5%86%8C_V4.22.400_20200327.pdf",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/superbrain/pages/superbrain-ids-manual.md",
+    "section_anchor": null,
+    "project_usage": []
+  },
+  {
+    "doc_type": "pdf",
+    "category": "network-camera",
+    "title": "HCWebSDK V3.3.0 编程指南",
+    "symbol_or_topic": "hcwebsdk-guide",
+    "keywords": [
+      "HCWebSDK",
+      "视频预览",
+      "Web",
+      "摄像机",
+      "浏览器"
+    ],
+    "summary": "HCWebSDK V3.3.0 编程指南 的官方 PDF，已通过 MinerU 转为 Markdown。",
+    "source_url": "https://open.hikvision.com/fileserver/resourcedocsonline/HCWebSDK3.3.0%E7%BC%96%E7%A8%8B%E6%8C%87%E5%8D%97_20230420134609.pdf",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/network-camera/pages/hcwebsdk-guide.md",
+    "section_anchor": null,
+    "project_usage": []
+  },
+  {
+    "doc_type": "pdf",
+    "category": "network-camera",
+    "title": "Web 3.0 控件开发包编程指南",
+    "symbol_or_topic": "web3-control-guide",
+    "keywords": [
+      "Web3.0",
+      "控件",
+      "视频预览",
+      "网络摄像头",
+      "浏览器"
+    ],
+    "summary": "Web 3.0 控件开发包编程指南 的官方 PDF，已通过 MinerU 转为 Markdown。",
+    "source_url": "https://open.hikvision.com/fileserver/resourcedocsonline/Web3.0_%E6%8E%A7%E4%BB%B6%E5%BC%80%E5%8F%91%E5%8C%85%E7%BC%96%E7%A8%8B%E6%8C%87%E5%8D%97_20201102162751.pdf",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/network-camera/pages/web3-control-guide.md",
+    "section_anchor": null,
+    "project_usage": []
+  },
+  {
+    "doc_type": "pdf_unavailable",
+    "category": "network-camera",
+    "title": "海康威视网络摄像机操作手册 G5",
+    "symbol_or_topic": "network-camera-g5-manual",
+    "keywords": [
+      "网络摄像机",
+      "用户手册",
+      "操作手册",
+      "G5",
+      "摄像头"
+    ],
+    "summary": "海康威视网络摄像机操作手册 G5 的官方 PDF 地址已记录，但当前抓取受限。",
+    "source_url": "https://www.hikvision.com/content/dam/hikvision/products/S000000365/S000000509/S000000534/S000000983/OFR011448/M000063304/SM000044226/%E7%94%A8%E6%88%B7%E6%89%8B%E5%86%8C/UD29694B_%E6%B5%B7%E5%BA%B7%E5%A8%81%E8%A7%86%E7%BD%91%E7%BB%9C%E6%91%84%E5%83%8F%E6%9C%BA%E6%93%8D%E4%BD%9C%E6%89%8B%E5%86%8CG5_V5.7.50_20220809.PDF",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/network-camera/pages/network-camera-g5-manual.md",
+    "section_anchor": null,
+    "project_usage": []
+  },
+  {
+    "doc_type": "pdf",
+    "category": "network-camera",
+    "title": "视频WEB插件 V1.5.2 开发指南",
+    "symbol_or_topic": "video-web-plugin-guide",
+    "keywords": [
+      "Web插件",
+      "视频预览",
+      "网络摄像头",
+      "浏览器",
+      "控件"
+    ],
+    "summary": "视频WEB插件 V1.5.2 开发指南 的官方 PDF，已通过 MinerU 转为 Markdown。",
+    "source_url": "https://open.hikvision.com/fileserver/resourcedocsonline/%E8%A7%86%E9%A2%91WEB%E6%8F%92%E4%BB%B6V1.5.2%E5%BC%80%E5%8F%91%E6%8C%87%E5%8D%97_20210916162843_20210918161557.pdf",
+    "local_path": "设备网络SDK编程指南（明眸-以人为中心）/network-camera/pages/video-web-plugin-guide.md",
+    "section_anchor": null,
+    "project_usage": []
+  }
+]

@@ -1,0 +1,10 @@
+# Remarks
+
+
+设备本身固件升级，对应升级类型：ENUM_UPGRADE_DVR；设备的其他组件或者配件升级，选择其他升级类型，比如便携主机的路由器升级即采用辅助设备升级，对应升级类型：ENUM_UPGRADE_AUXILIARY_DEV。
+
+是否支持门禁功能对应AcsAbility能力集的节点；
+扩展模块升级是否需要重启为设备软硬件能力集(BasicCapability能力集的节点。
+
+是否支持门禁功能对应AcsAbility能力集的节点；
+升级后是否需要重启为设备软硬件能力集(BasicCapability能力集的节点。

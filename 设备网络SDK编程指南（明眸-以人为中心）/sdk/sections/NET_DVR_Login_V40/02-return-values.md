@@ -1,0 +1,4 @@
+# Return Values
+
+
+异步登录的状态、用户ID和设备信息通过NET_DVR_USER_LOGIN_INFO结构体中设置的回调函数(fLoginResultCallBack)返回。对于同步登录，接口返回-1表示登录失败，其他值表示返回的用户ID值。用户ID具有唯一性，后续对设备的操作都需要通过此ID实现。接口返回失败请调用NET_DVR_GetLastError获取错误码，通过错误码判断出错原因。

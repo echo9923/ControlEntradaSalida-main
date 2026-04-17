@@ -1,0 +1,4 @@
+# Remarks
+
+
+门禁主机报警信息获取只能通过NET_DVR_SetDVRMessageCallBack_V31设置报警回调函数，回调函数有返回值，需要返回TRUE告知设备已经接收数据，设备才会上传下一条信息。

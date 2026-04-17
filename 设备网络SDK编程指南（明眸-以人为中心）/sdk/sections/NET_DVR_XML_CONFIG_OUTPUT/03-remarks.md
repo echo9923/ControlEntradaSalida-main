@@ -1,0 +1,6 @@
+# Remarks
+
+
+对于不同的协议功能（NET_DVR_XML_CONFIG_INPUT结构体中的lpRequestUrl输入的URL命令），lpOutBuffer对应不同的内容，详见NET_DVR_STDXMLConfig接口中"Remarks"说明。
+
+NET_DVR_STDXMLConfig接口是直接透传的ISAPI协议命令，输出参数信息的详细内容可以参考ISAPI协议文档。

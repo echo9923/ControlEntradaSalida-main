@@ -1,0 +1,4 @@
+# Remarks
+
+
+在调用NET_DVR_Cleanup的时候，不能同时调用其他任何SDK接口。NET_DVR_Init和NET_DVR_Cleanup需要配对使用，即程序里面调用多少次NET_DVR_Init，退出时就需要调用多少次NET_DVR_Cleanup。

@@ -1,0 +1,33 @@
+# Members
+
+
+- `dwSize`：结构体大小
+- `byCardNo`：卡号
+- `byCardType`：卡类型：1- 普通卡，2- 残疾人卡，3- 黑名单卡，4- 巡更卡，5- 胁迫卡，6- 超级卡，7- 来宾卡，8- 解除卡，为0表示无效
+- `byWhiteListNo`：白名单单号，取值范围：1~8，0表示无效
+- `byReportChannel`：报告上传通道：1- 布防上传，2- 中心组1上传，3- 中心组2上传，0表示无效
+- `byCardReaderKind`：读卡器类型：0- 无效，1- IC读卡器，2- 身份证读卡器，3- 二维码读卡器，4- 指纹头
+- `dwCardReaderNo`：读卡器编号，为0表示无效
+- `dwDoorNo`：门编号（或者梯控的楼层编号），为0表示无效（当接的设备为人员通道设备时，门1为进方向，门2为出方向）
+- `dwVerifyNo`：多重卡认证序号，为0表示无效
+- `dwAlarmInNo`：报警输入号，为0表示无效
+- `dwAlarmOutNo`：报警输出号，为0表示无效
+- `dwCaseSensorNo`：事件触发器编号
+- `dwRs485No`：RS485通道号，为0表示无效
+- `dwMultiCardGroupNo`：群组编号
+- `wAccessChannel`：人员通道号
+- `byDeviceNo`：设备编号，为0表示无效
+- `byDistractControlNo`：分控器编号，为0表示无效
+- `dwEmployeeNo`：工号，为0无效
+- `wLocalControllerID`：就地控制器编号，0-门禁主机，1-255代表就地控制器
+- `byInternetAccess`：网口ID：（1-上行网口1,2-上行网口2,3-下行网口1）
+- `byType`：防区类型，0:即时防区,1-24小时防区,2-延时防区,3-内部防区,4-钥匙防区,5-火警防区,6-周界防区,7-24小时无声防区,8-24小时辅助防区,9-24小时震动防区,10-门禁紧急开门防区,11-门禁紧急关门防区，0xff-无
+- `byMACAddr`：物理地址，为0无效
+- `bySwipeCardType`：刷卡类型，0-无效，1-二维码
+- `byRes2`：保留，置为0
+- `dwSerialNo`：事件流水号，为0无效
+- `byChannelControllerID`：通道控制器ID，为0无效，1-主通道控制器，2-从通道控制器
+- `byChannelControllerLampID`：通道控制器灯板ID，为0无效（有效范围1-255）
+- `byChannelControllerIRAdaptorID`：通道控制器红外转接板ID，为0无效（有效范围1-255）
+- `byChannelControllerIREmitterID`：通道控制器红外对射ID，为0无效（有效范围1-255）
+- `byRes`：保留，置为0

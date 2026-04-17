@@ -1,0 +1,4 @@
+# Remarks
+
+
+使用该接口支持上传V3.0以上版本支持的设备的报警结构。启动布防前，需要调用注册回调函数的接口NET_DVR_SetDVRMessageCallBack_V30才能获取到上传的报警等信息。

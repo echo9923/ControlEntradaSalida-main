@@ -1,0 +1,6 @@
+# Remarks
+
+
+在调用该接口获取查找之前，必须先调用NET_DVR_StartRemoteConfig得到当前的查找句柄。此接口用于获取一条已查找到的信息，若要获取全部的已查找到的信息，需要循环调用此接口。
+
+调用NET_DVR_StartRemoteConfig时传入不同的命令号(dwCommand)，lpOutBuff对应不同的结构体，如下表所示：
