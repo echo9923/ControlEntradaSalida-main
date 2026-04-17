@@ -15,7 +15,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\ControlEntradaSalida.csproj" />
+    <ProjectReference Include="..\..\src\AccessControl.Legacy\AccessControl.Legacy.csproj" />
   </ItemGroup>
 
 </Project>

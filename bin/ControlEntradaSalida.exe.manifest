@@ -54,14 +54,14 @@
     </dependentAssembly>
   </dependency>
   <dependency>
-    <dependentAssembly dependencyType="install" allowDelayedBinding="true" codebase="ControlEntradaSalida.exe" size="358400">
+    <dependentAssembly dependencyType="install" allowDelayedBinding="true" codebase="ControlEntradaSalida.exe" size="425472">
       <assemblyIdentity name="ControlEntradaSalida" version="1.0.0.0" language="neutral" processorArchitecture="msil" />
       <hash>
         <dsig:Transforms>
           <dsig:Transform Algorithm="urn:schemas-microsoft-com:HashTransforms.Identity" />
         </dsig:Transforms>
         <dsig:DigestMethod Algorithm="http://www.w3.org/2000/09/xmldsig#sha256" />
-        <dsig:DigestValue>ii/PdkXZlMgLtrDulwjfbDqlpvRkIRxINufzthAoF4Y=</dsig:DigestValue>
+        <dsig:DigestValue>a2UNzqtnfK4XaLAm7M1yisKB785EtcxLQ3GSowk4KnM=</dsig:DigestValue>
       </hash>
     </dependentAssembly>
   </dependency>
@@ -296,22 +296,22 @@
       <dsig:DigestValue>9w81+YyK50rBkXPyLf7aZXPybeYQeCpQDJUzk+GHReY=</dsig:DigestValue>
     </hash>
   </file>
-  <file name="Configuration\appsettings.json" size="3689">
+  <file name="Configuration\appsettings.json" size="4002">
     <hash>
       <dsig:Transforms>
         <dsig:Transform Algorithm="urn:schemas-microsoft-com:HashTransforms.Identity" />
       </dsig:Transforms>
       <dsig:DigestMethod Algorithm="http://www.w3.org/2000/09/xmldsig#sha256" />
-      <dsig:DigestValue>jxo3T6lS+dSfPC2ZUigb5ZucMvgPmARQEmzBr5o3nVM=</dsig:DigestValue>
+      <dsig:DigestValue>wFWrffbEDlRwERMgMk3DneW1p33SgZNy3rcUV25LSok=</dsig:DigestValue>
     </hash>
   </file>
-  <file name="ControlEntradaSalida.exe.config" size="2275">
+  <file name="ControlEntradaSalida.exe.config" size="2804">
     <hash>
       <dsig:Transforms>
         <dsig:Transform Algorithm="urn:schemas-microsoft-com:HashTransforms.Identity" />
       </dsig:Transforms>
       <dsig:DigestMethod Algorithm="http://www.w3.org/2000/09/xmldsig#sha256" />
-      <dsig:DigestValue>npA2tbJJRO4wgKGEwuiR3VWdY8L3JoZIy1rsFumakZY=</dsig:DigestValue>
+      <dsig:DigestValue>9tVxmYUIB/vBGS6yOCtKVnKVqtI6x63kOH2DCidLgQk=</dsig:DigestValue>
     </hash>
   </file>
   <file name="GdiPlus.dll" size="2166272">

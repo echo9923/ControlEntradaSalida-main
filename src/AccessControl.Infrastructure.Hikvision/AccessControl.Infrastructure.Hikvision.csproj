@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net472</TargetFramework>
+    <LangVersion>10.0</LangVersion>
+    <Nullable>disable</Nullable>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\AccessControl.Application\AccessControl.Application.csproj" />
+    <ProjectReference Include="..\AccessControl.Domain\AccessControl.Domain.csproj" />
+    <ProjectReference Include="..\AccessControl.Legacy\AccessControl.Legacy.csproj" />
+  </ItemGroup>
+
+</Project>

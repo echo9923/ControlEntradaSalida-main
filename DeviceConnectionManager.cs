@@ -9,6 +9,7 @@ using System.Timers;
 using System.Data.SqlClient;
 using System.Runtime.InteropServices;
 using System.Diagnostics;
+using ControlEntradaSalida.Application.Abstractions;
 
 namespace ControlEntradaSalida
 {
@@ -321,6 +322,40 @@ namespace ControlEntradaSalida
         /// </summary>
         /// <param name="configuration">服务配置对象</param>
         public void ApplyConfiguration(ServiceConfiguration configuration)
+        {
+            if (configuration == null)
+            {
+                throw new ArgumentNullException(nameof(configuration));
+            }
+
+            if (_disposed)
+            {
+                return;
+            }
+
+            var deviceOptions = configuration.DeviceConnection;
+            if (deviceOptions != null)
+            {
+                statusCheckIntervalMs = deviceOptions.StatusCheckIntervalMs;
+                statusSdkLockTimeoutMs = deviceOptions.StatusCheckSdkLockTimeoutMs;
+                deviceSdkLockTimeoutMs = deviceOptions.DeviceSdkLockTimeoutMs;
+                connectTimeoutMs = deviceOptions.ConnectTimeoutMs;
+                disconnectTimeoutMs = deviceOptions.DisconnectTimeoutMs;
+                maxConcurrentConnections = deviceOptions.MaxConcurrentConnections;
+
+                if (_statusCheckTimer != null)
+                {
+                    _statusCheckTimer.Interval = statusCheckIntervalMs;
+                }
+            }
+
+            if (configuration.Reconnect != null)
+            {
+                _reconnectManager.ApplyConfiguration(configuration.Reconnect);
+            }
+        }
+
+        public void ApplyConfiguration(RuntimeServiceConfiguration configuration)
         {
             if (configuration == null)
             {

@@ -1,0 +1,83 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net472</TargetFramework>
+    <AssemblyName>ControlEntradaSalida</AssemblyName>
+    <RootNamespace>ControlEntradaSalida</RootNamespace>
+    <LangVersion>10.0</LangVersion>
+    <Nullable>disable</Nullable>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute>
+    <ServiceDeployDir>$(MSBuildProjectDirectory)\..\..\门禁publish\ServicePackage\</ServiceDeployDir>
+    <RootBinDir>$(MSBuildProjectDirectory)\..\..\bin\</RootBinDir>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\AccessControl.Compatibility.Grpc\AccessControl.Compatibility.Grpc.csproj" />
+    <ProjectReference Include="..\AccessControl.Application\AccessControl.Application.csproj" />
+    <ProjectReference Include="..\AccessControl.Domain\AccessControl.Domain.csproj" />
+    <ProjectReference Include="..\AccessControl.Infrastructure.Hikvision\AccessControl.Infrastructure.Hikvision.csproj" />
+    <ProjectReference Include="..\AccessControl.Infrastructure.Observability\AccessControl.Infrastructure.Observability.csproj" />
+    <ProjectReference Include="..\AccessControl.Infrastructure.Security\AccessControl.Infrastructure.Security.csproj" />
+    <ProjectReference Include="..\AccessControl.Infrastructure.SqlServer\AccessControl.Infrastructure.SqlServer.csproj" />
+    <ProjectReference Include="..\AccessControl.Legacy\AccessControl.Legacy.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="System.ServiceProcess" />
+    <Reference Include="System.Configuration.Install" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\..\App.config" Link="App.config" />
+    <Content Include="..\..\Configuration\appsettings.json" Link="Configuration\appsettings.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="..\..\Native\*.*">
+      <Link>%(Filename)%(Extension)</Link>
+      <TargetPath>%(Filename)%(Extension)</TargetPath>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="..\..\Native\HCNetSDKCom\**\*.*">
+      <Link>HCNetSDKCom\%(RecursiveDir)%(Filename)%(Extension)</Link>
+      <TargetPath>HCNetSDKCom\%(RecursiveDir)%(Filename)%(Extension)</TargetPath>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="..\..\SqlServerTypes\**\*.*" Link="SqlServerTypes\%(RecursiveDir)%(Filename)%(Extension)">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+  <Target Name="CopyGrpcRuntimeLayout" AfterTargets="Build">
+    <MakeDir Directories="$(TargetDir)runtimes\win-x64\native" />
+    <MakeDir Directories="$(TargetDir)runtimes\win-x86\native" />
+    <Copy SourceFiles="$(TargetDir)grpc_csharp_ext.x64.dll"
+          DestinationFiles="$(TargetDir)runtimes\win-x64\native\grpc_csharp_ext.x64.dll"
+          SkipUnchangedFiles="true"
+          Condition="Exists('$(TargetDir)grpc_csharp_ext.x64.dll')" />
+    <Copy SourceFiles="$(TargetDir)grpc_csharp_ext.x86.dll"
+          DestinationFiles="$(TargetDir)runtimes\win-x86\native\grpc_csharp_ext.x86.dll"
+          SkipUnchangedFiles="true"
+          Condition="Exists('$(TargetDir)grpc_csharp_ext.x86.dll')" />
+  </Target>
+
+  <Target Name="SyncDeploymentArtifacts" AfterTargets="CopyGrpcRuntimeLayout">
+    <ItemGroup>
+      <BuiltOutput Include="$(TargetDir)**\*.*" />
+    </ItemGroup>
+    <MakeDir Directories="$(RootBinDir)" />
+    <MakeDir Directories="$(ServiceDeployDir)" />
+    <MakeDir Directories="$(ServiceDeployDir)app.publish" />
+    <Copy SourceFiles="@(BuiltOutput->'%(FullPath)')"
+          DestinationFiles="@(BuiltOutput->'$(RootBinDir)%(RecursiveDir)%(Filename)%(Extension)')"
+          SkipUnchangedFiles="true" />
+    <Copy SourceFiles="@(BuiltOutput->'%(FullPath)')"
+          DestinationFiles="@(BuiltOutput->'$(ServiceDeployDir)%(RecursiveDir)%(Filename)%(Extension)')"
+          SkipUnchangedFiles="true" />
+    <Copy SourceFiles="$(TargetPath)"
+          DestinationFiles="$(ServiceDeployDir)app.publish\$(TargetFileName)"
+          SkipUnchangedFiles="true" />
+  </Target>
+
+</Project>

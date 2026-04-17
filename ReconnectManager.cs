@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Timers;
 using System.Threading;
 using System.Threading.Tasks;
+using ControlEntradaSalida.Application.Abstractions;
 
 namespace ControlEntradaSalida
 {
@@ -168,6 +169,11 @@ namespace ControlEntradaSalida
 
                 _reconnectTimer.Interval = reconnectCheckIntervalMs;
             }
+        }
+
+        public void ApplyConfiguration(RuntimeReconnectOptions options)
+        {
+            ApplyConfiguration(LegacyRuntimeConfigurationMapper.ToLegacyOptions(options));
         }
         
         /// <summary>

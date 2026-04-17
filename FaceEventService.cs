@@ -10,6 +10,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using ControlEntradaSalida.Application.Abstractions;
 using ControlEntradaSalida.Configuration;
 
 namespace ControlEntradaSalida
@@ -118,15 +119,34 @@ namespace ControlEntradaSalida
         }
 
         public FaceEventService(ServiceConfiguration configuration)
+            : this(
+                configuration?.FaceEvent,
+                configuration?.DeviceConnection)
         {
             if (configuration == null)
             {
                 throw new ArgumentNullException(nameof(configuration));
             }
+        }
 
-            deviceSdkLockTimeoutMs = configuration.DeviceConnection?.DeviceSdkLockTimeoutMs ?? 30000;
+        public FaceEventService(RuntimeServiceConfiguration configuration)
+            : this(
+                LegacyRuntimeConfigurationMapper.ToLegacyOptions(configuration?.FaceEvent),
+                LegacyRuntimeConfigurationMapper.ToLegacyOptions(configuration?.DeviceConnection))
+        {
+            if (configuration == null)
+            {
+                throw new ArgumentNullException(nameof(configuration));
+            }
+        }
 
-            options = configuration.FaceEvent ?? new ServiceConfiguration.FaceEventOptions
+        private FaceEventService(
+            ServiceConfiguration.FaceEventOptions faceEventOptions,
+            ServiceConfiguration.DeviceConnectionOptions deviceConnectionOptions)
+        {
+            deviceSdkLockTimeoutMs = deviceConnectionOptions?.DeviceSdkLockTimeoutMs ?? 30000;
+
+            options = faceEventOptions ?? new ServiceConfiguration.FaceEventOptions
             {
                 Enabled = false,
                 QueueCapacity = 2000,

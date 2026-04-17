@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using ControlEntradaSalida.Application.Abstractions;
 
 namespace ControlEntradaSalida
 {
@@ -30,6 +31,17 @@ namespace ControlEntradaSalida
             this.store = store ?? throw new ArgumentNullException(nameof(store));
             this.refreshManager = refreshManager ?? throw new ArgumentNullException(nameof(refreshManager));
             processingDevices = new ConcurrentDictionary<int, byte>();
+        }
+
+        public DeviceOperationRetryManager(
+            RuntimeDeviceOperationRetryOptions options,
+            DeviceOperationRetryStore store,
+            PermissionRefreshManager refreshManager)
+            : this(
+                LegacyRuntimeConfigurationMapper.ToLegacyOptions(options),
+                store,
+                refreshManager)
+        {
         }
 
         public bool Enabled => options.Enabled;

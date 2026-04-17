@@ -1,0 +1,21 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net472</TargetFramework>
+    <LangVersion>10.0</LangVersion>
+    <Nullable>disable</Nullable>
+    <IsPackable>false</IsPackable>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MSTest" Version="4.0.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="..\\MSTestAssemblyConfiguration.cs" Link="MSTestAssemblyConfiguration.cs" />
+    <ProjectReference Include="..\..\src\AccessControl.Compatibility.Grpc\AccessControl.Compatibility.Grpc.csproj" />
+  </ItemGroup>
+
+</Project>
